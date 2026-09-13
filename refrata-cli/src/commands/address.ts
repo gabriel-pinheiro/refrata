@@ -1,0 +1,182 @@
+import { CommandError } from "@refrata/client";
+import { linkAt } from "@refrata/core";
+import type { CommandResult } from "@refrata/protocol";
+import type { Command } from "commander";
+
+import type { Cli } from "../cli.ts";
+import { parseValue } from "../connection.ts";
+import { resolveAddressNames, resolveId } from "../names.ts";
+import { formatWarnings } from "../result.ts";
+
+/** What one `trigger` Address came to: fired with what its Macro skipped, or refused. */
+export interface TriggerOutcome {
+  readonly address: string;
+  readonly ok: boolean;
+  /** How many actions the Macro holds, when the Address is a Macro's run. */
+  readonly actions?: number;
+  readonly warnings: readonly string[];
+  readonly error?: string;
+}
+
+/** "(5 actions, 1 skipped)" after a Macro run; nothing for another trigger. */
+function firedDetail(outcome: TriggerOutcome): string {
+  if (outcome.actions === undefined) return "";
+  const skipped = outcome.warnings.length;
+  return ` (${String(outcome.actions)} ${outcome.actions === 1 ? "action" : "actions"}${skipped === 0 ? "" : `, ${String(skipped)} skipped`})`;
+}
+
+export function registerAddress(program: Command, cli: Cli): void {
+  for (const [name, command, purpose] of [
+    [
+      "set",
+      "address.set",
+      "Write a performance value to an Address, e.g. set installation/blackout true. Not undoable.",
+    ],
+    [
+      "edit",
+      "address.edit",
+      "Change an Address while authoring, e.g. edit controller/Energy/value 0.5. Undoable, like the inspector.",
+    ],
+  ] as const) {
+    program
+      .command(`${name} <address> <value>`)
+      .description(purpose)
+      .action((address: string, value: string) =>
+        cli.withDocument(async (client, summary) => {
+          const { document } = await cli.replica(client, summary.id);
+          const resolved = resolveAddressNames(document, address);
+          const result = await client.command<CommandResult>(
+            summary.id,
+            command,
+            { address: resolved, value: parseValue(value) },
+          );
+          cli.print({ address: resolved, ...result }, () =>
+            result.changed
+              ? `${resolved} = ${value} (revision ${String(result.revision)})`
+              : "No change.",
+          );
+        }),
+      );
+  }
+
+  program
+    .command("link <controller> <address...>")
+    .description("Link a Controller to Addresses; one undoable step.")
+    .option("--from <number>", "target value at Controller 0 (number targets)")
+    .option("--to <number>", "target value at Controller 1 (number targets)")
+    .action(
+      (
+        controller: string,
+        addresses: string[],
+        local: { from?: string; to?: string },
+      ) =>
+        cli.withDocument(async (client, summary) => {
+          const { document } = await cli.replica(client, summary.id);
+          const controllerId = resolveId(document, "controllers", controller);
+          const resolved = addresses.map((address) =>
+            resolveAddressNames(document, address),
+          );
+          const anchors =
+            local.from === undefined || local.to === undefined
+              ? undefined
+              : { from: Number(local.from), to: Number(local.to) };
+          const result = await client.command<CommandResult>(
+            summary.id,
+            "link.create",
+            {
+              controllerId,
+              addresses: resolved,
+              ...(anchors ? { anchors } : {}),
+            },
+          );
+          cli.print({ controllerId, addresses: resolved, ...result }, () =>
+            result.changed
+              ? resolved.map((a) => `${a} → ${controllerId}`).join("\n")
+              : "No change.",
+          );
+        }),
+    );
+
+  program
+    .command("unlink <address...>")
+    .description(
+      "Release Addresses from their Controllers, one command each; each keeps its current value.",
+    )
+    .action((addresses: string[]) =>
+      cli.withDocument(async (client, summary) => {
+        const { document } = await cli.replica(client, summary.id);
+        const outcomes: { address: string; released: boolean }[] = [];
+        for (const typed of addresses) {
+          const address = resolveAddressNames(document, typed);
+          const link = linkAt(document, address);
+          if (link !== undefined)
+            await client.command(summary.id, "link.remove", {
+              linkId: link.id,
+            });
+          outcomes.push({ address, released: link !== undefined });
+        }
+        cli.print(outcomes, () =>
+          outcomes
+            .map((o) =>
+              o.released
+                ? `${o.address} released`
+                : `${o.address} is not linked`,
+            )
+            .join("\n"),
+        );
+      }),
+    );
+
+  program
+    .command("trigger <address...>")
+    .description(
+      "Fire trigger Addresses, one command each, such as macro/<id|name>/run. A Macro run says how many actions it holds and lists what it skipped; a refused Address fails the exit code.",
+    )
+    .action((addresses: string[]) =>
+      cli.withDocument(async (client, summary) => {
+        const { document } = await cli.replica(client, summary.id);
+        const outcomes: TriggerOutcome[] = [];
+        for (const typed of addresses) {
+          const address = resolveAddressNames(document, typed);
+          try {
+            const result = await client.command<CommandResult>(
+              summary.id,
+              "address.trigger",
+              { address },
+            );
+            const [kind, id = ""] = address.split("/");
+            const macro = kind === "macro" ? document.macros[id] : undefined;
+            outcomes.push({
+              address,
+              ok: true,
+              ...(macro?.kind === "macro"
+                ? { actions: macro.actions.length }
+                : {}),
+              warnings: result.warnings ?? [],
+            });
+          } catch (error) {
+            if (!(error instanceof CommandError)) throw error;
+            outcomes.push({
+              address,
+              ok: false,
+              warnings: [],
+              error: error.message,
+            });
+            process.exitCode = 1;
+          }
+        }
+        cli.print(outcomes, () =>
+          outcomes
+            .flatMap((o) =>
+              o.ok
+                ? [
+                    `${o.address} fired${firedDetail(o)}`,
+                    ...formatWarnings(o.warnings),
+                  ]
+                : [`${o.address}: ${o.error ?? "refused"}`],
+            )
+            .join("\n"),
+        );
+      }),
+    );
+}

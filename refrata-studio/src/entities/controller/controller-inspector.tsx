@@ -1,0 +1,241 @@
+import type { DocumentView } from "@refrata/client";
+import {
+  controllerAddress,
+  resolveAddress,
+  type Controller,
+  type Document,
+  type Link,
+  type NumberRange,
+  type Table,
+} from "@refrata/core";
+import { Link2Off, Plus } from "lucide-react";
+import { useEffect, useState, type KeyboardEvent } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { formatNumber, parseNumber } from "@/inspector/fields/address-format";
+import { AddressRow } from "@/inspector/fields/address-row";
+import { InspectorHeading } from "@/inspector/fields/inspector-heading";
+import { InspectorSection } from "@/inspector/fields/inspector-section";
+import { NameField } from "@/inspector/fields/name-field";
+import { useCommand, useDocumentPath, useSignal } from "@/lib/client";
+import { useSelection } from "@/selection/selection";
+
+import { LinkPicker } from "./link-picker";
+
+/**
+ * A Controller's name, its value as the same row any Address gets, and the
+ * Links it drives: each target with its owner, a number Link's mapping
+ * editable in place, unlink, and a picker to add many at once. A target's
+ * name wraps to a second line before it is cut, and the mapping fields move
+ * under it when the two do not fit side by side.
+ */
+export function ControllerInspector({
+  view,
+  id,
+}: {
+  readonly view: DocumentView;
+  readonly id: string;
+}) {
+  const command = useCommand(view);
+  const { select } = useSelection();
+  const controller = useDocumentPath<Controller>(view, ["controllers", id]);
+  const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
+  // Targets can be anywhere in the document, so their description reads all of it.
+  const document = useSignal(view.document);
+  const [picking, setPicking] = useState(false);
+
+  useEffect(() => {
+    if (controller === undefined) select({ kind: "installation" });
+  }, [controller, select]);
+  if (controller === undefined || document === undefined) return null;
+  const resolved = controllerAddress(controller);
+  const own = Object.values(links)
+    .filter((link) => link.controllerId === id)
+    .map((link) => ({ link, target: describeTarget(link, document) }))
+    .sort((a, b) => a.target.text.localeCompare(b.target.text));
+
+  return (
+    <>
+      <InspectorHeading name={controller.name} id={controller.id} />
+      <div className="grid gap-3 p-3">
+        <NameField
+          label="Name"
+          value={controller.name}
+          onCommit={(name) =>
+            void command("controller.rename", { controllerId: id, name })
+          }
+        />
+        {resolved !== undefined && controller.kind !== "group" && (
+          <AddressRow
+            resolved={resolved}
+            value={controller.value}
+            onEdit={(value) =>
+              command("address.edit", { address: resolved.address, value })
+            }
+          />
+        )}
+      </div>
+      {controller.kind !== "group" && (
+        <InspectorSection
+          storageKey="links"
+          label="Links"
+          actions={
+            <Button variant="ghost" size="xs" onClick={() => setPicking(true)}>
+              <Plus /> Add link…
+            </Button>
+          }
+        >
+          {own.length === 0 ? (
+            <p className="text-[0.6875rem]/relaxed text-muted-foreground">
+              Nothing is controlled by {controller.name} yet. Add links here, or
+              from a Parameter row's link menu.
+            </p>
+          ) : (
+            <ul className="grid gap-1" aria-label="Links">
+              {own.map(({ link, target }) => (
+                <li
+                  key={link.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2"
+                >
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                    <span
+                      className="line-clamp-2 min-w-0 flex-1 basis-40 py-0.5 text-left text-xs wrap-anywhere"
+                      title={target.text}
+                    >
+                      <span className="text-muted-foreground">
+                        {target.owner}
+                      </span>{" "}
+                      <span className="text-muted-foreground/60">·</span>{" "}
+                      {target.label}
+                    </span>
+                    {link.anchors !== null && target.range !== undefined && (
+                      <div className="flex items-center gap-1">
+                        <AnchorField
+                          label={`${target.label} at 0%`}
+                          value={link.anchors.from}
+                          range={target.range}
+                          onCommit={(from) =>
+                            void command("link.update", {
+                              linkId: link.id,
+                              anchors: { from, to: link.anchors?.to ?? 0 },
+                            })
+                          }
+                        />
+                        <span className="text-[0.625rem] text-muted-foreground">
+                          →
+                        </span>
+                        <AnchorField
+                          label={`${target.label} at 100%`}
+                          value={link.anchors.to}
+                          range={target.range}
+                          onCommit={(to) =>
+                            void command("link.update", {
+                              linkId: link.id,
+                              anchors: { from: link.anchors?.from ?? 0, to },
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label={`Unlink ${target.text}`}
+                          onClick={() =>
+                            void command("link.remove", { linkId: link.id })
+                          }
+                        />
+                      }
+                    >
+                      <Link2Off />
+                    </TooltipTrigger>
+                    <TooltipContent>Unlink</TooltipContent>
+                  </Tooltip>
+                </li>
+              ))}
+            </ul>
+          )}
+        </InspectorSection>
+      )}
+      {picking && controller.kind !== "group" && (
+        <LinkPicker
+          view={view}
+          controller={controller}
+          onClose={() => setPicking(false)}
+        />
+      )}
+    </>
+  );
+}
+
+interface Target {
+  readonly text: string;
+  readonly owner: string;
+  readonly label: string;
+  readonly range?: NumberRange | undefined;
+}
+
+/** What a Link points at, in words: its owner and the property. A Link whose target is gone shows its Address. */
+function describeTarget(link: Link, document: Document): Target {
+  const resolved = resolveAddress(document, link.address);
+  if (resolved === undefined)
+    return { text: link.address, owner: link.address, label: "" };
+  const owner = resolved.owner ?? "Installation";
+  return {
+    text: `${owner} · ${resolved.label}`,
+    owner,
+    label: resolved.label,
+    range: resolved.range,
+  };
+}
+
+/** One anchor of a number Link: typed in the target's units, clamped to its range. */
+function AnchorField({
+  label,
+  value,
+  range,
+  onCommit,
+}: {
+  readonly label: string;
+  readonly value: number;
+  readonly range: NumberRange;
+  readonly onCommit: (value: number) => void;
+}) {
+  const shown = formatNumber(value, range);
+  const [draft, setDraft] = useState<string | undefined>(undefined);
+  const finish = (cancel: boolean): void => {
+    if (!cancel && draft !== undefined) {
+      const parsed = parseNumber(draft, range);
+      if (parsed !== undefined && parsed !== value) onCommit(parsed);
+    }
+    setDraft(undefined);
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === "Enter") finish(false);
+    else if (event.key === "Escape") finish(true);
+    else return;
+    event.preventDefault();
+  };
+  return (
+    <Input
+      aria-label={label}
+      title={label}
+      className="h-5 w-14 px-1 text-right text-[0.6875rem] tabular-nums"
+      value={draft ?? shown}
+      onFocus={() => setDraft(shown)}
+      onChange={(event) => setDraft(event.currentTarget.value)}
+      onBlur={() => finish(false)}
+      onKeyDown={onKeyDown}
+    />
+  );
+}

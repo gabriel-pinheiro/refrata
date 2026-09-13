@@ -1,0 +1,91 @@
+import type { DocumentView } from "@refrata/client";
+import {
+  linkAt,
+  linkable,
+  listAddresses,
+  type Controller,
+  type Document,
+} from "@refrata/core";
+import { useMemo } from "react";
+
+import {
+  AddressPicker,
+  type PickerCandidate,
+} from "@/inspector/fields/address-picker";
+import { useCommand, useSignal } from "@/lib/client";
+
+/**
+ * Picks the Addresses a Controller will drive: every compatible one in the
+ * Installation, grouped by what owns it, and linked in one step. Built for
+ * "this Controller onto the same Parameter of thirty things": type two
+ * words, select all, link.
+ */
+export function LinkPicker({
+  view,
+  controller,
+  onClose,
+}: {
+  readonly view: DocumentView;
+  readonly controller: Controller & { readonly kind: "number" | "color" };
+  readonly onClose: () => void;
+}) {
+  const command = useCommand(view);
+  const document = useSignal(view.document);
+  const candidates = useMemo(
+    () => (document === undefined ? [] : collect(document, controller)),
+    [document, controller],
+  );
+  return (
+    <AddressPicker
+      title={`Link to ${controller.name}`}
+      testId="link-picker"
+      candidates={candidates}
+      empty="Nothing in the Installation can be linked yet."
+      submitLabel={(count) => `Link ${count > 0 ? String(count) : ""}`}
+      onSubmit={(addresses) =>
+        void command("link.create", { controllerId: controller.id, addresses })
+      }
+      onClose={onClose}
+    />
+  );
+}
+
+/** Every Address the Controller could drive, grouped by the table that owns it. */
+function collect(
+  document: Document,
+  controller: Controller & { readonly kind: "number" | "color" },
+): PickerCandidate[] {
+  const result: PickerCandidate[] = [];
+  for (const resolved of listAddresses(document)) {
+    if (!linkable(resolved, controller.kind)) continue;
+    const group = headingOf(resolved.path[0] ?? "");
+    const owner = resolved.owner ?? "";
+    const existing = linkAt(document, resolved.address);
+    const elsewhere =
+      existing === undefined || existing.controllerId === controller.id
+        ? undefined
+        : (document.controllers[existing.controllerId]?.name ?? "another");
+    result.push({
+      key: resolved.address,
+      group,
+      owner,
+      label: resolved.label,
+      haystack: `${group} ${owner} ${resolved.label}`.toLowerCase(),
+      taken: existing?.controllerId === controller.id ? "linked" : undefined,
+      note:
+        elsewhere === undefined
+          ? undefined
+          : {
+              text: elsewhere,
+              title: `Controlled by ${elsewhere}; linking moves it here`,
+            },
+    });
+  }
+  return result;
+}
+
+/** The heading a document table is listed under, capitalized from its name. */
+function headingOf(table: string): string {
+  if (table === "operational") return "Installation";
+  return table.charAt(0).toUpperCase() + table.slice(1);
+}

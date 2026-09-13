@@ -1,0 +1,16 @@
+{
+  "name": "@refrata/client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@refrata/core": "0.0.0",
+    "@refrata/protocol": "0.0.0"
+  }
+}
