@@ -42,7 +42,7 @@ Fixture using it goes, so an Installation opens the same on another machine.
               "encode": { "multiply": ["red", "green", "blue"] }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": { "color": ["red", "green", "blue"] }
             }
@@ -130,7 +130,7 @@ the Mode has no `strobe` Parameter and strobing is a Visual's job.
             }
           },
           "color": {
-            "default": [1, 1, 1, 1],
+            "default": [0, 0, 0, 1],
             "highlight": [1, 1, 1, 1],
             "encode": {
               "color": ["panel-1-red", "panel-1-green", "panel-1-blue"]

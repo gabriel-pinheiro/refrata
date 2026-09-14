@@ -17,8 +17,10 @@ lighting version needs an equivalent "pixel". It is:
 > **alpha** from 0 to 1.
 
 Every kind of Parameter gets an alpha, not only colour. A colour with alpha 0.3
-is a translucent tint; a number with alpha 0.3 is a 30 % crossfade toward that
-value; a choice with alpha below one half is ignored. Alpha 0 is the
+is a translucent tint (and a colour value's own fourth component multiplies
+into it, so the colour picker's alpha is that tint); a number with alpha 0.3
+is a 30 % crossfade toward that value; a choice with alpha below one half is
+ignored. Alpha 0 is the
 **release** the brief asks for: a Layer that says nothing about a Parameter
 leaves whatever is below untouched. That one generalization is what makes
 "transparency works for colour but numbers need release" go away: release is

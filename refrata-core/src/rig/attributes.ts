@@ -62,7 +62,7 @@ export const ATTRIBUTES = {
     label: "Color",
     family: "color",
     kind: "color",
-    default: [1, 1, 1, 1],
+    default: [0, 0, 0, 1],
   },
   strobe: {
     key: "strobe",

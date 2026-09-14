@@ -37,7 +37,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["red", "green", "blue"]
@@ -228,7 +228,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-1-red", "panel-1-green", "panel-1-blue"]
@@ -248,7 +248,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-2-red", "panel-2-green", "panel-2-blue"]
@@ -268,7 +268,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-3-red", "panel-3-green", "panel-3-blue"]
@@ -288,7 +288,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-4-red", "panel-4-green", "panel-4-blue"]
@@ -308,7 +308,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-5-red", "panel-5-green", "panel-5-blue"]
@@ -328,7 +328,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-6-red", "panel-6-green", "panel-6-blue"]
@@ -348,7 +348,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-7-red", "panel-7-green", "panel-7-blue"]
@@ -368,7 +368,7 @@
               }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": {
                 "color": ["panel-8-red", "panel-8-green", "panel-8-blue"]

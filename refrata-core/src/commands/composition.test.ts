@@ -545,6 +545,15 @@ describe("Resolve", () => {
     }).document;
     expect(resolved(own, "strobe/panel-2")?.dimmer).toBe(1);
 
+    // A colour's own alpha tints: white at 10 % over Base's green is a faint wash.
+    const faint = run(document, "layer.row.set", {
+      layerId: "spot",
+      targets: ["strobe/panel-3"],
+      attribute: "color",
+      value: [1, 1, 1, 0.1],
+    }).document;
+    expect(resolved(faint, "strobe/panel-3")?.color).toEqual([0.1, 1, 0.1, 1]);
+
     // Opacity is the fader; a disabled Group hides what it holds.
     const half = run(document, "address.edit", {
       address: "layer/spot/opacity",
@@ -609,7 +618,7 @@ describe("Resolve", () => {
     ]);
     expect(resolved(none, "par/root")).toEqual({
       dimmer: 0,
-      color: [1, 1, 1, 1],
+      color: [0, 0, 0, 1],
     });
   });
 

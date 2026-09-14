@@ -297,7 +297,10 @@ a channel value 0 to 255 in a scene.
 
 The Parameter Value a Parameter takes when nothing sets it: the state the
 fixture rests in. Defaults are declared by the Mode and are what a fresh Installation
-outputs: shutter open, dimmer zero, pan and tilt centred, control "no function".
+outputs: shutter open, dimmer zero, colour black, pan and tilt centred,
+control "no function". Colour rests at black so a tint Layer over nothing
+reads as that colour dimmed, not as a wash over white; open white is a
+Look Layer's job.
 
 **Elsewhere:** grandMA3 default values in the fixture type; QLC+ default channel
 values in the definition.
@@ -352,8 +355,9 @@ them to a programmer.
 Two fixed rules of the first build: a `color` landing on red, green, blue and
 white emitters takes the white as the smallest of the three and subtracts it
 from each of them, so the hue stays exact (a setting to choose otherwise is
-deferred); and the alpha of a Color value is ignored, since Encoding sees one
-colour, not a blend.
+deferred); and Encoding ignores the alpha of the resolved colour, since it
+sees one colour, not a blend. A Look row's colour alpha is spent earlier, in
+Resolve, where it weighs the Contribution.
 
 **Elsewhere:** GDTF channel functions with physical from/to plus relations of
 type Multiply and mode masters; QLC+ capabilities (byte ranges with names) with
@@ -615,7 +619,9 @@ of four kinds: Look Layer, Visual Layer, Filter Layer or Group.
 The static Visual: a Layer whose rows are not declared by code but derived
 from its Targets, one row per Attribute found across their Elements. Rows are
 stored per Target, an Element or a Fixture Set: one row per Attribute, each a
-value (with an alpha stored for later, read as 1 today), released when absent.
+value (with an alpha stored for later, read as 1 today; a colour's own alpha
+weighs the row instead, so green at 10 % is a faint green), released when
+absent.
 Beside them the Layer holds its "All Targets" rows, one per Attribute found
 across the Targets: every Target takes them unless it has its own row for
 that Attribute, which overrides. A Set Target's rows fan to its members, so a

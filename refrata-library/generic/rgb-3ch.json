@@ -23,7 +23,7 @@
               "encode": { "multiply": ["red", "green", "blue"] }
             },
             "color": {
-              "default": [1, 1, 1, 1],
+              "default": [0, 0, 0, 1],
               "highlight": [1, 1, 1, 1],
               "encode": { "color": ["red", "green", "blue"] }
             }

@@ -266,7 +266,7 @@ describe("live protocol", () => {
     await waitFor(() => view.resolvedAt("par/root"));
     expect(view.resolvedAt("par/root")).toEqual({
       dimmer: 0,
-      color: [1, 1, 1, 1],
+      color: [0, 0, 0, 1],
     });
     studio.input(created.id, "element/par/root/highlight", true);
     await waitFor(() =>

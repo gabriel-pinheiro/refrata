@@ -4,9 +4,11 @@ import type { BlendMode } from "../document/composition.ts";
 /**
  * How one Contribution combines with what is accumulated below it, per
  * Parameter kind, at an effective alpha `a` (the Contribution's alpha times
- * the Layer's opacity). Numbers and colours crossfade, add, multiply, or
- * lean toward the max or min; choices and booleans take the value from
- * alpha one half up, whatever the mode, since they cannot crossfade.
+ * the Layer's opacity). A colour's own alpha component weighs in too, so a
+ * green at 10 % is a faint green over what is below and a colour at alpha
+ * 0 says nothing. Numbers and colours crossfade, add, multiply, or lean
+ * toward the max or min; choices and booleans take the value from alpha
+ * one half up, whatever the mode, since they cannot crossfade.
  */
 export function blendValue(
   kind: ParameterKind,
@@ -51,17 +53,22 @@ export function blendNumber(
   }
 }
 
-/** Red, green and blue blend like numbers; the colour's own alpha stays what the stack had (Encoding ignores it). */
+/**
+ * Red, green and blue blend like numbers at `a` times the colour's own
+ * alpha; the stack's alpha channel stays what it had (Encoding ignores it).
+ */
 function blendColor(
   out: Color,
   value: Color,
   a: number,
   mode: BlendMode,
 ): Color {
+  const weight = a * Math.min(1, Math.max(0, value[3]));
+  if (weight <= 0) return out;
   return [
-    blendNumber(out[0], value[0], a, mode),
-    blendNumber(out[1], value[1], a, mode),
-    blendNumber(out[2], value[2], a, mode),
+    blendNumber(out[0], value[0], weight, mode),
+    blendNumber(out[1], value[1], weight, mode),
+    blendNumber(out[2], value[2], weight, mode),
     out[3],
   ];
 }

@@ -95,7 +95,7 @@ describe("OutputLoop", () => {
     expect(loop.frame(universeId)).toHaveLength(512);
     expect(loop.resolved().get("strobe/panel-1")).toEqual({
       dimmer: 0,
-      color: [1, 1, 1, 1],
+      color: [0, 0, 0, 1],
     });
     session.execute(
       "address.set",

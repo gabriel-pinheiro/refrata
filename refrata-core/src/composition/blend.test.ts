@@ -22,10 +22,16 @@ describe("blend", () => {
     expect(blendValue("boolean", false, true, 1, "normal")).toBe(true);
   });
 
-  it("blends colours per channel and keeps the stack's own alpha channel", () => {
+  it("blends colours per channel, weighed by the colour's own alpha, keeping the stack's alpha channel", () => {
+    expect(
+      blendValue("color", [0, 0, 0, 1], [1, 0.5, 0, 1], 0.5, "normal"),
+    ).toEqual([0.5, 0.25, 0, 1]);
     expect(
       blendValue("color", [0, 0, 0, 1], [1, 0.5, 0, 0.2], 0.5, "normal"),
-    ).toEqual([0.5, 0.25, 0, 1]);
+    ).toEqual([0.1, 0.05, 0, 1]);
+    expect(
+      blendValue("color", [0.3, 0.3, 0.3, 1], [1, 1, 1, 0], 1, "normal"),
+    ).toEqual([0.3, 0.3, 0.3, 1]);
     expect(
       blendValue("color", [0.5, 0.5, 0.5, 1], [1, 0, 0, 1], 1, "multiply"),
     ).toEqual([0.5, 0, 0, 1]);
