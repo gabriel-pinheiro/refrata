@@ -24,7 +24,9 @@ audience sees it, `y` up, `z` toward the audience. The front view uses `x`,
 2D views, a 3D view and the geometry Visuals in
 docs/moving-heads-and-geometry.md read the same numbers later.
 
-A new Fixture sits at the origin until dragged. Dragging is an undoable
+A new Fixture lands one shape width to the right of the rightmost existing
+Fixture, on the floor line, so ten new pars read as a row instead of a pile at
+the origin; the first Fixture lands at the origin. Dragging is an undoable
 command on the Fixture; there is no snap in v1. Elements have no Position of
 their own.
 
@@ -54,15 +56,23 @@ deferred until one does.
 
 Why templates rather than free geometry: a fixture author writes one word and
 two Tags, an importer needs no layout algorithm, and a custom "Atomic-like"
-type reuses `strobe-backlight` by naming it.
+type reuses `strobe-backlight` by naming it. The rig's ST-960 strobe in its
+32ch Mode is `strobe-backlight(8, 8)`: eight white Sections over eight RGB
+Panels.
+
+The view is drawn with SVG: click, hover and drag come with the elements, and
+a rig of a few hundred shapes is nothing for it.
 
 ## Data flow
 
-The Runtime already resolves every Element's Parameters at the Output rate.
-The Resolved Stream sends a Studio session the values a view asked for,
-coalesced to twenty updates per second, the rate web games use for state
-replication. The Rig View subscribes to `color` and `dimmer` of the placed
-Elements; an inspector row subscribes to what it shows. In slice 1 the stream
+The Runtime already resolves every Element's Parameters at the Output rate,
+`output.rateHz` in settings, 40 to start. The Resolved Stream sends a Studio
+session the values of the Fixtures it subscribed to, a full set first and then
+only what changed, coalesced to `stream.rateHz`, 20 to start, the rate web
+games use for state replication, and never above the Output rate. Subscribing
+by Fixture rather than by Element and Attribute means the Rig View and an
+inspector on the same Fixture share one subscription, and a 32-channel strobe
+costs seventeen Elements times two or three values. In slice 1 the stream
 carries Defaults and Highlight only, which is enough to see a fixture light up
 when highlighted. Nothing about the stream is saved.
 

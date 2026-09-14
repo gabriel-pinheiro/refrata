@@ -49,10 +49,39 @@ export function StatusStrip() {
 
 function DocumentStatus({ view }: { readonly view: DocumentView }) {
   const osc = useDocumentPath<LiveState["osc"]>(view, ["live", "osc"]);
+  const dmx = useDocumentPath<LiveState["dmx"]>(view, ["live", "dmx"]);
+  const outputs =
+    useDocumentPath<LiveState["outputs"]>(view, ["live", "outputs"]) ?? {};
   const blackout =
     useDocumentPath<boolean>(view, ["operational", "blackout"]) ?? false;
+  const statuses = Object.values(outputs);
+  const delivering = statuses.filter(
+    (status) => status.state === "delivering",
+  ).length;
   return (
     <>
+      {dmx !== undefined && (
+        <span
+          title="Output loop rate and the frames resolved per second"
+          className="tabular-nums"
+        >
+          DMX {String(dmx.fps)}/{String(dmx.rateHz)} fps
+        </span>
+      )}
+      {statuses.length > 0 && (
+        <span
+          title={statuses
+            .map((status) => status.message ?? status.state)
+            .join("; ")}
+          className={cn(
+            delivering < statuses.length && "text-amber-400",
+            "tabular-nums",
+          )}
+        >
+          {String(delivering)}/{String(statuses.length)}{" "}
+          {statuses.length === 1 ? "output" : "outputs"} delivering
+        </span>
+      )}
       {osc?.port != null && (
         <span title="OSC and OSCQuery port, and the OSCQuery clients connected">
           OSC {String(osc.port)} · {String(osc.listeners)}{" "}

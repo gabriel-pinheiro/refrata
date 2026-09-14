@@ -12,6 +12,8 @@ export interface RuntimeConfig {
   /** The file to open at startup, if any. The runtime opens nothing else. */
   readonly openPath: string | undefined;
   readonly studioDist: string | undefined;
+  /** Where the bundled Fixture Type files live. */
+  readonly libraryDir: string;
   readonly autosaveIntervalMs: number;
   /** OSC and OSCQuery port; undefined keeps the door closed. */
   readonly oscPort: number | undefined;
@@ -54,6 +56,8 @@ export function configFromEnvironment(
     studioDist:
       env.REFRATA_STUDIO_DIST ??
       path.join(packageRoot, "refrata-studio", "dist"),
+    libraryDir:
+      env.REFRATA_LIBRARY_DIR ?? path.join(packageRoot, "refrata-library"),
     autosaveIntervalMs: settings.autosave.delayMs,
     oscPort:
       values["no-osc"] === true || env.REFRATA_NO_OSC === "1"

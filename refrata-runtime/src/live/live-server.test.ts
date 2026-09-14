@@ -3,6 +3,7 @@ import {
   createBuiltInRegistry,
   defineCommand,
   type CommandDefinition,
+  type FixtureType,
 } from "@refrata/core";
 import {
   PROTOCOL_VERSION,
@@ -10,6 +11,8 @@ import {
   type ServerMessage,
 } from "@refrata/protocol";
 import { EventEmitter } from "node:events";
+
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -18,8 +21,32 @@ import type { WebSocket } from "ws";
 import { z } from "zod";
 
 import { DocumentStore } from "../documents/document-store.ts";
+import { OutputManager } from "../output/output-manager.ts";
+import { fakeSerialFactory } from "../output/fake-serial.ts";
+import { FixtureLibrary } from "../rig/library.ts";
+import { OutputLoop } from "../rig/output-loop.ts";
 import { buildRuntime, type Runtime } from "../server.ts";
 import { LiveServer } from "./live-server.ts";
+
+/** A LiveServer over `store` with an idle output loop and an empty library. */
+function liveServer(
+  store: DocumentStore,
+  log: (message: string) => void,
+): LiveServer {
+  const outputs = new OutputManager({
+    factory: () => Promise.resolve(fakeSerialFactory([]).factory),
+    log,
+  });
+  return new LiveServer({
+    store,
+    runtimeName: "test",
+    runtimeVersion: "0",
+    log,
+    library: new FixtureLibrary(log),
+    loop: new OutputLoop({ store, outputs }),
+    outputs,
+  });
+}
 
 /** A `ws` socket as the LiveServer sees it, driven from the test. */
 class FakeSocket extends EventEmitter {
@@ -52,6 +79,7 @@ class FakeSocket extends EventEmitter {
 let dir: string;
 let runtime: Runtime;
 let url: string;
+const rgbType = rgbJson as unknown as FixtureType;
 
 function waitFor<TValue>(
   read: () => TValue | undefined,
@@ -78,6 +106,7 @@ beforeEach(async () => {
     projectsDir: dir,
     openPath: undefined,
     studioDist: undefined,
+    libraryDir: path.join(dir, "no-library"),
     autosaveIntervalMs: 60_000,
     oscPort: undefined,
   });
@@ -192,13 +221,64 @@ describe("live protocol", () => {
     // OSC is off in this runtime, so the live state is the empty door.
     expect(studioView.liveState.get()).toEqual({
       osc: { port: null, listeners: 0 },
+      outputs: {},
+      dmx: { rateHz: 40, fps: 0 },
     });
     expect(studioView.valueAt(["live", "osc", "port"])).toBeNull();
     expect(cliView.liveState.get()).toEqual({
       osc: { port: null, listeners: 0 },
+      outputs: {},
+      dmx: { rateHz: 0, fps: 0 },
     });
     studio.close();
     cli.close();
+  });
+
+  it("streams resolved values, answers frame and library requests", async () => {
+    runtime.library.add(rgbType);
+    const studio = new RefrataClient({ url, kind: "studio", reconnect: false });
+    await waitFor(() =>
+      studio.phase.get() === "connected" ? true : undefined,
+    );
+    const created = await studio.request<{ id: string }>("documents.new", {
+      name: "Club",
+    });
+    const view = studio.openDocument(created.id, { live: true });
+    await waitFor(() => view.get());
+    const listed = await studio.request<{ types: { key: string }[] }>(
+      "library.list",
+      {},
+    );
+    expect(listed.types.map((type) => type.key)).toEqual(["generic/rgb-3ch"]);
+    const fetched = await studio.request<{ type: { key: string } }>(
+      "library.get",
+      { key: "generic/rgb-3ch" },
+    );
+    expect(fetched.type.key).toBe("generic/rgb-3ch");
+    await studio.command(created.id, "fixture.create", {
+      id: "par",
+      typeKey: "generic/rgb-3ch",
+      modeKey: "3ch",
+      fixtureType: fetched.type,
+    });
+    const universeId = Object.keys(view.get()?.universes ?? {})[0] ?? "";
+    studio.stream(created.id, ["par"]);
+    await waitFor(() => view.resolvedAt("par/root"));
+    expect(view.resolvedAt("par/root")).toEqual({
+      dimmer: 0,
+      color: [1, 1, 1, 1],
+    });
+    studio.input(created.id, "element/par/root/highlight", true);
+    await waitFor(() =>
+      view.resolvedAt("par/root")?.dimmer === 1 ? true : undefined,
+    );
+    const frame = await studio.request<{ bytes: number[] }>("dmx.frame", {
+      documentId: created.id,
+      universeId,
+    });
+    expect(frame.bytes.slice(0, 4)).toEqual([255, 255, 255, 0]);
+    expect(frame.bytes).toHaveLength(512);
+    studio.close();
   });
 
   it("replaces the document and refuses to drop unsaved changes silently", async () => {
@@ -290,12 +370,7 @@ describe("live protocol", () => {
     );
     const store = new DocumentStore({ projectsDir: dir, registry });
     const logged: string[] = [];
-    const live = new LiveServer({
-      store,
-      runtimeName: "test",
-      runtimeVersion: "0",
-      log: (message) => logged.push(message),
-    });
+    const live = liveServer(store, (message) => logged.push(message));
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
     const socket = new FakeSocket();
@@ -344,12 +419,7 @@ describe("live protocol", () => {
       projectsDir: dir,
       registry: createBuiltInRegistry(),
     });
-    const live = new LiveServer({
-      store,
-      runtimeName: "test",
-      runtimeVersion: "0",
-      log: () => undefined,
-    });
+    const live = liveServer(store, () => undefined);
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
     const socket = new FakeSocket();

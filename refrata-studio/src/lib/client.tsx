@@ -67,16 +67,18 @@ export function useSignal<TValue>(signal: ReadonlySignal<TValue>): TValue {
   );
 }
 
+const PATH_SEPARATOR = "\u0000";
+
 /** Re-renders only when a delta touches `path`. */
 export function useDocumentPath<TValue>(
   view: DocumentView,
   path: PatchPath,
 ): TValue | undefined {
-  const key = path.join("/");
-  // `key` stands in for `path` so a fresh array literal does not resubscribe.
-
+  // `key` stands in for `path` so a fresh array literal does not resubscribe;
+  // the separator is one no segment can contain (a Fixture Type key has "/").
+  const key = path.join(PATH_SEPARATOR);
   const signal = useMemo(
-    () => view.at<TValue>(key === "" ? [] : key.split("/")),
+    () => view.at<TValue>(key === "" ? [] : key.split(PATH_SEPARATOR)),
     [view, key],
   );
   return useSignal(signal);

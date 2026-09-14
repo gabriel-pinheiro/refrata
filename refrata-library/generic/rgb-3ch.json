@@ -1,0 +1,35 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "generic/rgb-3ch",
+  "manufacturer": "Generic",
+  "model": "RGB 3ch",
+  "modes": {
+    "3ch": {
+      "name": "3ch",
+      "channels": [
+        { "key": "red", "element": "root" },
+        { "key": "green", "element": "root" },
+        { "key": "blue", "element": "root" }
+      ],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "RGB",
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": { "multiply": ["red", "green", "blue"] }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": { "color": ["red", "green", "blue"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

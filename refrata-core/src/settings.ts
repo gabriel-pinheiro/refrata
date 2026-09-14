@@ -46,5 +46,27 @@ export const settings = {
   },
   cli: {
     connectTimeoutMs: 3_000,
+    /** How long `refrata highlight` holds an Element lit before releasing it. */
+    highlightHoldMs: 2_000,
+  },
+  output: {
+    /** Resolve and DMX Frame rate; every frame goes to every Output. */
+    rateHz: 40,
+    /** How long the break line is held before a frame on an Open DMX widget. */
+    openDmxBreakMs: 1,
+  },
+  stream: {
+    /** Resolved Stream coalescing rate toward Studio; never above `output.rateHz`. */
+    rateHz: 20,
+  },
+  highlight: {
+    /** A held highlight is released by the runtime after this, in case the client vanished. */
+    timeoutMs: 30_000,
+  },
+  rigView: {
+    /** Side of one schematic shape cell, in metres; templates are laid out in these. */
+    cellMetres: 0.25,
+    /** Gap between a new Fixture and the rightmost existing one, in metres. */
+    placementGapMetres: 0.25,
   },
 } as const;

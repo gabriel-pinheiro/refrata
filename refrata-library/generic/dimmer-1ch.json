@@ -1,0 +1,26 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "generic/dimmer-1ch",
+  "manufacturer": "Generic",
+  "model": "Dimmer 1ch",
+  "modes": {
+    "1ch": {
+      "name": "1ch",
+      "channels": [{ "key": "dimmer", "element": "root" }],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "Dimmer",
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": { "scale": "dimmer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

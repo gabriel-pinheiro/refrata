@@ -1,0 +1,283 @@
+import { describe, expect, it } from "vitest";
+
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/showtech/st-960.json" with { type: "json" };
+import { listAddresses, resolveAddress } from "../address/address.ts";
+import { executeCommand } from "../command/execute.ts";
+import { emptyDocument, type Document } from "../document/document.ts";
+import { orderedEntries } from "../document/order.ts";
+import { applyPatches } from "../document/patch.ts";
+import type { PatchedFixture } from "../document/rig.ts";
+import { formatFrame, resolveDocument, universeFrame } from "../rig/frames.ts";
+import { createBuiltInRegistry } from "./index.ts";
+
+const registry = createBuiltInRegistry();
+
+function run(document: Document, name: string, payload: unknown) {
+  const result = executeCommand(registry, document, name, payload);
+  if (!result.ok) throw new Error(result.error);
+  return result;
+}
+
+function failure(document: Document, name: string, payload: unknown): string {
+  const result = executeCommand(registry, document, name, payload);
+  if (result.ok) throw new Error(`${name} was accepted.`);
+  return result.error;
+}
+
+function universeId(document: Document): string {
+  return orderedEntries(document.universes)[0]?.id ?? "";
+}
+
+function fixture(document: Document, id: string): PatchedFixture {
+  const row = document.fixtures[id];
+  if (row?.kind !== "fixture") throw new Error(`no fixture ${id}`);
+  return row;
+}
+
+function stage(): Document {
+  let document = emptyDocument("Club");
+  document = run(document, "fixture.create", {
+    id: "par",
+    typeKey: "generic/rgb-3ch",
+    modeKey: "3ch",
+    fixtureType: rgbJson,
+    name: "Par",
+  }).document;
+  document = run(document, "fixture.create", {
+    id: "strobe",
+    typeKey: "showtech/st-960",
+    modeKey: "32ch",
+    fixtureType: strobeJson,
+    name: "Strobe",
+  }).document;
+  return document;
+}
+
+describe("Universes and Outputs", () => {
+  it("start with Universe 1 and number the next", () => {
+    let document = emptyDocument("Club");
+    expect(Object.values(document.universes).map((u) => u.name)).toEqual([
+      "Universe 1",
+    ]);
+    document = run(document, "universe.create", { id: "u2" }).document;
+    expect(document.universes.u2?.name).toBe("Universe 2");
+    expect(orderedEntries(document.universes).at(-1)?.id).toBe("u2");
+    document = run(document, "universe.rename", {
+      universeId: "u2",
+      name: "Floor",
+    }).document;
+    expect(document.universes.u2?.name).toBe("Floor");
+    expect(
+      run(document, "universe.create", { name: "Floor" }).document.universes,
+    ).toSatisfy((table: Record<string, { name: string }>) =>
+      Object.values(table).some((u) => u.name === "Floor 1"),
+    );
+  });
+
+  it("route a Universe through an Output and take both away", () => {
+    let document = stage();
+    const first = universeId(document);
+    document = run(document, "output.create", {
+      id: "o",
+      universeId: first,
+      kind: "enttec-open-dmx",
+    }).document;
+    expect(document.outputs.o).toMatchObject({ device: "any" });
+    document = run(document, "output.update", {
+      outputId: "o",
+      device: "AB12",
+    }).document;
+    expect(document.outputs.o?.device).toBe("AB12");
+    expect(
+      failure(document, "output.create", {
+        universeId: "nope",
+        kind: "enttec-usb-pro",
+      }),
+    ).toContain("does not exist");
+    const removal = run(document, "universe.remove", { universeId: first });
+    expect(removal.warnings).toEqual([
+      "Unpatched 2 Fixtures from Universe 1",
+      "Removed 1 Output",
+    ]);
+    expect(fixture(removal.document, "par").patch).toBeNull();
+    expect(removal.document.outputs.o).toBeUndefined();
+    expect(applyPatches(removal.document, removal.inverse)).toEqual(document);
+  });
+});
+
+describe("Fixtures", () => {
+  it("copy the type in, patch at the next free address and place to the right", () => {
+    const document = stage();
+    expect(Object.keys(document.fixtureTypes).sort()).toEqual([
+      "generic/rgb-3ch",
+      "showtech/st-960",
+    ]);
+    expect(fixture(document, "par").patch).toEqual({
+      universeId: universeId(document),
+      address: 1,
+    });
+    expect(fixture(document, "strobe").patch?.address).toBe(4);
+    expect(fixture(document, "par").position.x).toBe(0);
+    expect(fixture(document, "strobe").position.x).toBeGreaterThan(0.5);
+    expect(
+      failure(document, "fixture.create", {
+        typeKey: "generic/rgbw-4ch",
+        modeKey: "4ch",
+      }),
+    ).toContain("pass fixtureType");
+    const reused = run(document, "fixture.create", {
+      id: "par2",
+      typeKey: "generic/rgb-3ch",
+      modeKey: "3ch",
+    });
+    expect(reused.document.fixtures.par2?.name).toBe("RGB 3ch");
+    expect(fixture(reused.document, "par2").patch?.address).toBe(36);
+  });
+
+  it("refuse overlapping patches and colliding Mode changes", () => {
+    const document = stage();
+    const first = universeId(document);
+    expect(
+      failure(document, "fixture.patch", {
+        fixtureId: "par",
+        patch: { universeId: first, address: 20 },
+      }),
+    ).toContain("overlap Strobe at 4");
+    expect(
+      failure(document, "fixture.patch", {
+        fixtureId: "strobe",
+        patch: { universeId: first, address: 500 },
+      }),
+    ).toContain("past the end");
+    const moved = run(document, "fixture.patch", {
+      fixtureId: "par",
+      patch: { universeId: first, address: 100 },
+    }).document;
+    expect(fixture(moved, "par").patch?.address).toBe(100);
+    const unpatched = run(moved, "fixture.patch", {
+      fixtureId: "par",
+      patch: null,
+    }).document;
+    expect(fixture(unpatched, "par").patch).toBeNull();
+    let crowded = run(document, "fixture.patch", {
+      fixtureId: "strobe",
+      patch: { universeId: first, address: 5 },
+    }).document;
+    crowded = run(crowded, "fixture.update", {
+      fixtureId: "strobe",
+      modeKey: "3ch",
+    }).document;
+    expect(fixture(crowded, "strobe").modeKey).toBe("3ch");
+    crowded = run(crowded, "fixture.patch", {
+      fixtureId: "par",
+      patch: { universeId: first, address: 8 },
+    }).document;
+    expect(
+      failure(crowded, "fixture.update", {
+        fixtureId: "strobe",
+        modeKey: "32ch",
+      }),
+    ).toContain("Cannot change Mode");
+  });
+
+  it("group, move, ungroup, remove, dropping unused types", () => {
+    let document = stage();
+    document = run(document, "fixture.create", {
+      id: "g",
+      kind: "group",
+      name: "Truss",
+    }).document;
+    document = run(document, "fixture.move", {
+      fixtureId: "par",
+      parentId: "g",
+      after: null,
+    }).document;
+    expect(document.fixtures.par?.parentId).toBe("g");
+    expect(
+      failure(document, "fixture.move", {
+        fixtureId: "strobe",
+        parentId: "par",
+        after: null,
+      }),
+    ).toContain("not a Fixture Group");
+    const removal = run(document, "fixture.remove", { fixtureId: "g" });
+    expect(removal.document.fixtures.par).toBeUndefined();
+    expect(removal.document.fixtureTypes["generic/rgb-3ch"]).toBeUndefined();
+    expect(removal.document.fixtureTypes["showtech/st-960"]).toBeDefined();
+    expect(applyPatches(removal.document, removal.inverse)).toEqual(document);
+    const ungrouped = run(document, "fixture.ungroup", {
+      fixtureId: "g",
+    }).document;
+    expect(ungrouped.fixtures.par?.parentId).toBeNull();
+  });
+
+  it("place and tag", () => {
+    let document = stage();
+    const placed = run(document, "fixture.place", {
+      fixtureId: "par",
+      position: { x: 2.5, rz: 90 },
+    });
+    expect(placed.coalesceKey).toBe("fixture.place:par");
+    document = placed.document;
+    expect(fixture(document, "par").position).toMatchObject({
+      x: 2.5,
+      y: 0,
+      rz: 90,
+    });
+    document = run(document, "fixture.update", {
+      fixtureId: "par",
+      tags: ["truss-left", "truss-left"],
+    }).document;
+    expect(fixture(document, "par").tags).toEqual(["truss-left"]);
+  });
+});
+
+describe("Highlight and frames", () => {
+  it("lists an Address per Element and lights the frame while held", () => {
+    let document = stage();
+    const addresses = listAddresses(document).map((a) => a.address);
+    expect(addresses).toContain("element/par/root/highlight");
+    expect(addresses).toContain("element/strobe/panel-3/highlight");
+    expect(
+      resolveAddress(document, "element/strobe/backlight/highlight"),
+    ).toMatchObject({
+      owner: "Strobe · Backlight",
+      type: "boolean",
+    });
+    expect(
+      resolveAddress(document, "element/strobe/nope/highlight"),
+    ).toBeUndefined();
+    const universe = universeId(document);
+    expect(formatFrame(universeFrame(document, universe))).toBe("<512x 0>");
+    const held = run(document, "address.set", {
+      address: "element/par/root/highlight",
+      value: true,
+    });
+    expect(held.definition.kind).toBe("performance");
+    document = held.document;
+    expect(resolveDocument(document).get("par/root")).toEqual({
+      dimmer: 1,
+      color: [1, 1, 1, 1],
+    });
+    expect(formatFrame(universeFrame(document, universe))).toBe(
+      "<3x 255> <509x 0>",
+    );
+    document = run(document, "address.set", {
+      address: "element/strobe/backlight/highlight",
+      value: true,
+    }).document;
+    const frame = universeFrame(document, universe);
+    expect(frame[3]).toBe(255);
+    expect(frame[26]).toBe(255);
+    expect(frame[27]).toBe(0);
+    const gone = run(document, "fixture.remove", {
+      fixtureId: "strobe",
+    }).document;
+    expect(gone.operational.highlight["strobe/backlight"]).toBeUndefined();
+  });
+
+  it("formats a frame with grouped runs", () => {
+    expect(formatFrame([0, 0, 127, 127, 12, 0])).toBe("<2x 0> <2x 127> 12 0");
+  });
+});

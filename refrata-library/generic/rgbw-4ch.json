@@ -1,0 +1,36 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "generic/rgbw-4ch",
+  "manufacturer": "Generic",
+  "model": "RGBW 4ch",
+  "modes": {
+    "4ch": {
+      "name": "4ch",
+      "channels": [
+        { "key": "red", "element": "root" },
+        { "key": "green", "element": "root" },
+        { "key": "blue", "element": "root" },
+        { "key": "white", "element": "root" }
+      ],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "RGBW",
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": { "multiply": ["red", "green", "blue", "white"] }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": { "color": ["red", "green", "blue", "white"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

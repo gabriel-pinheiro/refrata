@@ -39,6 +39,14 @@ export const RuntimeRequestSchemas = {
     .object({ documentId: z.string().min(1), discard: z.boolean().optional() })
     .strict(),
   "files.list": z.object({}).strict(),
+  /** The Fixture Types the runtime knows: bundled files and anything the open Installation holds. */
+  "library.list": z.object({}).strict(),
+  /** One Fixture Type by key, the whole file, for a `fixture.create` payload. */
+  "library.get": z.object({ key: z.string().min(1) }).strict(),
+  /** The DMX Frame a Universe is sending right now, 512 bytes. */
+  "dmx.frame": z
+    .object({ documentId: z.string().min(1), universeId: z.string().min(1) })
+    .strict(),
 } as const;
 
 export type RuntimeRequestName = keyof typeof RuntimeRequestSchemas;
@@ -56,6 +64,31 @@ export const FileEntrySchema = z
   })
   .strict();
 export type FileEntry = z.infer<typeof FileEntrySchema>;
+
+/** One Mode of a Fixture Type as the library lists it. */
+export const LibraryModeSchema = z
+  .object({ key: z.string(), name: z.string(), footprint: z.number().int() })
+  .strict();
+export type LibraryMode = z.infer<typeof LibraryModeSchema>;
+
+/** One Fixture Type as the library lists it: enough to pick one. */
+export const LibraryEntrySchema = z
+  .object({
+    key: z.string(),
+    manufacturer: z.string(),
+    model: z.string(),
+    modes: z.array(LibraryModeSchema),
+    /** Where it came from: a bundled file, or the open Installation. */
+    source: z.enum(["library", "installation"]),
+  })
+  .strict();
+export type LibraryEntry = z.infer<typeof LibraryEntrySchema>;
+
+/** What `dmx.frame` replies: the Universe's 512 bytes. */
+export const DmxFrameSchema = z
+  .object({ universeId: z.string(), bytes: z.array(z.number().int()) })
+  .strict();
+export type DmxFrame = z.infer<typeof DmxFrameSchema>;
 
 /** Undo and redo are document commands handled by the session, not the registry. */
 export const HISTORY_COMMANDS = {

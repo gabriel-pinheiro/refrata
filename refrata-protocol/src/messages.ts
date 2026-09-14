@@ -1,4 +1,4 @@
-import { DocumentSchema } from "@refrata/core";
+import { DocumentSchema, ParameterValuesSchema } from "@refrata/core";
 import { z } from "zod";
 
 import { LiveStateSchema } from "./live.ts";
@@ -16,6 +16,12 @@ import { LiveStateSchema } from "./live.ts";
  *   as ordinary deltas. A fired trigger Address goes out as an `event` to
  *   every subscriber, after the deltas of the same tick, and is never
  *   stored or replayed.
+ *
+ * - Resolved Stream: `stream` names the Fixtures a session wants resolved
+ *   values for (the whole set each time; empty stops it). The runtime
+ *   answers with a `resolved` message holding every Element of those
+ *   Fixtures, then `resolved` messages holding only what changed, coalesced
+ *   to the stream rate.
  *
  * `command` is a document-scoped acknowledged operation (registry commands,
  * undo, redo). `request` is a runtime-scoped one (documents, files).
@@ -99,8 +105,23 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
       value: z.unknown(),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("stream"),
+      documentId: DocumentIdSchema,
+      /** Fixtures whose Elements the session wants resolved values for; the whole set, empty to stop. */
+      fixtureIds: z.array(z.string().min(1)),
+    })
+    .strict(),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
+
+/** Resolved Parameter Values by Element reference (`<fixtureId>/<key>`); a partial record on updates. */
+export const ResolvedValuesSchema = z.record(
+  z.string().min(1),
+  ParameterValuesSchema,
+);
+export type ResolvedValues = z.infer<typeof ResolvedValuesSchema>;
 
 export const DocumentSummarySchema = z
   .object({
@@ -177,6 +198,16 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
       revision: z.number().int().nonnegative(),
       patches: z.array(PatchSchema),
       originSessionId: z.string().optional(),
+    })
+    .strict(),
+  /** Resolved values for streamed Fixtures: everything on (re)subscribe, then changes only. */
+  z
+    .object({
+      type: z.literal("resolved"),
+      documentId: DocumentIdSchema,
+      /** True when the message holds every Element of every streamed Fixture. */
+      full: z.boolean(),
+      values: ResolvedValuesSchema,
     })
     .strict(),
   /** A trigger Address fired; not revisioned. */

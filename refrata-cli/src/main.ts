@@ -4,6 +4,7 @@ import { Cli, type GlobalOptions } from "./cli.ts";
 import { registerAddress } from "./commands/address.ts";
 import { registerDocuments } from "./commands/documents.ts";
 import { registerRead } from "./commands/read.ts";
+import { registerRig } from "./commands/rig.ts";
 import { registerRun } from "./commands/run.ts";
 import { registerStatus } from "./commands/status.ts";
 import { registerTree } from "./commands/tree.ts";
@@ -37,6 +38,7 @@ const program = new Command("refrata")
 
 const cli = new Cli(program);
 registerStatus(program, cli);
+registerRig(program, cli);
 registerTree(program, cli);
 registerRead(program, cli);
 registerRun(program, cli);

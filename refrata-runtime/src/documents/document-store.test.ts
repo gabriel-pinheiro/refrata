@@ -1,4 +1,4 @@
-import { createBuiltInRegistry } from "@refrata/core";
+import { createBuiltInRegistry, emptyDocument } from "@refrata/core";
 import { mkdtemp, readFile, rm, stat, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -252,11 +252,8 @@ describe("DocumentStore", () => {
     expect(parseDocumentFile("nope").ok).toBe(false);
     const round = parseDocumentFile(
       serializeDocument({
-        installation: { id: "i" as never, name: "N" },
-        controllers: {},
-        links: {},
-        macros: {},
-        operational: { blackout: true },
+        ...emptyDocument("N"),
+        operational: { blackout: true, highlight: {} },
       }),
     );
     expect(round.ok && round.document.operational.blackout).toBe(false);

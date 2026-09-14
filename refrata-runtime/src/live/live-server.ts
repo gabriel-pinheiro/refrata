@@ -20,6 +20,10 @@ import type {
   SessionCommandResult,
 } from "../documents/document-session.ts";
 import type { DocumentStore } from "../documents/document-store.ts";
+import type { OutputManager } from "../output/output-manager.ts";
+import type { FixtureLibrary } from "../rig/library.ts";
+import type { OutputLoop } from "../rig/output-loop.ts";
+import { ResolvedStream } from "./resolved-streams.ts";
 
 function decodeRawData(data: RawData): string {
   if (data instanceof ArrayBuffer) return Buffer.from(data).toString("utf8");
@@ -39,6 +43,8 @@ interface ClientSession {
   pendingLive: Patch[];
   pendingEvents: DocumentEvent[];
   flushScheduled: boolean;
+  /** The session's Resolved Stream, idle until it names Fixtures. */
+  readonly stream: ResolvedStream;
 }
 
 type ReplyOutcome = Extract<ServerMessage, { type: "reply" }>["outcome"];
@@ -55,6 +61,9 @@ export interface LiveServerOptions {
         onChange(listener: (state: OscLive) => void): () => void;
       }
     | undefined;
+  readonly library: FixtureLibrary;
+  readonly loop: OutputLoop;
+  readonly outputs: OutputManager;
 }
 
 /**
@@ -69,6 +78,9 @@ export class LiveServer {
   readonly #options: LiveServerOptions;
   readonly #unsubscribeStore: () => void;
   readonly #unsubscribeOsc: (() => void) | undefined;
+  readonly #unsubscribeOutputs: () => void;
+  readonly #unsubscribeLoop: () => void;
+  readonly #unsubscribeResolved: () => void;
   #unsubscribeDeltas: (() => void) | undefined;
   #unsubscribeEvents: (() => void) | undefined;
   #attachedDocumentId: string | undefined;
@@ -82,17 +94,35 @@ export class LiveServer {
     this.#unsubscribeOsc = options.osc?.onChange((state) =>
       this.#fanOutLive([{ op: "set", path: ["osc"], value: state }]),
     );
+    this.#unsubscribeOutputs = options.outputs.onChange(() =>
+      this.#fanOutLive([
+        { op: "set", path: ["outputs"], value: options.outputs.statuses() },
+      ]),
+    );
+    this.#unsubscribeLoop = options.loop.onLive((dmx) =>
+      this.#fanOutLive([{ op: "set", path: ["dmx"], value: dmx }]),
+    );
+    this.#unsubscribeResolved = options.loop.onResolved((resolved) => {
+      for (const session of this.#sessions) session.stream.update(resolved);
+    });
     this.#attachSession();
   }
 
   /** The whole live state, for a snapshot. */
   #liveState(): LiveState {
-    return { osc: this.#options.osc?.state() ?? EMPTY_LIVE_STATE.osc };
+    return {
+      osc: this.#options.osc?.state() ?? EMPTY_LIVE_STATE.osc,
+      outputs: this.#options.outputs.statuses(),
+      dmx: this.#options.loop.live(),
+    };
   }
 
   close(): void {
     this.#unsubscribeStore();
     this.#unsubscribeOsc?.();
+    this.#unsubscribeOutputs();
+    this.#unsubscribeLoop();
+    this.#unsubscribeResolved();
     this.#unsubscribeDeltas?.();
     this.#unsubscribeEvents?.();
     for (const session of this.#sessions) session.socket.close();
@@ -109,12 +139,18 @@ export class LiveServer {
       pendingLive: [],
       pendingEvents: [],
       flushScheduled: false,
+      stream: new ResolvedStream((message) => {
+        const documentId = this.#attachedDocumentId;
+        if (documentId === undefined) return;
+        this.#send(session, { type: "resolved", documentId, ...message });
+      }),
     };
     this.#sessions.add(session);
     socket.on("message", (raw) => {
       this.#receive(session, decodeRawData(raw));
     });
     socket.on("close", () => {
+      session.stream.close();
       this.#sessions.delete(session);
     });
   }
@@ -146,6 +182,8 @@ export class LiveServer {
   #attachSession(): void {
     const documentSession = this.#options.store.currentSession();
     if (documentSession?.id === this.#attachedDocumentId) return;
+    // A replaced document ends every stream; clients ask again for the new one.
+    for (const session of this.#sessions) session.stream.close();
     this.#unsubscribeDeltas?.();
     this.#unsubscribeEvents?.();
     this.#unsubscribeEvents = documentSession?.onEvent((event) => {
@@ -306,6 +344,14 @@ export class LiveServer {
       case "request":
         void this.#request(session, message);
         break;
+      case "stream":
+        if (this.#options.store.session(message.documentId) === undefined)
+          break;
+        session.stream.setFixtures(
+          message.fixtureIds,
+          this.#options.loop.resolved(),
+        );
+        break;
     }
   }
 
@@ -448,6 +494,58 @@ export class LiveServer {
             },
           });
           break;
+        case "library.list":
+          reply({
+            ok: true,
+            result: {
+              types: this.#options.library.list(
+                store.currentSession()?.document,
+              ),
+            },
+          });
+          break;
+        case "library.get": {
+          const { key } = payload as { key: string };
+          const type = this.#options.library.get(
+            key,
+            store.currentSession()?.document,
+          );
+          reply(
+            type === undefined
+              ? { ok: false, error: `No Fixture Type is called “${key}”.` }
+              : { ok: true, result: { type } },
+          );
+          break;
+        }
+        case "dmx.frame": {
+          const { documentId, universeId } = payload as {
+            documentId: string;
+            universeId: string;
+          };
+          const documentSession = store.session(documentId);
+          if (documentSession === undefined) {
+            reply({
+              ok: false,
+              error: `Document “${documentId}” is not open.`,
+            });
+            break;
+          }
+          if (!(universeId in documentSession.document.universes)) {
+            reply({
+              ok: false,
+              error: `Universe “${universeId}” does not exist.`,
+            });
+            break;
+          }
+          reply({
+            ok: true,
+            result: {
+              universeId,
+              bytes: [...this.#options.loop.frame(universeId)],
+            },
+          });
+          break;
+        }
         default:
           reply({ ok: false, error: `Unhandled request “${message.name}”.` });
       }

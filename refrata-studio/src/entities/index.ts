@@ -2,7 +2,9 @@ import type { DocumentView } from "@refrata/client";
 import type { ComponentType } from "react";
 
 import { controllerEntity } from "./controller/controller-entity";
+import { elementEntity, fixtureEntity } from "./fixture/fixture-entity";
 import { macroEntity } from "./macro/macro-entity";
+import { outputEntity, universeEntity } from "./universe/universe-entity";
 
 /**
  * What one entity kind contributes to Studio: its navigator section and its
@@ -21,6 +23,10 @@ export interface EntityModule {
 }
 
 export const entities = {
+  universe: universeEntity,
+  output: outputEntity,
+  fixture: fixtureEntity,
+  element: elementEntity,
   controller: controllerEntity,
   macro: macroEntity,
 } as const satisfies Record<string, EntityModule>;

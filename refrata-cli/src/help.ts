@@ -12,9 +12,17 @@ Working from a shell
              REFRATA_URL sets the default. REFRATA_ACTOR names the owner of
              this shell's undo history (default: user@host).
 
-  Read       health, controllers, macros, osc, get [path|Address],
-             addresses, commands, describe <command> (its payload fields;
-             --json for the schema).
+  Read       health, library, fixtures, controllers, macros, osc,
+             get [path|Address], addresses, commands, describe <command>
+             (its payload fields; --json for the schema), dmx <universe>
+             (the 512 bytes going out, runs grouped as <Nx value>).
+
+  Rig        fixtures add <typeKey> <modeKey> [--name] [--universe]
+             [--address] [--unpatched]  copies the type in and patches at
+             the next free address.  patch <fixture> <universe> <address>.
+             highlight <fixture>[/<element>] [--on|--off]  lights it at its
+             Highlight values (${String(settings.cli.highlightHoldMs / 1000)} s unless held). Elements are
+             <fixtureId>/<key>, listed by "fixtures".
 
   Write      run <command> [json]  any command; ids come back in "created".
              edit <Address> <value>  authoring change, undoable.
@@ -36,12 +44,16 @@ Working from a shell
              id always wins over a name. Replies and listings carry ids.
 
   Addresses  controller/<id|name>/value       macro/<id|name>/run
-             installation/blackout            ("addresses" lists them all)
+             installation/blackout            element/<fixture>/<key>/highlight
+             ("addresses" lists them all)
 
   Values     true/false, numbers, choice values as text, colours as
              [r,g,b,a] with each component from 0 to 1.
 
-  Recipe     run controller.create '{"kind":"number","name":"Energy"}'
+  Recipe     fixtures add generic/rgb-3ch 3ch --name Par
+             highlight Par
+             dmx "Universe 1"
+             run controller.create '{"kind":"number","name":"Energy"}'
              set controller/Energy/value 0.5
              run macro.create '{"name":"Hit"}'
              run macro.actions.add '{"macroId":"Hit","actions":[

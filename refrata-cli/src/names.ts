@@ -14,6 +14,10 @@ import {
  * never see names: what leaves here is ids.
  */
 const NOUNS: Record<TableName, string> = {
+  universes: "Universe",
+  outputs: "Output",
+  fixtureTypes: "Fixture Type",
+  fixtures: "Fixture",
   controllers: "Controller",
   links: "Link",
   macros: "Macro",
@@ -23,6 +27,7 @@ const NOUNS: Record<TableName, string> = {
 const ADDRESS_TABLES: Readonly<Record<string, TableName>> = {
   controller: "controllers",
   macro: "macros",
+  element: "fixtures",
 };
 
 /** Payload keys that hold one entity id, and which table it belongs to. */
@@ -30,12 +35,17 @@ const KEY_TABLES: Readonly<Record<string, TableName>> = {
   controllerId: "controllers",
   macroId: "macros",
   linkId: "links",
+  fixtureId: "fixtures",
+  universeId: "universes",
+  outputId: "outputs",
 };
 
 /** `parentId` and `after` belong to the table the command's prefix names. */
 const PREFIX_TABLES: Readonly<Record<string, TableName>> = {
   controller: "controllers",
   macro: "macros",
+  fixture: "fixtures",
+  universe: "universes",
 };
 
 interface Named {

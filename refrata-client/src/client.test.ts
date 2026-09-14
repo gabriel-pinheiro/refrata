@@ -1,5 +1,9 @@
 import { emptyDocument } from "@refrata/core";
-import type { ClientMessage, ServerMessage } from "@refrata/protocol";
+import {
+  EMPTY_LIVE_STATE,
+  type ClientMessage,
+  type ServerMessage,
+} from "@refrata/protocol";
 import { describe, expect, it, vi } from "vitest";
 
 import { RefrataClient } from "./client.ts";
@@ -133,7 +137,7 @@ describe("RefrataClient subscriptions", () => {
       documentId: "doc",
       revision: 1,
       document: emptyDocument("Living"),
-      live: { osc: { port: null, listeners: 0 } },
+      live: EMPTY_LIVE_STATE,
     });
     const seen: unknown[] = [];
     view.subscribePath(["live", "osc"], () =>

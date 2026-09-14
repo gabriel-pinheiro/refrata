@@ -14,6 +14,8 @@ import {
 import type { Patch } from "../document/patch.ts";
 
 const labels: Record<OrderedTableName, string> = {
+  universes: "Universe",
+  fixtures: "Fixture",
   controllers: "Controller",
   macros: "Macro",
 };

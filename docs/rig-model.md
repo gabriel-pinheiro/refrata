@@ -110,8 +110,19 @@ would sit under Outputs, not replace them.
 
 Output settings go in the Installation file. An Art-Net destination is a fact about the
 rig's LAN, and both references save it with the show. Serial device paths are
-machine-specific and will bite when a file moves; the mitigation is that
-Output Status says "device missing" loudly rather than pretending.
+machine-specific and will bite when a file moves, so a serial Output names its
+widget by FTDI serial number, or `any` for the first widget found, and Output
+Status reports the path it actually opened and says "device missing" loudly
+rather than pretending.
+
+The first build ships one kind: an Enttec-compatible USB widget over a serial
+port. Both real Enttec widgets and every generic clone enumerate as the same
+FTDI chip; what differs is whether the widget frames DMX itself (DMX USB Pro
+and compatibles take packets) or the host must raise the break and stream 513
+bytes at 250 kbaud (Open DMX and its clones). The kind is named after the
+family the widget in hand turns out to be, `enttec-usb-pro` or
+`enttec-open-dmx`, and the other family is added when a second device shows
+up. Art-Net and sACN keep the design above and wait.
 
 ### Fixture Type and Mode
 
@@ -134,9 +145,9 @@ strobe sections feel like different kinds of parts.
 What both references teach is that the unit you select and program must be one
 kind of thing, whatever its depth. QLC+ has a flat list of heads and common
 channels outside them, which cannot say "the eight panels belong together but
-the four strobe sections are something else": all twelve are just heads.
+the eight strobe sections are something else": all sixteen are just heads.
 grandMA3 has a tree, and the tree says it for free: `Backlight` is a node with
-eight children, `Strobe` is a node with four.
+eight children, `Strobe` is another node with eight.
 
 So the model is a tree of Elements, any depth, declared by the Mode, and the
 Fixture is the root Element. The worry in the brief dissolves into the tree:
@@ -147,7 +158,9 @@ the tree cheap to use, and both are grandMA3's:
 - fan-down: setting a Parameter on an Element that lacks it but whose
   descendants have it sets every descendant that has it;
 - summary: an Element without a Parameter its descendants share displays
-  their values (min to max), so a parent row is never blank.
+  their values (min to max), so a parent row is never blank. Slice 1 skips
+  the summary row; the Element inspector shows an intermediate Element's own
+  Parameters only, and slice 2 adds the summary when Layers give it values.
 
 Why one entity kind rather than Fixture plus Element as two tables: everything
 downstream (Selection, Fixture Sets, cues, Addresses) points at "the thing with
@@ -161,11 +174,18 @@ Avolites) reads wrong for an intermediate node like `Backlight`; "sub-fixture"
 exactly this and it reads well at every depth: the Aura element, the Panel 3
 element, the root element.
 
-Elements are instantiated per Fixture as entities with ids. That costs table
-rows (an 8×4 wash rig with single-element fixtures costs nothing; a 32-pixel
-bar costs 33 rows) and buys stable references from Sets and cues, the
-Difracta way. Changing a Fixture's Mode rebuilds the tree by key so
-`pixel-3` keeps its id across `16ch` and `Pixel 68ch` if both declare it.
+Elements are derived, not stored. The Installation has one `fixtures` table
+holding `group` and `fixture` rows in Difracta's tree shape; a Fixture's
+Elements are computed from the Mode of its copied-in Fixture Type, and
+everything that points at an Element (Selection, Fixture Sets, Look Layer rows,
+Addresses) writes `<fixtureId>/<key>`. Storing them was the first proposal and
+would have bought stable ids, but a key is unique within its Mode by
+definition, so `<fixtureId>/pixel-3` is as stable as any id and survives a
+Mode change between `16ch` and `Pixel 68ch` with no rebuild command. Stored
+rows would have cost a 32-pixel bar 33 rows, forced every Fixture command to
+keep child rows in step, and let a hand-edited file drift from its Mode.
+Nothing a person owns lives on an Element: Tags are added to Fixtures, and
+the tree gives the rest.
 
 ### Attribute and Parameter
 
@@ -262,6 +282,40 @@ timeline, and consistency with Difracta won. Rig names the physical half so
 overlap. Selection is the transient list of Elements; Fixture Set is its saved
 form.
 
+### Commands and CLI
+
+Everything above is reached through commands, one file each, and the CLI
+shortcuts that wrap the everyday ones. Navigator gestures keep the verbs
+Controllers use (`move`, `ungroup`), so a Fixture's stage Position needs its
+own verb, `place`.
+
+| Command           | Does                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `universe.create` | adds a Universe; a new Installation already has `Universe 1`                                         |
+| `universe.rename` |                                                                                                      |
+| `universe.remove` | refused while a Fixture is patched into it                                                           |
+| `output.create`   | adds an Output for one Universe: kind and device                                                     |
+| `output.update`   | changes kind or device                                                                               |
+| `output.remove`   |                                                                                                      |
+| `fixture.create`  | adds a Fixture from a library type and Mode, copies the type in, patches it at the next free address |
+| `fixture.rename`  |                                                                                                      |
+| `fixture.move`    | navigator move between Groups                                                                        |
+| `fixture.ungroup` |                                                                                                      |
+| `fixture.remove`  | drops the Fixture Type copy when no Fixture uses it any more                                         |
+| `fixture.update`  | changes type, Mode or Tags; refused when the new Footprint would collide                             |
+| `fixture.patch`   | sets Universe and address, or unpatches; refused on overlap                                          |
+| `fixture.place`   | sets Position; a drag coalesces into one undo step                                                   |
+
+Highlight is not a command: it is a write to the boolean Address
+`element/<fixtureId>/<key>/highlight` through `address.set`.
+
+CLI: `refrata library` lists types and Modes; `refrata fixtures` prints the
+Fixtures with their Element trees; `refrata fixtures add <type> <mode>
+[--universe] [--address] [--name]`; `refrata patch <fixture> <universe>
+<address>`; `refrata highlight <fixture-or-element> [--on|--off]`;
+`refrata dmx <universe>` prints the DMX Frame with runs grouped. Names resolve
+to ids the way Controller names do.
+
 ## 3. Worked examples
 
 ### A 3-channel RGB par
@@ -283,7 +337,7 @@ under "dimmer 50 %, color amber", which is the whole point.
 ### Martin Atomic 3000 LED, `14ch Extended` (real chart)
 
 The real fixture's Beam (228 white LEDs) and Aura (64 RGB LEDs) are each one
-zone; the zoned version from the brief is treated in the next example. The
+zone; the rig's own zoned strobe is treated in the next example. The
 14-channel chart, from the manual, is:
 
 | Ch  | Function                                                                   |
@@ -337,36 +391,46 @@ What the example exercises:
 Whether Beam is the root itself or a child is the library author's call. With
 FX macros driving both arrays, a neutral root reads best.
 
-### A zoned strobe (hypothetical, as in the brief)
+### The zoned strobe in the rig (ST-960P9 class)
 
-Take the brief's device: eight RGB backlight panels and four strobe sections,
-individually controllable, plus whole-device controls. Real fixtures of this
-shape exist (pixel-mappable strobes such as GLP's JDC1 have segmented white
-tubes and RGB pixel rows).
+The rig's zoned strobe is a ShowTech ST-960P9-class panel: 864 RGB 5050 LEDs
+in eight segments and 96 white 5050 LEDs in eight segments, modes of 3, 9, 24
+and 32 channels, strobe 1 to 30 Hz, PowerCon in and out. The 32ch chart below
+is taken from the matching LL960S manual, whose LED counts are identical, and
+is marked **verify against the unit** until the paper manual is read:
+
+| Ch       | Function                                               |
+| -------- | ------------------------------------------------------ |
+| 1 to 24  | red, green, blue of RGB segment 1 to 8, linear dimming |
+| 25 to 32 | white segment 1 to 8, linear dimming                   |
+
+No master dimmer and no strobe channel. In this Mode strobing is Refrata's
+job, flashing dimmers at the Output rate, which is a Visual in slice 4; the
+Mode declares no `strobe` Parameter. The 3ch Mode is red, green, blue with a
+virtual dimmer. The 9ch and 24ch Modes are unknown until the manual is read.
 
 ```text
-Zoned Strobe (root)    control, fx, fx-speed
-├── Strobe             strobe: Hz, strobe-duration: ms, strobe-effect  (section-wide)
-│   ├── Section 1      dimmer
-│   ├── Section 2      dimmer
-│   ├── Section 3      dimmer
-│   └── Section 4      dimmer
-└── Backlight          dimmer (master, real channel)
-    ├── Panel 1        color
+ST-960 (root)          no Parameters of its own
+├── Backlight
+│   ├── Panel 1        color, dimmer (virtual)
+│   ├── ...
+│   └── Panel 8        color, dimmer (virtual)
+└── Strobe
+    ├── Section 1      dimmer
     ├── ...
-    └── Panel 8        color
+    └── Section 8      dimmer
 ```
 
 - "All RGB panels" is the `Backlight` Element: colour set there fans to eight
   panels. No Set is needed.
-- "All strobe sections" is the `Strobe` Element.
-- `Full Strobe` as a Fixture Set with the twelve leaves is possible but
+- "All white sections" is the `Strobe` Element; "everything" is the root.
+- `Full Strobe` as a Fixture Set with the sixteen leaves is possible but
   redundant; the root already implies its subtree.
 - `Backlight Odd Panels` across twenty of these is a Fixture Set by rule:
-  Tags `odd` plus the Fixture Type's key, forty Elements without a click.
-- Backlight's own `dimmer` is a real channel here, so it is not a virtual
-  dimmer; it lives on the intermediate Element and fan-down does not touch it
-  when a Panel's `color` is set.
+  Tags `odd` plus the Fixture Type's key, eighty Elements without a click.
+- Each Panel's `dimmer` is virtual: it multiplies that Panel's three colour
+  bytes, so "dimmer 50 %" on the root fans to eight Panels and eight Sections
+  and means the same on both.
 
 ### A moving head with 16-bit pan and a gobo wheel
 
@@ -407,12 +471,12 @@ grid do.
 
 Each has a recommendation; the choice changes what gets written next.
 
-1. **One entity for Fixture and Element, or two tables.** Recommended: one
-   `elements` table where roots carry type, mode and patch, exactly as
-   Difracta's `layers` table holds Visual Layers, Filter Layers and Groups. A
-   `fixtures` view is a filter on `parentId == null`.
-2. **Physical units versus normalized 0..1 everywhere.** Recommended: physical
-   when known, 0..1 otherwise, always 0..1 for intensity. The cost is
+1. **One entity for Fixture and Element, or two tables.** Decided: one
+   `fixtures` table of `group` and `fixture` rows, exactly as Difracta's
+   `layers` table holds Layers and Groups, and Elements derived from the Mode,
+   never stored (section 2, Element).
+2. **Physical units versus normalized 0..1 everywhere.** Kept as recommended:
+   physical when known, 0..1 otherwise, always 0..1 for intensity. The cost is
    unit-aware Controls; the gain is presets and effects that travel.
 3. **Raw emitter Parameters** (`red`, `white`, `amber`) beside `color`.
    Recommended: not in v1. `color` is the single truth and white extraction is
@@ -420,9 +484,12 @@ Each has a recommendation; the choice changes what gets written next.
    only" looks that a colour cannot express.
 4. **Tags versus per-Fixture derived Sets** for library-provided subsets.
    Decided: Tags plus Sets by rule, in v1.
-5. **Overlapping Patch.** Recommended: refused, with Multipatch as a later
-   explicit feature rather than a permitted overlap.
-6. **Where machine-specific Output settings live.** Recommended: in the Installation,
-   like both references, with Output Status making a missing device obvious.
+5. **Overlapping Patch.** Decided: refused, naming the colliding Fixture; a
+   Mode change that would collide is refused too; a new Fixture takes the next
+   free address; Multipatch is a later explicit feature rather than a
+   permitted overlap.
+6. **Where machine-specific Output settings live.** Decided: in the Installation,
+   like both references; a serial Output names its widget by FTDI serial
+   number or `any`, and Output Status makes a missing device obvious.
 7. **The name of the project's file and document.** Decided: Installation,
    Difracta's word, over Show, Production, Project or Rig.

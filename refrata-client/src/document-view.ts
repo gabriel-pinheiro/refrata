@@ -3,10 +3,15 @@ import {
   getAtPath,
   pathsOverlap,
   type Document,
+  type ParameterValues,
   type Patch,
   type PatchPath,
 } from "@refrata/core";
-import { EMPTY_LIVE_STATE, type LiveState } from "@refrata/protocol";
+import {
+  EMPTY_LIVE_STATE,
+  type LiveState,
+  type ResolvedValues,
+} from "@refrata/protocol";
 
 import { Signal, type ReadonlySignal } from "./signal.ts";
 
@@ -29,6 +34,10 @@ export class DocumentView {
   readonly revision: Signal<number>;
   readonly #pathListeners = new Map<string, Set<() => void>>();
   readonly #eventListeners = new Set<(address: string) => void>();
+  /** Resolved values by Element reference, for the Fixtures being streamed. */
+  #resolved = new Map<string, ParameterValues>();
+  readonly #resolvedListeners = new Map<string, Set<() => void>>();
+  #streamed: readonly string[] = [];
 
   constructor(documentId: string, options: { readonly live?: boolean } = {}) {
     this.documentId = documentId;
@@ -74,6 +83,61 @@ export class DocumentView {
   /** @internal The runtime announced a fired trigger Address. */
   receiveEvent(address: string): void {
     for (const listener of this.#eventListeners) listener(address);
+  }
+
+  /** The latest resolved values of one Element, or undefined while nothing streamed it. */
+  resolvedAt(ref: string): ParameterValues | undefined {
+    return this.#resolved.get(ref);
+  }
+
+  /** Notifies when the resolved values of `ref` change (every Element when `ref` is "*"). */
+  subscribeResolved(ref: string, listener: () => void): () => void {
+    let listeners = this.#resolvedListeners.get(ref);
+    if (listeners === undefined) {
+      listeners = new Set();
+      this.#resolvedListeners.set(ref, listeners);
+    }
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this.#resolvedListeners.delete(ref);
+    };
+  }
+
+  /** A signal-like view of one Element's resolved values. */
+  resolved(ref: string): ReadonlySignal<ParameterValues | undefined> {
+    return {
+      get: () => this.#resolved.get(ref),
+      subscribe: (listener) =>
+        this.subscribeResolved(ref, () => {
+          listener(this.#resolved.get(ref));
+        }),
+    };
+  }
+
+  /** @internal Which Fixtures the client asked to stream, for resubscribing. */
+  streamedFixtures(): readonly string[] {
+    return this.#streamed;
+  }
+
+  /** @internal */
+  setStreamedFixtures(fixtureIds: readonly string[]): void {
+    this.#streamed = [...fixtureIds];
+  }
+
+  /** @internal A `resolved` message: everything when `full`, changes otherwise. */
+  applyResolved(values: ResolvedValues, full: boolean): void {
+    const changed = new Set<string>(Object.keys(values));
+    if (full) {
+      for (const ref of this.#resolved.keys()) changed.add(ref);
+      this.#resolved = new Map(Object.entries(values));
+    } else {
+      for (const [ref, value] of Object.entries(values))
+        this.#resolved.set(ref, value);
+    }
+    for (const ref of changed)
+      for (const listener of this.#resolvedListeners.get(ref) ?? []) listener();
+    for (const listener of this.#resolvedListeners.get("*") ?? []) listener();
   }
 
   /** A signal-like view of one path, for framework bindings. */

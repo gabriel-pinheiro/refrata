@@ -133,6 +133,18 @@ export class RefrataClient {
     });
   }
 
+  /**
+   * Names the Fixtures whose resolved values this client wants streamed
+   * (the whole set; empty stops the stream). Values land in the document's
+   * view under `resolved`. Re-sent by itself after a reconnect.
+   */
+  stream(documentId: string, fixtureIds: readonly string[]): void {
+    const view = this.#views.get(documentId);
+    if (view === undefined) return;
+    view.setStreamedFixtures(fixtureIds);
+    this.#send({ type: "stream", documentId, fixtureIds: [...fixtureIds] });
+  }
+
   /** Latest-wins per address; flushed once per frame. */
   input(documentId: string, address: string, value: unknown): void {
     this.#inputs.set(`${documentId}\u0000${address}`, {
@@ -167,6 +179,13 @@ export class RefrataClient {
       documentId: view.documentId,
       ...(view.live ? { live: true } : {}),
     });
+    const streamed = view.streamedFixtures();
+    if (streamed.length > 0)
+      this.#send({
+        type: "stream",
+        documentId: view.documentId,
+        fixtureIds: [...streamed],
+      });
   }
 
   #nextRequestId(): string {
@@ -279,6 +298,11 @@ export class RefrataClient {
       }
       case "live":
         this.#views.get(parsed.documentId)?.applyLive(parsed.patches);
+        break;
+      case "resolved":
+        this.#views
+          .get(parsed.documentId)
+          ?.applyResolved(parsed.values, parsed.full);
         break;
       case "event":
         this.#views.get(parsed.documentId)?.receiveEvent(parsed.address);

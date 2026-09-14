@@ -13,11 +13,16 @@ a projection-mapping engine built the same way.
 
 ## Status
 
-Step 0 of the build: the Difracta shell with the projection domain removed.
-There is no Rig, no Layers and no DMX output yet. What exists is an
-Installation with Controllers, Parameter Links and Macros, reachable from
-Studio, the CLI and OSC, saved to `.refrata` files. The design the rest is
-built against is complete: see `GLOSSARY.md` and `docs/`.
+Slice 1 of the build, "light one fixture": the Rig exists end to end.
+Universes, one Enttec-compatible USB Output kind over serial (Open DMX and
+DMX USB Pro drivers, hardware still to be verified), Fixture Types as JSON
+files in `refrata-library/` copied into the Installation on use, Fixtures
+with derived Element trees, Patch with overlap refused, Defaults and a held
+Highlight, Resolve and Encoding at 40 Hz into one DMX Frame per Universe, a
+Resolved Stream to Studio, the Rig View, and the CLI's `library`,
+`fixtures`, `patch`, `highlight` and `dmx`. There are no Layers yet, so the
+only light is Highlight. The design the rest is built against is in
+`GLOSSARY.md` and `docs/`.
 
 ## Read the design
 
@@ -38,6 +43,8 @@ built against is complete: see `GLOSSARY.md` and `docs/`.
   built here, in grandMA3 and in QLC+.
 - [docs/fixture-sources.md](docs/fixture-sources.md), how Open Fixture
   Library, GDTF and QLC+ definitions map onto Modes.
+- [docs/fixture-type-format.md](docs/fixture-type-format.md), the JSON shape
+  of a hand-authored Fixture Type and the Encoding primitives.
 - [docs/rig-view.md](docs/rig-view.md), the schematic front view of the rig
   in Studio, Positions and Shape Templates.
 

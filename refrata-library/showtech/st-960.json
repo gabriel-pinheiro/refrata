@@ -1,0 +1,486 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "showtech/st-960",
+  "manufacturer": "ShowTech",
+  "model": "ST-960",
+  "notes": "960-LED strobe and wash panel: 864 RGB 5050 LEDs in eight backlight panels and 96 white 5050 LEDs in eight strobe sections. Modes 3ch, 9ch, 24ch and 32ch on the unit; 9ch and 24ch wait for the paper manual.",
+  "modes": {
+    "3ch": {
+      "name": "3ch",
+      "channels": [
+        {
+          "key": "red",
+          "element": "root"
+        },
+        {
+          "key": "green",
+          "element": "root"
+        },
+        {
+          "key": "blue",
+          "element": "root"
+        }
+      ],
+      "shape": {
+        "template": "single"
+      },
+      "elements": {
+        "root": {
+          "name": "ST-960",
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["red", "green", "blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["red", "green", "blue"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "32ch": {
+      "name": "32ch",
+      "notes": "Verify against the unit: channels 1 to 24 are red, green, blue per backlight panel 1 to 8; 25 to 32 are white strobe sections 1 to 8, all linear dimming. No master dimmer and no strobe channel in this mode, so strobing is Refrata's job.",
+      "channels": [
+        {
+          "key": "panel-1-red",
+          "element": "panel-1"
+        },
+        {
+          "key": "panel-1-green",
+          "element": "panel-1"
+        },
+        {
+          "key": "panel-1-blue",
+          "element": "panel-1"
+        },
+        {
+          "key": "panel-2-red",
+          "element": "panel-2"
+        },
+        {
+          "key": "panel-2-green",
+          "element": "panel-2"
+        },
+        {
+          "key": "panel-2-blue",
+          "element": "panel-2"
+        },
+        {
+          "key": "panel-3-red",
+          "element": "panel-3"
+        },
+        {
+          "key": "panel-3-green",
+          "element": "panel-3"
+        },
+        {
+          "key": "panel-3-blue",
+          "element": "panel-3"
+        },
+        {
+          "key": "panel-4-red",
+          "element": "panel-4"
+        },
+        {
+          "key": "panel-4-green",
+          "element": "panel-4"
+        },
+        {
+          "key": "panel-4-blue",
+          "element": "panel-4"
+        },
+        {
+          "key": "panel-5-red",
+          "element": "panel-5"
+        },
+        {
+          "key": "panel-5-green",
+          "element": "panel-5"
+        },
+        {
+          "key": "panel-5-blue",
+          "element": "panel-5"
+        },
+        {
+          "key": "panel-6-red",
+          "element": "panel-6"
+        },
+        {
+          "key": "panel-6-green",
+          "element": "panel-6"
+        },
+        {
+          "key": "panel-6-blue",
+          "element": "panel-6"
+        },
+        {
+          "key": "panel-7-red",
+          "element": "panel-7"
+        },
+        {
+          "key": "panel-7-green",
+          "element": "panel-7"
+        },
+        {
+          "key": "panel-7-blue",
+          "element": "panel-7"
+        },
+        {
+          "key": "panel-8-red",
+          "element": "panel-8"
+        },
+        {
+          "key": "panel-8-green",
+          "element": "panel-8"
+        },
+        {
+          "key": "panel-8-blue",
+          "element": "panel-8"
+        },
+        {
+          "key": "section-1-white",
+          "element": "section-1"
+        },
+        {
+          "key": "section-2-white",
+          "element": "section-2"
+        },
+        {
+          "key": "section-3-white",
+          "element": "section-3"
+        },
+        {
+          "key": "section-4-white",
+          "element": "section-4"
+        },
+        {
+          "key": "section-5-white",
+          "element": "section-5"
+        },
+        {
+          "key": "section-6-white",
+          "element": "section-6"
+        },
+        {
+          "key": "section-7-white",
+          "element": "section-7"
+        },
+        {
+          "key": "section-8-white",
+          "element": "section-8"
+        }
+      ],
+      "shape": {
+        "template": "strobe-backlight",
+        "sections": 8,
+        "panels": 8
+      },
+      "elements": {
+        "root": {
+          "name": "ST-960",
+          "children": ["backlight", "strobe"]
+        },
+        "backlight": {
+          "name": "Backlight",
+          "children": [
+            "panel-1",
+            "panel-2",
+            "panel-3",
+            "panel-4",
+            "panel-5",
+            "panel-6",
+            "panel-7",
+            "panel-8"
+          ]
+        },
+        "strobe": {
+          "name": "Strobe",
+          "children": [
+            "section-1",
+            "section-2",
+            "section-3",
+            "section-4",
+            "section-5",
+            "section-6",
+            "section-7",
+            "section-8"
+          ]
+        },
+        "panel-1": {
+          "name": "Panel 1",
+          "tags": ["panel", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-1-red", "panel-1-green", "panel-1-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-1-red", "panel-1-green", "panel-1-blue"]
+              }
+            }
+          }
+        },
+        "panel-2": {
+          "name": "Panel 2",
+          "tags": ["panel", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-2-red", "panel-2-green", "panel-2-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-2-red", "panel-2-green", "panel-2-blue"]
+              }
+            }
+          }
+        },
+        "panel-3": {
+          "name": "Panel 3",
+          "tags": ["panel", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-3-red", "panel-3-green", "panel-3-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-3-red", "panel-3-green", "panel-3-blue"]
+              }
+            }
+          }
+        },
+        "panel-4": {
+          "name": "Panel 4",
+          "tags": ["panel", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-4-red", "panel-4-green", "panel-4-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-4-red", "panel-4-green", "panel-4-blue"]
+              }
+            }
+          }
+        },
+        "panel-5": {
+          "name": "Panel 5",
+          "tags": ["panel", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-5-red", "panel-5-green", "panel-5-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-5-red", "panel-5-green", "panel-5-blue"]
+              }
+            }
+          }
+        },
+        "panel-6": {
+          "name": "Panel 6",
+          "tags": ["panel", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-6-red", "panel-6-green", "panel-6-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-6-red", "panel-6-green", "panel-6-blue"]
+              }
+            }
+          }
+        },
+        "panel-7": {
+          "name": "Panel 7",
+          "tags": ["panel", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-7-red", "panel-7-green", "panel-7-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-7-red", "panel-7-green", "panel-7-blue"]
+              }
+            }
+          }
+        },
+        "panel-8": {
+          "name": "Panel 8",
+          "tags": ["panel", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "multiply": ["panel-8-red", "panel-8-green", "panel-8-blue"]
+              }
+            },
+            "color": {
+              "default": [1, 1, 1, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": {
+                "color": ["panel-8-red", "panel-8-green", "panel-8-blue"]
+              }
+            }
+          }
+        },
+        "section-1": {
+          "name": "Section 1",
+          "tags": ["section", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-1-white"
+              }
+            }
+          }
+        },
+        "section-2": {
+          "name": "Section 2",
+          "tags": ["section", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-2-white"
+              }
+            }
+          }
+        },
+        "section-3": {
+          "name": "Section 3",
+          "tags": ["section", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-3-white"
+              }
+            }
+          }
+        },
+        "section-4": {
+          "name": "Section 4",
+          "tags": ["section", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-4-white"
+              }
+            }
+          }
+        },
+        "section-5": {
+          "name": "Section 5",
+          "tags": ["section", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-5-white"
+              }
+            }
+          }
+        },
+        "section-6": {
+          "name": "Section 6",
+          "tags": ["section", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-6-white"
+              }
+            }
+          }
+        },
+        "section-7": {
+          "name": "Section 7",
+          "tags": ["section", "odd"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-7-white"
+              }
+            }
+          }
+        },
+        "section-8": {
+          "name": "Section 8",
+          "tags": ["section", "even"],
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": {
+                "scale": "section-8-white"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

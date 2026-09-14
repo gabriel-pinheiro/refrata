@@ -10,6 +10,16 @@ import {
 } from "../ids.ts";
 import { ColorSchema } from "../parameters.ts";
 import { DEFAULT_ORDER_KEY } from "./order.ts";
+import {
+  FixtureSchema,
+  OutputSchema,
+  StoredFixtureTypeSchema,
+  UniverseSchema,
+  type Fixture,
+  type Output,
+  type StoredFixtureType,
+  type Universe,
+} from "./rig.ts";
 
 /**
  * A Document is one Installation as normalized entity tables. Every table is
@@ -174,6 +184,8 @@ export type RunnableMacro = Extract<Macro, { kind: "macro" }>;
 export const OperationalSchema = z
   .object({
     blackout: z.boolean(),
+    /** Held highlights by Element reference (`<fixtureId>/<key>`); true while held. */
+    highlight: z.record(z.string(), z.boolean()),
   })
   .strict();
 export type Operational = z.infer<typeof OperationalSchema>;
@@ -185,6 +197,10 @@ export type Table<TEntity extends { readonly id: string }> = Readonly<
 export const DocumentSchema = z
   .object({
     installation: InstallationSchema,
+    universes: z.record(z.string(), UniverseSchema),
+    outputs: z.record(z.string(), OutputSchema),
+    fixtureTypes: z.record(z.string(), StoredFixtureTypeSchema),
+    fixtures: z.record(z.string(), FixtureSchema),
     controllers: z.record(z.string(), ControllerSchema),
     links: z.record(z.string(), LinkSchema),
     macros: z.record(z.string(), MacroSchema),
@@ -194,6 +210,10 @@ export const DocumentSchema = z
 
 export interface Document {
   readonly installation: Installation;
+  readonly universes: Table<Universe>;
+  readonly outputs: Table<Output>;
+  readonly fixtureTypes: Table<StoredFixtureType>;
+  readonly fixtures: Table<Fixture>;
   readonly controllers: Table<Controller>;
   readonly links: Table<Link>;
   readonly macros: Table<Macro>;
@@ -202,6 +222,10 @@ export interface Document {
 
 /** Entity table schemas, keyed by the table's name in the Document. */
 export const TABLE_SCHEMAS = {
+  universes: UniverseSchema,
+  outputs: OutputSchema,
+  fixtureTypes: StoredFixtureTypeSchema,
+  fixtures: FixtureSchema,
   controllers: ControllerSchema,
   links: LinkSchema,
   macros: MacroSchema,
@@ -210,6 +234,8 @@ export type TableName = keyof typeof TABLE_SCHEMAS;
 
 /** Tables whose entities carry an `order` key and can be rearranged. */
 export const ORDERED_TABLES = [
+  "universes",
+  "fixtures",
   "controllers",
   "macros",
 ] as const satisfies readonly TableName[];
@@ -222,6 +248,7 @@ export type OrderedTableName = (typeof ORDERED_TABLES)[number];
 export const PARENT_FIELDS: Partial<
   Record<OrderedTableName, readonly string[]>
 > = {
+  fixtures: ["parentId"],
   controllers: ["parentId"],
   macros: ["parentId"],
 };
@@ -247,11 +274,27 @@ export function siblingsOf<TEntity extends { readonly id: string }>(
 
 export const defaultOperational: Operational = {
   blackout: false,
+  highlight: {},
 };
 
+/** The name of the Universe every new Installation starts with. */
+export const FIRST_UNIVERSE_NAME = "Universe 1";
+
+/** A new Installation has one Universe, so adding a Fixture needs no setup step. */
 export function emptyDocument(name: string): Document {
+  const universeId = generateId("universe");
   return {
     installation: { id: generateId("installation"), name },
+    universes: {
+      [universeId]: {
+        id: universeId,
+        name: FIRST_UNIVERSE_NAME,
+        order: DEFAULT_ORDER_KEY,
+      },
+    },
+    outputs: {},
+    fixtureTypes: {},
+    fixtures: {},
     controllers: {},
     links: {},
     macros: {},

@@ -10,6 +10,14 @@ import { controllerRemove } from "./controller.remove.ts";
 import { controllerRename } from "./controller.rename.ts";
 import { controllerUngroup } from "./controller.ungroup.ts";
 import { entityMove } from "./entity.move.ts";
+import { fixtureCreate } from "./fixture.create.ts";
+import { fixtureMove } from "./fixture.move.ts";
+import { fixturePatch } from "./fixture.patch.ts";
+import { fixturePlace } from "./fixture.place.ts";
+import { fixtureRemove } from "./fixture.remove.ts";
+import { fixtureRename } from "./fixture.rename.ts";
+import { fixtureUngroup } from "./fixture.ungroup.ts";
+import { fixtureUpdate } from "./fixture.update.ts";
 import { installationRename } from "./installation.rename.ts";
 import { linkCreate } from "./link.create.ts";
 import { linkRemove } from "./link.remove.ts";
@@ -24,10 +32,30 @@ import { macroMove } from "./macro.move.ts";
 import { macroRemove } from "./macro.remove.ts";
 import { macroRename } from "./macro.rename.ts";
 import { macroUngroup } from "./macro.ungroup.ts";
+import { outputCreate } from "./output.create.ts";
+import { outputRemove } from "./output.remove.ts";
+import { outputUpdate } from "./output.update.ts";
+import { universeCreate } from "./universe.create.ts";
+import { universeRemove } from "./universe.remove.ts";
+import { universeRename } from "./universe.rename.ts";
 
 /** Every built-in command. Add one import line per new command file. */
 export const builtInCommands: readonly CommandDefinition<never>[] = [
   installationRename,
+  universeCreate,
+  universeRename,
+  universeRemove,
+  outputCreate,
+  outputUpdate,
+  outputRemove,
+  fixtureCreate,
+  fixtureRename,
+  fixtureMove,
+  fixtureUngroup,
+  fixtureUpdate,
+  fixturePatch,
+  fixturePlace,
+  fixtureRemove,
   controllerCreate,
   controllerRename,
   controllerMove,

@@ -59,6 +59,15 @@ The 512 values a Universe holds at one instant, produced by the Runtime from
 Parameter Values through each Fixture's Encoding. Outputs send DMX Frames; the
 Studio previews them. A DMX Frame is Runtime state, never saved.
 
+The Runtime produces a DMX Frame for every Universe at `output.rateHz` (40 in
+settings) whenever the Installation has a Universe, Outputs or not, so a rig
+can be checked with nothing plugged in. Every frame goes to every Output of
+its Universe; nothing is sent only on change.
+
+The CLI prints a Universe's current DMX Frame as a **frame dump**: the 512
+bytes in order, with runs of equal bytes grouped, such as
+`<2x 0> 127 127 12 <507x 0>`.
+
 **Elsewhere:** implicit in both ("DMX output").
 
 ### Output
@@ -66,10 +75,16 @@ Studio previews them. A DMX Frame is Runtime state, never saved.
 One delivery of one Universe to the world: a kind (Art-Net, sACN, Enttec DMX
 USB Pro, Open DMX, OLA, and later others) and the kind's settings, such as a
 destination IP with net, subnet and universe numbers, an sACN universe and
-priority, or a serial device path and port index. An Output carries exactly one
+priority, or a serial widget and port index. An Output carries exactly one
 Universe; a Universe may have several Outputs (a network node and a USB backup
 at once) or none. The Runtime opens one socket or device per distinct target
 and shares it between the Outputs that use it.
+
+The first build ships one kind only: an Enttec-compatible USB widget over a
+serial port, named `enttec-open-dmx` or `enttec-usb-pro` once the widget in
+hand is identified. Art-Net and sACN are designed and deferred. A serial Output
+names its widget by FTDI serial number, or `any` for the first widget found;
+Output Status reports the device path actually opened.
 
 Output settings belong to the Installation, because they describe the rig's network.
 Whether an Output is actually delivering is live state (Output Status), not
@@ -99,6 +114,10 @@ and describes it. It is the Difracta Catalog's counterpart.
 
 A Fixture Type used by an Installation is copied into the Installation, so a file opens the same
 on another machine and a later library update never silently changes a rig.
+The copy is dropped when the last Fixture using it goes. Fixture Types have no
+navigator section; the Add Fixture picker lists the library. Types are JSON
+files, validated with Zod, carrying a `formatVersion` from day one, loaded from
+a `refrata-library/` folder at startup.
 
 **Elsewhere:** grandMA3 "fixture library" with types imported into the show;
 QLC+ installed definitions referenced by manufacturer and model.
@@ -158,7 +177,7 @@ list of child Elements and a set of Parameters. The root Element stands for the
 whole device and holds device-wide Parameters such as a master dimmer or a
 control channel. A device with one beam and no parts is a single root Element.
 
-Elements form a tree of any depth, so a strobe can be `Strobe → Section 1..4`
+Elements form a tree of any depth, so a strobe can be `Strobe → Section 1..8`
 next to `Backlight → Panel 1..8`, and a moving head with a pixel ring can be
 `Beam` next to `Ring → LED 1..12`. Intermediate Elements are the way a Mode says
 "these parts belong together"; they may have Parameters of their own or none.
@@ -166,12 +185,17 @@ next to `Backlight → Panel 1..8`, and a moving head with a pixel ring can be
 Setting a Parameter on an Element that does not have it, but whose descendants
 do, sets it on every descendant that has it. An Element that lacks a Parameter
 its descendants share shows their values as a summary. This is what makes
-"color the whole Backlight" and "color Panel 3" the same gesture.
+"color the whole Backlight" and "color Panel 3" the same gesture. The summary
+is designed here and shown from slice 2; in slice 1 an intermediate Element's
+inspector lists only its own Parameters.
 
-Each Fixture owns its own Element instances (they are Installation entities with ids),
-created from the Mode when the Fixture is patched, so a Fixture Set or a Look
-Layer row can point at `Panel 3 of Atomic 2`. Changing a Fixture's Mode
-rebuilds its Elements, keeping the id of every Element whose key still exists.
+Elements are not Installation entities. They are derived from the Mode of the
+Fixture's copied-in Fixture Type and referenced everywhere as
+`<fixtureId>/<key>`, so a Fixture Set or a Look Layer row can point at
+`Panel 3 of Atomic 2` without a row for it. A key is unique within its Mode,
+so the reference is as stable as an id: changing a Fixture's Mode keeps every
+reference whose key survives and drops the rest. Nothing a person owns lives on
+an Element; Tags are added to Fixtures.
 
 Do not call an Element a Fixture, a Head, a Cell or a Sub-fixture; do not call a
 non-root Element a Pixel unless it is one.
@@ -217,7 +241,7 @@ An Element's concrete version of one Attribute in one Mode: the Attribute's kind
 and unit, plus this device's range, step, options, default and highlight value,
 and the Channels its Encoding writes. `Aura` in the Atomic's 14ch Mode has a
 `color` Parameter feeding three Channels and a `dimmer` Parameter feeding one;
-`Panel 3` of a hypothetical zoned strobe has its own `color` Parameter.
+`Panel 3` of the rig's zoned strobe has its own `color` Parameter.
 
 A Parameter has one of four kinds, the same four Difracta uses: number, color,
 choice or boolean. Numbers carry a unit and a range in physical terms when the
@@ -281,11 +305,21 @@ values in the definition.
 ### Highlight
 
 An optional per-Parameter value the Mode declares for making a fixture visibly
-identifiable: dimmer full, color white, shutter open, gobo open. The Runtime can
-apply the Highlight values of a selection temporarily without storing them.
+identifiable: dimmer full, color white, shutter open, gobo open. The Runtime
+applies them to the real fixture, so a person sees on the truss which device
+they picked; before any Layer exists it is the only way light leaves an Output.
 
-**Elsewhere:** grandMA3 "highlight" values in the fixture type; QLC+ has no
-equivalent beyond flashing an intensity channel.
+Each Element has a boolean Address `element/<fixtureId>/<key>/highlight` in the
+operational state, next to Blackout: a performance write, replicated, never
+saved, never undoable. Studio holds it from mouse down to mouse up; the CLI
+holds it for two seconds by default, with `--on` and `--off` for a sticky
+switch. The Runtime clears any highlight after thirty seconds, in case the
+client that set it vanished. Highlighting a non-root Element lights that part
+alone.
+
+**Elsewhere:** grandMA3 "highlight" values in the fixture type, applied to the
+selection while the Highlight key is on; QLC+ has no equivalent beyond flashing
+an intensity channel.
 
 ### Encoding
 
@@ -314,6 +348,12 @@ The rules cover every shape that real fixtures have:
 Importers from OFL, GDTF and `.qxf` produce Encoding rules; a person authoring a
 Fixture Type composes them from a small set of primitives. Studio never shows
 them to a programmer.
+
+Two fixed rules of the first build: a `color` landing on red, green, blue and
+white emitters takes the white as the smallest of the three and subtracts it
+from each of them, so the hue stays exact (a setting to choose otherwise is
+deferred); and the alpha of a Color value is ignored, since Encoding sees one
+colour, not a blend.
 
 **Elsewhere:** GDTF channel functions with physical from/to plus relations of
 type Multiply and mode masters; QLC+ capabilities (byte ranges with names) with
@@ -349,9 +389,12 @@ said of Elements is true of it: it is selectable, it carries the device-wide
 Parameters, and setting a Parameter on it that only its parts have fans down to
 the parts.
 
-Fixtures are Installation entities with stable ids and unique names, arranged in
-navigator Groups like every Difracta entity. Two Fixtures may share a Fixture
-Type and Mode; each still has its own Elements.
+Fixtures are Installation entities with stable ids and unique names. The
+`fixtures` table holds `group` and `fixture` rows sharing Difracta's tree shape,
+so Fixtures are arranged in navigator Groups like every other entity; Elements
+are not rows, and nothing can be dropped into a Fixture in the navigator. Two
+Fixtures may share a Fixture Type and Mode; each still has its own Elements,
+derived from that Mode.
 
 Do not say "physical fixture" or "logical fixture": the device is the Fixture
 and its controllable parts are its Elements.
@@ -363,7 +406,12 @@ and its controllable parts are its Elements.
 
 The assignment of a Fixture to one Universe and one start DMX Address. A Fixture
 may be unpatched and still exist, be selected and be programmed; it then
-contributes to no DMX Frame. Two Fixtures cannot overlap in one Universe.
+contributes to no DMX Frame. Two Fixtures cannot overlap in one Universe: the
+command refuses and names the colliding Fixture, and a Mode change whose
+Footprint would collide is refused the same way rather than unpatching. A new
+Fixture takes the next free address in its Universe, and a new Installation
+starts with one Universe named `Universe 1`, so the first Fixture needs no
+setup step.
 
 A Mode's Footprint is one contiguous run in v1; fixtures whose modes span two
 separate address ranges are deferred.
@@ -634,8 +682,10 @@ Terms for seeing the rig in Studio without hardware. Reasoned in
 A Fixture's place in stage space: `x`, `y`, `z` in metres and a rotation about
 each axis, stored on the Fixture. The origin is centre stage on the floor; `x`
 runs to the right as the audience sees it, `y` up, `z` toward the audience. A
-new Fixture sits at the origin until dragged. Elements have no Position of
-their own; their offsets come from the Shape Template. Position is what the
+new Fixture lands one shape width to the right of the rightmost existing
+Fixture, on the floor line, so a fresh rig reads as a row before anyone drags;
+the first Fixture lands at the origin. Elements have no Position of their own;
+their offsets come from the Shape Template. Position is what the
 front view draws and what geometry Visuals will read later.
 
 ### Shape Template
@@ -660,10 +710,13 @@ Always schematic; a beam-like 3D view is a later, separate view.
 
 ### Resolved Stream
 
-The Runtime's live feed of resolved Parameter Values to a Studio session,
-subscribed per view, coalesced to twenty updates per second. The Rig View
-subscribes to `color` and `dimmer` of placed Elements; inspectors subscribe to
-what they show. Never saved.
+The Runtime's live feed of resolved Parameter Values to a Studio session. A
+session subscribes by Fixture id and receives every Element's values for every
+Attribute of those Fixtures: a full set first, then only the values that
+changed, coalesced to `stream.rateHz` (20 in settings, never above
+`output.rateHz`). The Rig View and an inspector on the same Fixture share one
+subscription. Values are Parameter Values in physical units, never bytes.
+Never saved.
 
 ## Deferred terminology
 

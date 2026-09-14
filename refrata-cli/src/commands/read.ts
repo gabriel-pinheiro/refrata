@@ -63,7 +63,7 @@ export function registerRead(program: Command, cli: Cli): void {
               : document.controllers[link.controllerId];
           return {
             ...entry,
-            value: getAtPath(document, entry.path),
+            value: getAtPath(document, entry.path) ?? entry.default,
             ...(link === undefined
               ? {}
               : {

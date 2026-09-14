@@ -8,14 +8,30 @@ import type { RuntimeConfig } from "./config.ts";
 import { DocumentStore } from "./documents/document-store.ts";
 import { LiveServer } from "./live/live-server.ts";
 import { OscServer } from "./osc/osc-server.ts";
+import { OutputManager } from "./output/output-manager.ts";
+import {
+  nodeSerialFactory,
+  type SerialPortFactory,
+} from "./output/serial-link.ts";
+import { HighlightTimeout } from "./rig/highlight-timeout.ts";
+import { FixtureLibrary } from "./rig/library.ts";
+import { OutputLoop } from "./rig/output-loop.ts";
 
 export const RUNTIME_VERSION = "0.0.0";
 
 export interface Runtime {
   readonly app: FastifyInstance;
   readonly store: DocumentStore;
+  readonly library: FixtureLibrary;
+  readonly loop: OutputLoop;
   listen(): Promise<string>;
   close(): Promise<void>;
+}
+
+export interface RuntimeOptions {
+  readonly logger?: boolean;
+  /** Serial ports to open Outputs on; the real `serialport` module unless a test supplies a fake. */
+  readonly serialFactory?: () => Promise<SerialPortFactory>;
 }
 
 async function existingDir(
@@ -32,7 +48,7 @@ async function existingDir(
 
 export async function buildRuntime(
   config: RuntimeConfig,
-  options: { readonly logger?: boolean } = {},
+  options: RuntimeOptions = {},
 ): Promise<Runtime> {
   const app = Fastify({ logger: options.logger ?? false });
   const log = (message: string): void => {
@@ -48,12 +64,23 @@ export async function buildRuntime(
     config.oscPort === undefined
       ? undefined
       : new OscServer({ store, port: config.oscPort, host: config.host, log });
+  const library = new FixtureLibrary(log);
+  await library.load(config.libraryDir);
+  const outputs = new OutputManager({
+    factory: options.serialFactory ?? nodeSerialFactory,
+    log,
+  });
+  const loop = new OutputLoop({ store, outputs });
+  const highlightTimeout = new HighlightTimeout(store);
   const live = new LiveServer({
     store,
     runtimeName: "Refrata Runtime",
     runtimeVersion: RUNTIME_VERSION,
     log,
     osc,
+    library,
+    loop,
+    outputs,
   });
 
   await app.register(fastifyWebsocket);
@@ -80,6 +107,8 @@ export async function buildRuntime(
   return {
     app,
     store,
+    library,
+    loop,
     async listen() {
       if (config.openPath !== undefined) {
         const opened = await store.open(config.openPath);
@@ -93,6 +122,8 @@ export async function buildRuntime(
         host: config.host,
         port: config.port,
       });
+      loop.start();
+      highlightTimeout.start();
       if (osc !== undefined) {
         try {
           await osc.start();
@@ -104,6 +135,8 @@ export async function buildRuntime(
     },
     async close() {
       live.close();
+      highlightTimeout.close();
+      await loop.close();
       await osc?.close();
       await store.flush();
       await app.close();

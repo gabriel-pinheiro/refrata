@@ -9,6 +9,8 @@ import { Inspector } from "@/inspector/inspector";
 import { readStored, writeStored } from "@/lib/storage";
 import { Navigator } from "@/navigator/navigator";
 import { ExpansionProvider } from "@/navigator/expansion";
+import { RigStream } from "@/rig-view/rig-stream";
+import { RigView } from "@/rig-view/rig-view";
 import { SelectionProvider } from "@/selection/selection";
 import { SelectionKeys } from "@/selection/selection-keys";
 
@@ -20,15 +22,17 @@ const isLayout = (candidate: unknown): candidate is Record<string, number> =>
   Object.values(candidate).every((value) => typeof value === "number");
 
 /**
- * Navigator, an empty centre and inspector as three resizable columns.
- * Column sizes are remembered per browser; selection and which rows are open
- * reset with the document. The centre waits for the Rig.
+ * Navigator, the Rig View and inspector as three resizable columns. Column
+ * sizes are remembered per browser; selection and which rows are open reset
+ * with the document. The Resolved Stream follows every Fixture while the
+ * workspace is open.
  */
 export function Workspace({ view }: { readonly view: DocumentView }) {
   return (
     <SelectionProvider key={view.documentId}>
       <ExpansionProvider>
         <SelectionKeys />
+        <RigStream view={view} />
         <Columns view={view} />
       </ExpansionProvider>
     </SelectionProvider>
@@ -48,7 +52,7 @@ function Columns({ view }: { readonly view: DocumentView }) {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="center" minSize={320}>
-        <main className="grid h-full place-items-center text-muted-foreground" />
+        <RigView view={view} />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="inspector" defaultSize={288} minSize={256}>

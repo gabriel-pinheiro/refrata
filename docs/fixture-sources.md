@@ -74,9 +74,20 @@ a future Fixture Type Editor in Studio. This is the canonical form every
 importer targets, so the format is the Mode model written down: Channel Layout,
 Element tree, Parameters, Encoding rules built from the primitives.
 
+The format is JSON, validated with Zod, with a `formatVersion` from day one
+like the Installation file; the files live in a `refrata-library/` folder the
+Runtime loads at startup. The shape is in
+[fixture-type-format.md](fixture-type-format.md): a flat wire-ordered Channel
+Layout where each Channel names its Element, an Element tree with Tags, and
+Parameters that state only default, highlight and Encoding, the rest coming
+from the Attribute vocabulary in core.
+
 ## Bundled generics
 
 Like both references, the library ships generic types for the fixtures that
-have no brand: `Dimmer 1ch`, `RGB 3ch`, `RGBW 4ch`, `RGBA`, `RGBAW`, `Pan/Tilt
-
-- Dimmer`, and a generic pixel bar with the pixel count as a Mode choice.
+have no brand. Slice 1 ships four, hand-written: `generic/dimmer-1ch`,
+`generic/rgb-3ch` (virtual dimmer), `generic/rgbw-4ch` (white subtracted from
+red, green and blue) and the rig's ST-960 strobe in its `3ch` and `32ch`
+Modes, the last from the LL960S chart in docs/rig-model.md until verified.
+`RGBA`, `RGBAW`, `Pan/Tilt + Dimmer` and a generic pixel bar with the pixel
+count as a Mode choice stay planned.
