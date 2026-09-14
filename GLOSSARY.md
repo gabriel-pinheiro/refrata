@@ -468,15 +468,16 @@ Matrix). Neither has Sets by rule.
 
 ### Selection
 
-The transient list of Elements a Studio session has picked, used to make a
-Fixture Set, to fill a Layer's Target list, and to Highlight. Shift-click and
-ctrl-click extend it in the Rig View and in the navigator's Fixture rows, and
-a marquee drag on empty canvas picks everything inside. Picking a Fixture Set
-selects its members; picking a Fixture selects its root Element. Two actions
-read it: "New Set from selection" and "Add selection", which adds the picked
-Elements as a Set's members or as a Layer's Targets. Selection is per Studio
-session, never saved; a Fixture Set is its saved form. Programming itself does
-not read the Selection: Layers read their Targets.
+The ordered list of what a Studio session has selected, of any kind: the
+inspector shows one selected thing's own settings, or for several a summary
+of them. Click replaces it, shift-click adds, ctrl-click toggles, in the Rig
+View and in every navigator row, and a marquee drag on empty canvas adds what
+is inside it: whole Fixtures, or the Elements of one partly covered. When the selection is only Fixtures, Elements and Fixture
+Sets it can be used as Targets: "Add to Look Layer", "Add to Set" and "New
+Set" sit on its inspector and on the row's context menu, in selection order,
+which becomes the Target order. Selection is per Studio session, never
+saved; a Fixture Set is its saved form. Programming itself does not read the
+Selection: Layers read their Targets.
 
 **Elsewhere:** grandMA3 "selection" (with a selection grid), QLC+ has no
 persistent selection outside an editor.
@@ -614,14 +615,16 @@ of four kinds: Look Layer, Visual Layer, Filter Layer or Group.
 The static Visual: a Layer whose rows are not declared by code but derived
 from its Targets, one row per Attribute found across their Elements. Rows are
 stored per Target, an Element or a Fixture Set: one row per Attribute, each a
-value and an alpha (default 1), released when absent. A Set Target's rows fan
-to its members, so a member added later inherits them without reopening the
-Layer; to override one member, that Element is added as a Target of its own
-and wins by the Target rule. The inspector's "All Targets" section is a
-convenience that writes one Attribute to every Target at once. Every row and
-its alpha is an Address, so a Controller can drive it through a Parameter Link
-and the row shows who drives it. It is the console's programmer frozen into a
-Layer, and the most common Layer in a show.
+value (with an alpha stored for later, read as 1 today), released when absent.
+Beside them the Layer holds its "All Targets" rows, one per Attribute found
+across the Targets: every Target takes them unless it has its own row for
+that Attribute, which overrides. A Set Target's rows fan to its members, so a
+member added later inherits them without reopening the Layer; to override
+one member, that Element is added as a Target of its own and wins by the
+Target rule. Every row, All Targets included, is an Address
+(`layer/<id>/row/<target|all>/<attribute>`), so a Controller can drive it
+through a Parameter Link and the row shows who drives it. It is the console's
+programmer frozen into a Layer, and the most common Layer in a show.
 
 A value per Element inside one Set Target (a mover's focus position is per
 Element by nature) is deferred: today that is one Target per Element.
@@ -734,11 +737,12 @@ pixel matrix; hand-written types name a template and its Tags.
 The Studio panel that draws every placed Element as a flat shape filled with
 its resolved `color` times `dimmer` (white times `dimmer` when the Element has
 no `color`) on a dark canvas, in front view (`x`, `y`, and the rotation about
-`z`). Clicking selects a Fixture or an Element, shift-click and ctrl-click
-extend the Selection, a marquee on empty canvas picks everything inside,
-dragging a shape moves its Fixture through an undoable command, and zoom and
-pan are per session. When a Layer or a Fixture Set is selected the view
-outlines its Targets or members, so what a Layer reaches is visible. It reads
+`z`). Clicking selects a Fixture, clicking inside a selected Fixture selects
+an Element, shift-click and ctrl-click extend the Selection, a marquee on
+empty canvas selects what is inside, dragging a shape moves its Fixture
+through an undoable command, and zoom and pan are per session. When a Layer
+or a Fixture Set is selected the view outlines its Targets or members, so
+what a Layer reaches is visible. It reads
 the Resolved Stream and shows Defaults and Highlight before any Layer exists.
 Always schematic; a beam-like 3D view is a later, separate view.
 

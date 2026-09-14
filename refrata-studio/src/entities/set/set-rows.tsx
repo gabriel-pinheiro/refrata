@@ -17,11 +17,16 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 import { setIcons } from "./set-icons";
 
-/** The Sets under the root or one Group as rows; selecting a Set picks its members. */
+/** The Sets under the root or one Group as rows; a selected Set has its members outlined in the Rig View. */
 export function SetRows({
   view,
   parentId,
@@ -34,7 +39,7 @@ export function SetRows({
   readonly createItems: (parentId: string | null) => readonly CreateItem[];
 }) {
   const command = useCommand(view);
-  const { selection, select, pick } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const sets = useDocumentPath<Table<FixtureSet>>(view, ["fixtureSets"]) ?? {};
   const rows = childSets(sets, parentId);
@@ -52,7 +57,7 @@ export function SetRows({
       kind="set"
       listId={`set:${parentId ?? ""}`}
       ids={rows.map((set) => set.id)}
-      selectedId={selection?.kind === "set" ? selection.id : undefined}
+      selectedId={soleId(selected, "set")}
       onMove={(setId, after) =>
         void command("set.move", { setId, parentId, after })
       }
@@ -76,17 +81,16 @@ export function SetRows({
                   icon={setIcons[set.kind]}
                   label={set.name}
                   depth={depth}
-                  selected={isSelected(selection, "set", set.id)}
+                  selected={isSelected(selected, "set", set.id)}
                   expanded={expanded}
                   onToggle={
                     group
                       ? (next) => setExpanded("set", set.id, next)
                       : undefined
                   }
-                  onSelect={() => {
-                    if (set.kind === "set") pick(set.members, "replace");
-                    select({ kind: "set", id: set.id });
-                  }}
+                  onSelect={(event) =>
+                    select({ kind: "set", id: set.id }, pickModeOf(event))
+                  }
                   createItems={group ? createItems(set.id) : undefined}
                 >
                   {set.kind === "set" && (

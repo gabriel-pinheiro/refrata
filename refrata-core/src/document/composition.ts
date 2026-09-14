@@ -44,6 +44,14 @@ export const BLEND_MODE_LABELS: Record<BlendMode, string> = {
 export const SET_REF_PREFIX = "set:";
 
 /**
+ * The pseudo Target ref of a Look Layer's "All Targets" rows: what a row
+ * command or a row Address names to reach `layer.all` instead of one
+ * Target's rows. Never a real Target: an Element ref has a slash and a Set
+ * ref its prefix.
+ */
+export const ALL_TARGETS_REF = "all";
+
+/**
  * One Target entry of a Layer: an Element reference (`<fixtureId>/<key>`)
  * or a Fixture Set (`set:<id>`), and whether it spreads into its members at
  * resolve time. Spread is stored for Visual Layers to come; a Look Layer
@@ -63,11 +71,12 @@ export const LookRowSchema = z
   .strict();
 export type LookRow = z.infer<typeof LookRowSchema>;
 
-/** Rows keyed by Target ref, then by Attribute key. A row absent is released. */
-export const LookRowsSchema = z.record(
-  z.string().min(1),
-  z.record(z.string().min(1), LookRowSchema),
-);
+/** Rows keyed by Attribute key. A row absent is released. */
+export const AttributeRowsSchema = z.record(z.string().min(1), LookRowSchema);
+export type AttributeRows = z.infer<typeof AttributeRowsSchema>;
+
+/** Rows keyed by Target ref, then by Attribute key. */
+export const LookRowsSchema = z.record(z.string().min(1), AttributeRowsSchema);
 export type LookRows = z.infer<typeof LookRowsSchema>;
 
 const LayerBase = {
@@ -90,9 +99,10 @@ export const LAYER_LABELS: Record<LayerKind, string> = {
 
 /**
  * A Layer of a Scene. A Look Layer is the static one: Targets, rows per
- * Target, an opacity that is its fader, and a Blend Mode. A Group has
- * `enabled` and nothing else, so a submaster is a Controller on the
- * opacities it should ride.
+ * Target, the "All Targets" rows in `all` that every Target takes unless
+ * its own row overrides them, an opacity that is its fader, and a Blend
+ * Mode. A Group has `enabled` and nothing else, so a submaster is a
+ * Controller on the opacities it should ride.
  */
 export const LayerSchema = z.discriminatedUnion("kind", [
   z
@@ -103,6 +113,7 @@ export const LayerSchema = z.discriminatedUnion("kind", [
       opacity: z.number().min(0).max(1),
       blendMode: BlendModeSchema,
       rows: LookRowsSchema,
+      all: AttributeRowsSchema.default({}),
     })
     .strict(),
   z.object({ ...LayerBase, kind: z.literal("group") }).strict(),
@@ -145,6 +156,11 @@ export type MemberSet = Extract<FixtureSet, { kind: "set" }>;
 
 export function isSetRef(ref: string): boolean {
   return ref.startsWith(SET_REF_PREFIX);
+}
+
+/** Whether a ref names the "All Targets" rows rather than one Target. */
+export function isAllTargetsRef(ref: string): boolean {
+  return ref === ALL_TARGETS_REF;
 }
 
 /** `set:<id>`: how a Fixture Set is named as a Target. */

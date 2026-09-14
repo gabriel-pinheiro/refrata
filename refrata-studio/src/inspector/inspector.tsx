@@ -3,28 +3,28 @@ import type { DocumentView } from "@refrata/client";
 import { PanelHeader } from "@/components/panel-header";
 import { entities } from "@/entities";
 import { InstallationInspector } from "@/entities/installation/installation-inspector";
-import { useSelection } from "@/selection/selection";
+import { SelectionInspector } from "@/selection/selection-inspector";
+import { soleSelection, useSelection } from "@/selection/selection";
 
-/** Settings of whatever is selected in the navigator. */
+/** Settings of whatever is selected: one thing's own inspector, or the selection inspector for several. */
 export function Inspector({ view }: { readonly view: DocumentView }) {
-  const { selection } = useSelection();
+  const { selected } = useSelection();
+  const only = soleSelection(selected);
   return (
     <aside className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground">
       <PanelHeader>Inspector</PanelHeader>
       <div className="@container min-h-0 overflow-auto">
-        {selection === undefined ? (
+        {selected.length === 0 ? (
           <p className="p-3 text-muted-foreground">
             Nothing selected. Click an item in the navigator to see its settings
             here.
           </p>
-        ) : selection.kind === "installation" ? (
+        ) : only === undefined ? (
+          <SelectionInspector view={view} />
+        ) : only.kind === "installation" ? (
           <InstallationInspector view={view} />
         ) : (
-          <EntityInspector
-            view={view}
-            kind={selection.kind}
-            id={selection.id}
-          />
+          <EntityInspector view={view} kind={only.kind} id={only.id} />
         )}
       </div>
     </aside>

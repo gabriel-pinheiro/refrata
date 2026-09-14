@@ -1,7 +1,7 @@
-import { effectiveAt } from "../address/links.ts";
-import { linksUnder } from "../address/links.ts";
-import type { LookLayer } from "../document/composition.ts";
+import { effectiveAt, linksUnder } from "../address/links.ts";
+import { ALL_TARGETS_REF, type LookLayer } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
+import { rowsAt, storedRow } from "../document/look-rows.ts";
 import { targetElements } from "../document/targets.ts";
 import type { ParameterValue } from "../parameters.ts";
 import { isAttributeKey, type AttributeKey } from "../rig/attributes.ts";
@@ -26,7 +26,7 @@ interface Candidate extends Contribution {
   readonly index: number;
 }
 
-/** The Address of a row's value, and of its alpha. */
+/** The Address of a row's value: a Target's row, or an "All Targets" row through `ALL_TARGETS_REF`. */
 export function rowAddress(
   layerId: string,
   ref: string,
@@ -35,18 +35,11 @@ export function rowAddress(
   return `layer/${layerId}/row/${ref}/${attribute}`;
 }
 
-export function rowAlphaAddress(
-  layerId: string,
-  ref: string,
-  attribute: string,
-): string {
-  return `${rowAddress(layerId, ref, attribute)}/alpha`;
-}
-
 /**
- * The row a Look Layer makes for one Target and Attribute as the show sees
- * it: a Controller linked to the value or the alpha drives it; a row absent
- * and unlinked is released (undefined); alpha absent is 1.
+ * The row a Look Layer holds under one row ref for one Attribute as the
+ * show sees it: a Controller linked to the value drives it; a row absent
+ * and unlinked is released (undefined). Alpha is stored but has no Address
+ * or control yet, so it reads as stored, 1 when absent.
  */
 export function effectiveRow(
   document: Document,
@@ -54,28 +47,23 @@ export function effectiveRow(
   ref: string,
   attribute: string,
 ): Contribution | undefined {
-  const row = layer.rows[ref]?.[attribute];
+  const row = storedRow(layer, ref, attribute);
   const value = effectiveAt(
     document,
     rowAddress(layer.id, ref, attribute),
     row?.value,
   );
   if (value === undefined) return undefined;
-  const alpha = effectiveAt(
-    document,
-    rowAlphaAddress(layer.id, ref, attribute),
-    row?.alpha ?? 1,
-  );
-  return { value, alpha: typeof alpha === "number" ? alpha : 1 };
+  return { value, alpha: row?.alpha ?? 1 };
 }
 
-/** The Attributes a Target has rows for: stored ones, plus any a Link drives without a stored row. */
+/** The Attributes a row ref has rows for: stored ones, plus any a Link drives without a stored row. */
 function rowAttributes(
   document: Document,
   layer: LookLayer,
   ref: string,
 ): readonly AttributeKey[] {
-  const keys = new Set(Object.keys(layer.rows[ref] ?? {}));
+  const keys = new Set(Object.keys(rowsAt(layer, ref)));
   const prefix = rowAddress(layer.id, ref, "");
   for (const link of linksUnder(document.links, prefix)) {
     const [attribute] = link.address.slice(prefix.length).split("/");
@@ -85,23 +73,31 @@ function rowAttributes(
 }
 
 /**
- * What a Look Layer contributes this frame. Each Target expands to its
- * Elements (a Set to its members); a row lands on the Element when it owns
- * the Attribute, else on every descendant that does. Where two Targets reach
- * one Element for one Attribute, the Element's own Target beats a value
- * fanned down from an ancestor, and among equals the later Target wins.
+ * What a Look Layer contributes this frame. Each Target takes the "All
+ * Targets" rows, its own rows overriding them Attribute by Attribute, and
+ * expands to its Elements (a Set to its members); a row lands on the Element
+ * when it owns the Attribute, else on every descendant that does. Where two
+ * Targets reach one Element for one Attribute, the Element's own Target
+ * beats a value fanned down from an ancestor, and among equals the later
+ * Target wins.
  */
 export function lookContributions(
   document: Document,
   layer: LookLayer,
 ): Contributions {
   const best = new Map<string, Map<AttributeKey, Candidate>>();
+  const shared = rowAttributes(document, layer, ALL_TARGETS_REF);
   layer.targets.forEach((target, index) => {
-    const attributes = rowAttributes(document, layer, target.ref);
-    if (attributes.length === 0) return;
+    const attributes = new Set([
+      ...shared,
+      ...rowAttributes(document, layer, target.ref),
+    ]);
+    if (attributes.size === 0) return;
     const rows = new Map<AttributeKey, Contribution>();
     for (const attribute of attributes) {
-      const row = effectiveRow(document, layer, target.ref, attribute);
+      const row =
+        effectiveRow(document, layer, target.ref, attribute) ??
+        effectiveRow(document, layer, ALL_TARGETS_REF, attribute);
       if (row !== undefined) rows.set(attribute, row);
     }
     if (rows.size === 0) return;

@@ -10,7 +10,7 @@ import {
 
 import type { EntityKind } from "@/entities";
 
-/** What the inspector shows: the Installation itself, or one entity by kind and id. */
+/** One selected thing: the Installation itself, or one entity by kind and id. */
 export type Selection =
   | { readonly kind: "installation" }
   | { readonly kind: EntityKind; readonly id: string };
@@ -18,16 +18,18 @@ export type Selection =
 export type PickMode = "replace" | "add" | "toggle";
 
 interface SelectionState {
-  /** `undefined` when nothing is selected; the inspector then shows its empty state. */
-  readonly selection: Selection | undefined;
-  readonly select: (next: Selection | undefined) => void;
   /**
-   * The glossary's Selection: the ordered Element refs picked in the Rig
-   * View or the navigator, what "New Set from selection" and "Add
-   * selection" read. Selecting a Layer or a Controller leaves it alone.
+   * The glossary's Selection: the ordered list of what is selected, in the
+   * order it was clicked. Empty when nothing is; the inspector then shows
+   * its empty state. One item shows that item's inspector; several show
+   * the selection inspector, which offers what can be done with them all.
    */
-  readonly picked: readonly string[];
-  readonly pick: (refs: readonly string[], mode: PickMode) => void;
+  readonly selected: readonly Selection[];
+  /** Replaces the selection (the default), extends it, or flips each item in or out. */
+  readonly select: (
+    next: Selection | readonly Selection[] | undefined,
+    mode?: PickMode,
+  ) => void;
 }
 
 const Context = createContext<SelectionState | undefined>(undefined);
@@ -38,33 +40,54 @@ export function SelectionProvider({
 }: {
   readonly children: ReactNode;
 }) {
-  const [selection, setSelection] = useState<Selection | undefined>(undefined);
-  const [picked, setPicked] = useState<readonly string[]>([]);
-  const select = useCallback((next: Selection | undefined) => {
-    setSelection(next);
-    if (next === undefined) setPicked([]);
-  }, []);
-  const pick = useCallback((refs: readonly string[], mode: PickMode) => {
-    setPicked((previous) => pickRefs(previous, refs, mode));
-  }, []);
-  const state = useMemo(
-    () => ({ selection, select, picked, pick }),
-    [selection, select, picked, pick],
+  const [selected, setSelected] = useState<readonly Selection[]>([]);
+  const select = useCallback(
+    (
+      next: Selection | readonly Selection[] | undefined,
+      mode: PickMode = "replace",
+    ) => {
+      const items =
+        next === undefined ? [] : Array.isArray(next) ? next : [next];
+      setSelected((previous) =>
+        pickItems(previous, items as readonly Selection[], mode),
+      );
+    },
+    [],
   );
+  const state = useMemo(() => ({ selected, select }), [selected, select]);
   return <Context.Provider value={state}>{children}</Context.Provider>;
 }
 
-/** The next picked list: replaced, extended, or with each ref flipped in or out. */
-export function pickRefs(
-  previous: readonly string[],
-  refs: readonly string[],
+/** The key two selections compare by. */
+export function selectionKey(item: Selection): string {
+  return item.kind === "installation"
+    ? "installation"
+    : `${item.kind}:${item.id}`;
+}
+
+/** The next selection: replaced, extended, or with each item flipped in or out. Never holds an item twice. */
+export function pickItems(
+  previous: readonly Selection[],
+  items: readonly Selection[],
   mode: PickMode,
-): readonly string[] {
-  if (mode === "replace") return [...new Set(refs)];
+): readonly Selection[] {
+  const keys = new Set(items.map(selectionKey));
+  const fresh = items.filter(
+    (item, index) =>
+      items.findIndex((other) => selectionKey(other) === selectionKey(item)) ===
+      index,
+  );
+  if (mode === "replace") return fresh;
+  const kept = new Set(previous.map(selectionKey));
   if (mode === "add")
-    return [...previous, ...refs.filter((ref) => !previous.includes(ref))];
-  const flipped = previous.filter((ref) => !refs.includes(ref));
-  return [...flipped, ...refs.filter((ref) => !previous.includes(ref))];
+    return [
+      ...previous,
+      ...fresh.filter((item) => !kept.has(selectionKey(item))),
+    ];
+  return [
+    ...previous.filter((item) => !keys.has(selectionKey(item))),
+    ...fresh.filter((item) => !kept.has(selectionKey(item))),
+  ];
 }
 
 /** The pick mode a click's modifiers ask for: shift extends, ctrl or cmd toggles. */
@@ -90,11 +113,38 @@ export function useSelectionIfAny(): SelectionState | undefined {
 }
 
 export function isSelected(
-  selection: Selection | undefined,
-  kind: EntityKind,
-  id: string,
+  selected: readonly Selection[],
+  kind: EntityKind | "installation",
+  id?: string,
 ): boolean {
-  return selection?.kind === kind && selection.id === id;
+  return selected.some(
+    (item) =>
+      item.kind === kind && (item.kind === "installation" || item.id === id),
+  );
+}
+
+/** The one selected item when exactly one is, else undefined. */
+export function soleSelection(
+  selected: readonly Selection[],
+): Selection | undefined {
+  return selected.length === 1 ? selected[0] : undefined;
+}
+
+/** The id of the one selected item when it is of `kind`, for lists that outline their selected row. */
+export function soleId(
+  selected: readonly Selection[],
+  kind: EntityKind,
+): string | undefined {
+  const only = soleSelection(selected);
+  return only?.kind === kind ? only.id : undefined;
+}
+
+/** The ids of every selected item of `kind`, in selection order. */
+export function selectedIds(
+  selected: readonly Selection[],
+  kind: EntityKind,
+): readonly string[] {
+  return selected.flatMap((item) => (item.kind === kind ? [item.id] : []));
 }
 
 /**

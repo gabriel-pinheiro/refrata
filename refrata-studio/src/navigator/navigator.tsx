@@ -6,13 +6,17 @@ import { useEffect, useRef } from "react";
 import { PanelHeader } from "@/components/panel-header";
 import { entities, entityKinds } from "@/entities";
 import { useDocumentPath } from "@/lib/client";
-import { deselectOnBackgroundClick, useSelection } from "@/selection/selection";
+import {
+  deselectOnBackgroundClick,
+  isSelected,
+  useSelection,
+} from "@/selection/selection";
 
 import { NavigatorRow } from "./navigator-row";
 
 /** Everything in the Installation: its root row, then one section per entity kind. */
 export function Navigator({ view }: { readonly view: DocumentView }) {
-  const { selection, select } = useSelection();
+  const { selected, select } = useSelection();
   const name = useDocumentPath<string>(view, ["installation", "name"]) ?? "";
   const scroller = useRef<HTMLDivElement>(null);
   // Dragging a row near the top or bottom scrolls the list.
@@ -35,7 +39,7 @@ export function Navigator({ view }: { readonly view: DocumentView }) {
           icon={Theater}
           label={name}
           depth={0}
-          selected={selection?.kind === "installation"}
+          selected={isSelected(selected, "installation")}
           onSelect={() => select({ kind: "installation" })}
         />
         {entityKinds.map((kind) => {

@@ -9,14 +9,22 @@ import { allFixtures, fixtureElements } from "../document/fixtures.ts";
 import { lookLayers } from "../document/layers.ts";
 import { orderedEntries } from "../document/order.ts";
 import {
-  rowDefinition,
-  targetAttributes,
-  targetLabel,
-} from "../document/targets.ts";
+  hasRowRef,
+  layerAttributes,
+  rowPath,
+  rowRefAttributes,
+  rowRefDefinition,
+  rowRefLabel,
+} from "../document/look-rows.ts";
+import { targetAttributes } from "../document/targets.ts";
 import { flattenTree } from "../document/tree.ts";
 import type { PatchPath } from "../document/patch.ts";
 import { id as brand } from "../ids.ts";
-import { isSetRef, SET_REF_PREFIX } from "../document/composition.ts";
+import {
+  ALL_TARGETS_REF,
+  isSetRef,
+  SET_REF_PREFIX,
+} from "../document/composition.ts";
 import { isAttributeKey } from "../rig/attributes.ts";
 import { elementRef } from "../rig/elements.ts";
 
@@ -110,13 +118,22 @@ interface AddressPattern {
 
 const PERCENT = { min: 0, max: 1, step: 0.01, percent: true } as const;
 
-/** The Address rows of one Target of a Look Layer, for the value or the alpha, resolved from a Target ref and an Attribute. */
+/**
+ * The row Addresses of a Look Layer, resolved from a row ref and an
+ * Attribute: `row/all/<attribute>` for the "All Targets" row, `row/set:<id>/<attribute>`
+ * for a Set Target, `row/<fixtureId>/<key>/<attribute>` for an Element.
+ */
 function rowPattern(
-  pattern: readonly string[],
+  kind: "all" | "set" | "element",
   refOf: (captures: readonly string[]) => string,
   attributeOf: (captures: readonly string[]) => string,
-  alpha: boolean,
 ): AddressPattern {
+  const pattern =
+    kind === "all"
+      ? ["layer", "*", "row", ALL_TARGETS_REF, "*"]
+      : kind === "set"
+        ? ["layer", "*", "row", `${SET_REF_PREFIX}*`, "*"]
+        : ["layer", "*", "row", "*", "*", "*"];
   return {
     pattern,
     resolve: (document, captures) => {
@@ -125,27 +142,15 @@ function rowPattern(
       if (layer?.kind !== "look") return undefined;
       const ref = refOf(captures);
       const attribute = attributeOf(captures);
-      if (!layer.targets.some((target) => target.ref === ref)) return undefined;
+      if (!hasRowRef(layer, ref)) return undefined;
       if (!isAttributeKey(attribute)) return undefined;
-      if (!targetAttributes(document, ref).includes(attribute))
+      if (!rowRefAttributes(document, layer, ref).includes(attribute))
         return undefined;
-      const definition = rowDefinition(document, ref, attribute);
-      const owner = `${layer.name} · ${targetLabel(document, ref)}`;
-      if (alpha) {
-        if (layer.rows[ref]?.[attribute] === undefined) return undefined;
-        return {
-          label: `${definition.label} alpha`,
-          owner,
-          path: ["layers", layerId, "rows", ref, attribute, "alpha"],
-          type: "number",
-          default: 1,
-          range: PERCENT,
-        };
-      }
+      const definition = rowRefDefinition(document, ref, attribute);
       const base = {
         label: definition.label,
-        owner,
-        path: ["layers", layerId, "rows", ref, attribute, "value"] as const,
+        owner: `${layer.name} · ${rowRefLabel(document, ref)}`,
+        path: [...rowPath(layerId, ref, attribute), "value"] as const,
         default: definition.default,
       };
       switch (definition.kind) {
@@ -174,12 +179,15 @@ function rowPattern(
       const result: (readonly string[])[] = [];
       for (const layer of orderedEntries(document.layers)) {
         if (layer.kind !== "look") continue;
+        if (kind === "all") {
+          for (const attribute of layerAttributes(document, layer))
+            result.push([layer.id, attribute]);
+          continue;
+        }
         for (const target of layer.targets) {
           const set = isSetRef(target.ref);
-          if (set !== pattern.includes(`${SET_REF_PREFIX}*`)) continue;
+          if (set !== (kind === "set")) continue;
           for (const attribute of targetAttributes(document, target.ref)) {
-            if (alpha && layer.rows[target.ref]?.[attribute] === undefined)
-              continue;
             const ref = set
               ? target.ref.slice(SET_REF_PREFIX.length)
               : target.ref;
@@ -296,29 +304,12 @@ const patterns: readonly AddressPattern[] = [
     list: (document) => lookLayers(document.layers).map((layer) => [layer.id]),
   },
   rowPattern(
-    ["layer", "*", "row", `${SET_REF_PREFIX}*`, "*"],
-    setRowRef,
-    (captures) => captures[2] ?? "",
-    false,
+    "all",
+    () => ALL_TARGETS_REF,
+    (captures) => captures[1] ?? "",
   ),
-  rowPattern(
-    ["layer", "*", "row", `${SET_REF_PREFIX}*`, "*", "alpha"],
-    setRowRef,
-    (captures) => captures[2] ?? "",
-    true,
-  ),
-  rowPattern(
-    ["layer", "*", "row", "*", "*", "*"],
-    elementRowRef,
-    (captures) => captures[3] ?? "",
-    false,
-  ),
-  rowPattern(
-    ["layer", "*", "row", "*", "*", "*", "alpha"],
-    elementRowRef,
-    (captures) => captures[3] ?? "",
-    true,
-  ),
+  rowPattern("set", setRowRef, (captures) => captures[2] ?? ""),
+  rowPattern("element", elementRowRef, (captures) => captures[3] ?? ""),
   {
     pattern: ["macro", "*", "run"],
     resolve: (document, [id = ""]) => {

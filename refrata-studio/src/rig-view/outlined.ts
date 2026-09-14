@@ -1,47 +1,38 @@
 import type { DocumentView } from "@refrata/client";
-import {
-  elementRef,
-  subtreeOf,
-  targetElements,
-  type FixtureSet,
-  type Layer,
-} from "@refrata/core";
+import { elementRef, targetElements } from "@refrata/core";
 import { useMemo } from "react";
 
-import { useDocumentPath, useSignal } from "@/lib/client";
+import { useSignal } from "@/lib/client";
 import type { Selection } from "@/selection/selection";
 
 /**
  * The Element refs the Rig View outlines for what is selected: the Targets
- * of a Look Layer (Sets expanded to members, each Element with its subtree)
- * or the members of a Fixture Set. Empty for anything else.
+ * of every selected Look Layer (Sets expanded to members) and the members
+ * of every selected Fixture Set. Each ref is one Element; the shape draws
+ * its subtree as one box.
  */
 export function useOutlined(
   view: DocumentView,
-  selection: Selection | undefined,
+  selected: readonly Selection[],
 ): readonly string[] {
-  const layer = useDocumentPath<Layer>(view, [
-    "layers",
-    selection?.kind === "layer" ? selection.id : "",
-  ]);
-  const set = useDocumentPath<FixtureSet>(view, [
-    "fixtureSets",
-    selection?.kind === "set" ? selection.id : "",
-  ]);
   const document = useSignal(view.document);
   return useMemo(() => {
     if (document === undefined) return [];
-    const refs =
-      layer?.kind === "look"
-        ? layer.targets.map((target) => target.ref)
-        : set?.kind === "set"
-          ? set.members
-          : [];
+    const refs: string[] = [];
+    for (const item of selected) {
+      if (item.kind === "layer") {
+        const layer = document.layers[item.id];
+        if (layer?.kind === "look")
+          refs.push(...layer.targets.map((target) => target.ref));
+      } else if (item.kind === "set") {
+        const set = document.fixtureSets[item.id];
+        if (set?.kind === "set") refs.push(...set.members);
+      }
+    }
     const result: string[] = [];
     for (const ref of refs)
       for (const located of targetElements(document, ref))
-        for (const element of subtreeOf(located.elements, located.element.key))
-          result.push(elementRef(located.fixture.id, element.key));
+        result.push(elementRef(located.fixture.id, located.element.key));
     return result;
-  }, [document, layer, set]);
+  }, [document, selected]);
 }

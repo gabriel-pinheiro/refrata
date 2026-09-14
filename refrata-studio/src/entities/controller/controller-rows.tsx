@@ -17,7 +17,12 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 import { controllerIcons } from "./controller-icons";
 
@@ -34,7 +39,7 @@ export function ControllerRows({
   readonly createItems: (parentId: string | null) => readonly CreateItem[];
 }) {
   const command = useCommand(view);
-  const { selection, select } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const controllers =
     useDocumentPath<Table<Controller>>(view, ["controllers"]) ?? {};
@@ -57,7 +62,7 @@ export function ControllerRows({
       kind="controller"
       listId={`controller:${parentId ?? ""}`}
       ids={rows.map((controller) => controller.id)}
-      selectedId={selection?.kind === "controller" ? selection.id : undefined}
+      selectedId={soleId(selected, "controller")}
       onMove={(controllerId, after) =>
         void command("controller.move", { controllerId, parentId, after })
       }
@@ -84,15 +89,18 @@ export function ControllerRows({
                   icon={controllerIcons[controller.kind]}
                   label={controller.name}
                   depth={depth}
-                  selected={isSelected(selection, "controller", controller.id)}
+                  selected={isSelected(selected, "controller", controller.id)}
                   expanded={expanded}
                   onToggle={
                     group
                       ? (next) => setExpanded("controller", controller.id, next)
                       : undefined
                   }
-                  onSelect={() =>
-                    select({ kind: "controller", id: controller.id })
+                  onSelect={(event) =>
+                    select(
+                      { kind: "controller", id: controller.id },
+                      pickModeOf(event),
+                    )
                   }
                   createItems={group ? createItems(controller.id) : undefined}
                 >

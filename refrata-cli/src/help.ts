@@ -29,9 +29,10 @@ Working from a shell
              layers add <scene> <name> [--target <t>]...  a Look Layer at
              the top of the Scene's stack. A Target <t> is a Fixture (its
              root), <fixture>/<key> (one Element) or set:<set>.
-             look <layer> set <target> <attribute> <value> [--alpha <a>]
-             sets a row (dimmer 0.4, color '[0,1,0,1]', shutter closed);
-             look <layer> release <target> <attribute> lets it go.
+             look <layer> set <target> <attribute> <value>  sets a row
+             (dimmer 0.4, color '[0,1,0,1]', shutter closed); <target> "all"
+             is the All Targets row every Target takes unless it has its
+             own. look <layer> release <target> <attribute> lets it go.
              sets add <name> <ref>...  a Fixture Set of Elements, in order.
              play <scene> cuts the Outputs to it; master <0..1> scales every
              dimmer; blackout on|off forces them to 0. play and blackout are
@@ -60,7 +61,7 @@ Working from a shell
              installation/blackout            installation/master
              scene/<id|name>/play             element/<fixture>/<key>/highlight
              layer/<id|name>/opacity          layer/<id|name>/enabled
-             layer/<id|name>/row/<target>/<attribute>[/alpha]
+             layer/<id|name>/row/<target|all>/<attribute>
              (a row's <target> is written as in "look"; "addresses" lists
              them all; link, edit and set take any of them)
 

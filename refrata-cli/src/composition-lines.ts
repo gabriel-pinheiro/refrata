@@ -1,4 +1,5 @@
 import {
+  ALL_TARGETS_LABEL,
   attributeDefinition,
   BLEND_MODE_LABELS,
   childLayers,
@@ -53,8 +54,18 @@ export function formatRowValue(
 }
 
 function describeRow(attribute: string, row: LookRow): string {
-  const alpha = row.alpha ?? 1;
-  return `${attribute} ${formatRowValue(attribute, row.value)}${alpha === 1 ? "" : ` @ ${percent(alpha)}`}`;
+  return `${attribute} ${formatRowValue(attribute, row.value)}`;
+}
+
+function describeRows(
+  label: string,
+  rows: Readonly<Record<string, LookRow>>,
+): string | undefined {
+  const entries = Object.entries(rows);
+  if (entries.length === 0) return undefined;
+  return `${label}: ${entries
+    .map(([attribute, row]) => describeRow(attribute, row))
+    .join(" · ")}`;
 }
 
 export function describeScene(document: Document, scene: Scene): string {
@@ -79,7 +90,7 @@ function describeLayer(document: Document, layer: Layer): string {
   return `Look “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}  targets: ${targets === "" ? "none" : targets}${off}`;
 }
 
-/** A Scene's stack topmost first, Groups indented, each Look Layer's rows under it per Target. */
+/** A Scene's stack topmost first, Groups indented, each Look Layer's rows under it: All Targets first, then per Target. */
 export function formatStack(document: Document, sceneId: string): string[] {
   const lines: string[] = [];
   const visit = (parentId: string | null, depth: number): void => {
@@ -89,14 +100,15 @@ export function formatStack(document: Document, sceneId: string): string[] {
         visit(layer.id, depth + 1);
         continue;
       }
+      const indent = "  ".repeat(depth + 1);
+      const shared = describeRows(ALL_TARGETS_LABEL, layer.all);
+      if (shared !== undefined) lines.push(`${indent}${shared}`);
       for (const target of layer.targets) {
-        const rows = Object.entries(layer.rows[target.ref] ?? {});
-        if (rows.length === 0) continue;
-        lines.push(
-          `${"  ".repeat(depth + 1)}${targetLabel(document, target.ref)}: ${rows
-            .map(([attribute, row]) => describeRow(attribute, row))
-            .join(" · ")}`,
+        const line = describeRows(
+          targetLabel(document, target.ref),
+          layer.rows[target.ref] ?? {},
         );
+        if (line !== undefined) lines.push(`${indent}${line}`);
       }
     }
   };

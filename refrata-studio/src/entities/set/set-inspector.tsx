@@ -1,7 +1,7 @@
 import type { DocumentView } from "@refrata/client";
 import { targetLabel, type FixtureSet } from "@refrata/core";
-import { MousePointerClick, X } from "lucide-react";
-import { useEffect } from "react";
+import { Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { InspectorHeading } from "@/inspector/fields/inspector-heading";
@@ -9,12 +9,13 @@ import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { NameField } from "@/inspector/fields/name-field";
 import { useCommand, useDocumentPath, useSignal } from "@/lib/client";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { TargetPicker } from "@/entities/target/target-picker";
 import { useSelection } from "@/selection/selection";
 
 /**
  * A Fixture Set's name and its members in order, each as `Fixture › Element`,
- * removable and draggable to reorder; "Add selection" appends what is
- * picked in the Rig View or the navigator. A Group shows only its name.
+ * removable and draggable to reorder; "Add members" opens the picker over
+ * the whole rig. A Group shows only its name.
  */
 export function SetInspector({
   view,
@@ -24,7 +25,8 @@ export function SetInspector({
   readonly id: string;
 }) {
   const command = useCommand(view);
-  const { select, picked } = useSelection();
+  const { select } = useSelection();
+  const [picking, setPicking] = useState(false);
   const set = useDocumentPath<FixtureSet>(view, ["fixtureSets", id]);
   // Member labels read Fixtures and their Modes.
   const document = useSignal(view.document);
@@ -32,10 +34,6 @@ export function SetInspector({
     if (set === undefined) select({ kind: "installation" });
   }, [set, select]);
   if (set === undefined || document === undefined) return null;
-  const additions =
-    set.kind === "set"
-      ? picked.filter((ref) => !set.members.includes(ref))
-      : [];
   return (
     <>
       <InspectorHeading name={set.name} id={set.id} />
@@ -51,27 +49,15 @@ export function SetInspector({
           storageKey="members"
           label="Members"
           actions={
-            <Button
-              variant="ghost"
-              size="xs"
-              disabled={additions.length === 0}
-              title={
-                picked.length === 0
-                  ? "Pick Elements in the Rig View or the navigator first"
-                  : undefined
-              }
-              onClick={() =>
-                void command("set.members.add", { setId: id, refs: additions })
-              }
-            >
-              <MousePointerClick /> Add selection
-              {additions.length > 0 ? ` (${String(additions.length)})` : ""}
+            <Button variant="ghost" size="xs" onClick={() => setPicking(true)}>
+              <Plus /> Add members
             </Button>
           }
         >
           {set.members.length === 0 ? (
             <p className="text-[0.6875rem]/relaxed text-muted-foreground">
-              {set.name} is empty. Pick Elements and add the selection.
+              {set.name} is empty. Add members here, or select Fixtures and add
+              them to it from there.
             </p>
           ) : (
             <SortableList
@@ -110,6 +96,19 @@ export function SetInspector({
             </SortableList>
           )}
         </InspectorSection>
+      )}
+      {picking && set.kind === "set" && (
+        <TargetPicker
+          view={view}
+          title={`Add members to ${set.name}`}
+          members
+          taken={set.members}
+          submitLabel={(count) => `Add ${count > 0 ? String(count) : ""}`}
+          onSubmit={(refs) =>
+            void command("set.members.add", { setId: id, refs })
+          }
+          onClose={() => setPicking(false)}
+        />
       )}
     </>
   );

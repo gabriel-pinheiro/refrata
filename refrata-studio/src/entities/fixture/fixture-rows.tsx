@@ -17,7 +17,13 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, pickModeOf, useSelection } from "@/selection/selection";
+import { TargetContextItems } from "@/entities/target/target-actions";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 import { ElementRows } from "./element-rows";
 import { fixtureIcons } from "./fixture-icons";
@@ -35,7 +41,7 @@ export function FixtureRows({
   readonly createItems: (parentId: string | null) => readonly CreateItem[];
 }) {
   const command = useCommand(view);
-  const { selection, select, pick } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
   const rows = childFixtures(fixtures, parentId);
@@ -57,7 +63,7 @@ export function FixtureRows({
       kind="fixture"
       listId={`fixture:${parentId ?? ""}`}
       ids={rows.map((fixture) => fixture.id)}
-      selectedId={selection?.kind === "fixture" ? selection.id : undefined}
+      selectedId={soleId(selected, "fixture")}
       onMove={(fixtureId, after) =>
         void command("fixture.move", { fixtureId, parentId, after })
       }
@@ -81,13 +87,15 @@ export function FixtureRows({
                   icon={fixtureIcons[fixture.kind]}
                   label={fixture.name}
                   depth={depth}
-                  selected={isSelected(selection, "fixture", fixture.id)}
+                  selected={isSelected(selected, "fixture", fixture.id)}
                   expanded={expanded}
                   onToggle={(next) => setExpanded("fixture", fixture.id, next)}
-                  onSelect={(event) => {
-                    if (!group) pick([`${fixture.id}/root`], pickModeOf(event));
-                    select({ kind: "fixture", id: fixture.id });
-                  }}
+                  onSelect={(event) =>
+                    select(
+                      { kind: "fixture", id: fixture.id },
+                      pickModeOf(event),
+                    )
+                  }
                   createItems={group ? createItems(fixture.id) : undefined}
                 >
                   {fixture.kind === "fixture" && (
@@ -100,6 +108,12 @@ export function FixtureRows({
                 </NavigatorRow>
               </ContextMenuTrigger>
               <ContextMenuContent>
+                {!group && (
+                  <TargetContextItems
+                    view={view}
+                    refs={[`${fixture.id}/root`]}
+                  />
+                )}
                 {group && (
                   <>
                     {createItems(fixture.id).map((item) => (

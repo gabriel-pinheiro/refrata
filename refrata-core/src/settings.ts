@@ -63,10 +63,16 @@ export const settings = {
     /** A held highlight is released by the runtime after this, in case the client vanished. */
     timeoutMs: 30_000,
   },
+  inspector: {
+    /** A Look row's control wraps under its label when it would be narrower than this, in pixels. */
+    controlWrapPx: 160,
+  },
   rigView: {
     /** Side of one schematic shape cell, in metres; templates are laid out in these. */
     cellMetres: 0.25,
     /** Gap between a new Fixture and the rightmost existing one, in metres. */
     placementGapMetres: 0.25,
+    /** Padding of the box drawn around a picked or outlined Fixture, as a fraction of a cell. */
+    outlinePad: 0.12,
   },
 } as const;

@@ -162,15 +162,17 @@ describe("Encoding", () => {
 });
 
 describe("Shapes", () => {
-  it("place the strobe as sections above panels", () => {
+  it("place the strobe as panels above and below one line of sections", () => {
     const placed = placeShape(strobe32.shape, elementsOf(strobe32));
     expect(placed).toHaveLength(16);
-    expect(
-      placed
-        .filter((shape) => shape.key.startsWith("section"))
-        .every((shape) => shape.y > 0.25),
-    ).toBe(true);
-    expect(shapeWidth(placed)).toBeCloseTo(2);
+    const y = (key: string): number =>
+      placed.find((shape) => shape.key === key)?.y ?? Number.NaN;
+    expect(y("panel-1")).toBeCloseTo(y("panel-4"));
+    expect(y("panel-5")).toBeCloseTo(y("panel-8"));
+    expect(y("panel-1")).toBeGreaterThan(y("section-1"));
+    expect(y("section-1")).toBeGreaterThan(y("panel-5"));
+    expect(y("section-1")).toBeCloseTo(y("section-8"));
+    expect(shapeWidth(placed)).toBeCloseTo(1);
     expect(placeShape(rgb.shape, elementsOf(rgb))).toHaveLength(1);
   });
 });

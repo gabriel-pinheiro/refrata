@@ -83,6 +83,7 @@ export const layerCreate = defineCommand({
             opacity: 1,
             blendMode: "normal",
             rows: {},
+            all: {},
           }
         : { ...base, kind: "group" };
     return accepted([{ op: "set", path: ["layers", layerId], value: layer }]);

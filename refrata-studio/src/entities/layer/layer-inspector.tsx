@@ -7,8 +7,8 @@ import {
   type BlendMode,
   type Layer,
 } from "@refrata/core";
-import { MousePointerClick, X } from "lucide-react";
-import { useEffect } from "react";
+import { Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { AddressRow } from "@/inspector/fields/address-row";
@@ -19,6 +19,7 @@ import { SelectField } from "@/inspector/fields/select-field";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand, useDocumentPath, useSignal } from "@/lib/client";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { TargetPicker } from "@/entities/target/target-picker";
 import { useSelection } from "@/selection/selection";
 
 import { AllTargetsRows, TargetBlock } from "./look-rows";
@@ -26,9 +27,10 @@ import { AllTargetsRows, TargetBlock } from "./look-rows";
 /**
  * A Layer's name and settings: Enabled and, for a Look Layer, Opacity as
  * Address rows a Controller can take, and the Blend Mode. Then the Look
- * Layer's Targets in order (remove, drag to reorder, "Add selection"), the
- * "All Targets" lines writing one Attribute to every Target at once, and
- * one block per Target with its own rows. A Group stops after Enabled.
+ * Layer's Targets in order (remove, drag to reorder, "Add Targets" opening
+ * the picker over the whole rig), the
+ * "All Targets" rows every Target takes unless it has its own, and one
+ * block per Target with its own rows. A Group stops after Enabled.
  */
 export function LayerInspector({
   view,
@@ -38,7 +40,8 @@ export function LayerInspector({
   readonly id: string;
 }) {
   const command = useCommand(view);
-  const { select, picked } = useSelection();
+  const { select } = useSelection();
+  const [picking, setPicking] = useState(false);
   const rowLinks = useRowLinks(view);
   const layer = useDocumentPath<Layer>(view, ["layers", id]);
   // Targets and rows read Fixtures, Modes and Sets: the whole document.
@@ -49,10 +52,6 @@ export function LayerInspector({
   if (layer === undefined || document === undefined) return null;
   const enabled = resolveAddress(document, `layer/${id}/enabled`);
   const opacity = resolveAddress(document, `layer/${id}/opacity`);
-  const additions =
-    layer.kind === "look"
-      ? picked.filter((ref) => !layer.targets.some((t) => t.ref === ref))
-      : [];
   return (
     <>
       <InspectorHeading name={layer.name} id={layer.id} />
@@ -113,28 +112,16 @@ export function LayerInspector({
               <Button
                 variant="ghost"
                 size="xs"
-                disabled={additions.length === 0}
-                title={
-                  picked.length === 0
-                    ? "Pick Elements or a Set in the Rig View or the navigator first"
-                    : undefined
-                }
-                onClick={() =>
-                  void command("layer.targets.add", {
-                    layerId: id,
-                    targets: additions,
-                  })
-                }
+                onClick={() => setPicking(true)}
               >
-                <MousePointerClick /> Add selection
-                {additions.length > 0 ? ` (${String(additions.length)})` : ""}
+                <Plus /> Add Targets
               </Button>
             }
           >
             {layer.targets.length === 0 ? (
               <p className="text-[0.6875rem]/relaxed text-muted-foreground">
-                {layer.name} reaches nothing yet. Pick Elements or a Set and add
-                the selection.
+                {layer.name} reaches nothing yet. Add Targets here, or select
+                Fixtures and add them to it from there.
               </p>
             ) : (
               <SortableList
@@ -180,6 +167,19 @@ export function LayerInspector({
               </SortableList>
             )}
           </InspectorSection>
+          {picking && (
+            <TargetPicker
+              view={view}
+              title={`Add Targets to ${layer.name}`}
+              members={false}
+              taken={layer.targets.map((target) => target.ref)}
+              submitLabel={(count) => `Add ${count > 0 ? String(count) : ""}`}
+              onSubmit={(targets) =>
+                void command("layer.targets.add", { layerId: id, targets })
+              }
+              onClose={() => setPicking(false)}
+            />
+          )}
           <InspectorSection storageKey="all-targets" label="All Targets">
             <AllTargetsRows view={view} document={document} layer={layer} />
           </InspectorSection>

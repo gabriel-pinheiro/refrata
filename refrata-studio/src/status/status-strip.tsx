@@ -52,7 +52,11 @@ export function StatusStrip() {
 
 /** Amber when the Scene being edited is not the one playing, so a show is never changed by clicking around. */
 function EditingWarning({ view }: { readonly view: DocumentView }) {
-  const selection = useSelectionIfAny()?.selection;
+  const selected = useSelectionIfAny()?.selected ?? [];
+  // The first Scene or Layer selected says which Scene is being edited.
+  const selection = selected.find(
+    (item) => item.kind === "scene" || item.kind === "layer",
+  );
   const scenes = useDocumentPath<Table<Scene>>(view, ["scenes"]) ?? {};
   const layer = useDocumentPath<Layer>(view, [
     "layers",

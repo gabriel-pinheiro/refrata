@@ -18,7 +18,13 @@ import {
 import { PanelHeader } from "@/components/panel-header";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
-import { pickModeOf, useSelection, type PickMode } from "@/selection/selection";
+import { pickedRefs } from "@/selection/selected-targets";
+import {
+  pickModeOf,
+  useSelection,
+  type PickMode,
+  type Selection,
+} from "@/selection/selection";
 
 import {
   DEFAULT_CAMERA,
@@ -35,21 +41,23 @@ import { useOutlined } from "./outlined";
 /**
  * The schematic front view of the rig: every placed Element as a flat shape
  * lit by its resolved colour times dimmer, on a dark canvas with the floor
- * line. Click picks a Fixture, a click inside a picked Fixture picks the
- * Element under the cursor; shift extends the pick and ctrl toggles it; a
- * drag on empty canvas is a marquee picking everything inside; a drag on a
- * shape moves the Fixture (one undo step); the middle button or Alt with
- * the left one pans; the wheel zooms around the pointer. Picked Elements
- * are outlined, and so are the Targets of the selected Layer or the members
- * of the selected Set. Zoom and pan are per session and never saved.
+ * line. Click selects a Fixture, a click inside a selected Fixture selects
+ * the Element under the cursor; shift extends the selection and ctrl
+ * toggles it; a drag on empty canvas is a marquee selecting every Fixture
+ * inside; a drag on a shape moves the Fixture (one undo step); the middle
+ * button or Alt with the left one pans; the wheel zooms around the pointer.
+ * Selected Fixtures and Elements are outlined, and so are the Targets of
+ * the selected Layers and the members of the selected Sets. Zoom and pan
+ * are per session and never saved.
  */
 export function RigView({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
-  const { selection, select, picked, pick } = useSelection();
+  const { selected, select } = useSelection();
+  const picked = pickedRefs(selected);
   const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
   const types =
     useDocumentPath<Table<StoredFixtureType>>(view, ["fixtureTypes"]) ?? {};
-  const outlined = useOutlined(view, selection);
+  const outlined = useOutlined(view, selected);
   const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
   const [size, setSize] = useState({ width: 1, height: 1 });
   const [marquee, setMarquee] = useState<Rect | undefined>(undefined);
@@ -190,32 +198,23 @@ export function RigView({ view }: { readonly view: DocumentView }) {
         }),
         normalizeRect(rect),
       );
-      pick(refs, current.mode);
-      const first = refs[0];
-      if (first !== undefined) selectRef(first);
-      else if (current.mode === "replace") select(undefined);
+      select(refs.map(itemOf), current.mode);
       return;
     }
     if (current.moved) return;
-    // A click: the Fixture, or an Element of the Fixture already picked.
-    const pickedFixture = pickedFixtureOf(picked);
-    const ref =
-      pickedFixture === current.fixtureId && current.elementKey !== "root"
-        ? `${current.fixtureId}/${current.elementKey}`
-        : `${current.fixtureId}/root`;
-    pick([ref], current.mode);
-    selectRef(ref);
-  };
-
-  function selectRef(ref: string): void {
-    const slash = ref.lastIndexOf("/");
-    const fixtureId = ref.slice(0, slash);
+    // A click: the Fixture, or an Element of a Fixture already selected.
+    const inside =
+      current.elementKey !== "root" &&
+      selected.some(
+        (item) => item.kind === "fixture" && item.id === current.fixtureId,
+      );
     select(
-      ref.endsWith("/root")
-        ? { kind: "fixture", id: fixtureId }
-        : { kind: "element", id: ref },
+      inside
+        ? { kind: "element", id: `${current.fixtureId}/${current.elementKey}` }
+        : { kind: "fixture", id: current.fixtureId },
+      current.mode,
     );
-  }
+  };
 
   const onWheel = (event: WheelEvent<SVGSVGElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -323,10 +322,11 @@ function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/** The Fixture a single pick belongs to, so a second click inside it picks an Element. */
-function pickedFixtureOf(picked: readonly string[]): string | undefined {
-  const only = picked.length === 1 ? picked[0] : undefined;
-  return only === undefined ? undefined : only.slice(0, only.lastIndexOf("/"));
+/** The selection item an Element ref stands for: the Fixture for its root, else the Element. */
+function itemOf(ref: string): Selection {
+  return ref.endsWith("/root")
+    ? { kind: "fixture", id: ref.slice(0, -"/root".length) }
+    : { kind: "element", id: ref };
 }
 
 /** The Element keys of `refs` that belong to `fixtureId`. */

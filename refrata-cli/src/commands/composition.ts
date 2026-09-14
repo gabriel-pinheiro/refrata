@@ -4,7 +4,7 @@ import type { Command } from "commander";
 import type { Cli } from "../cli.ts";
 import { formatScenes, formatSets, formatStack } from "../composition-lines.ts";
 import { parseValue } from "../connection.ts";
-import { resolveId, resolveTargetRef } from "../names.ts";
+import { resolveId, resolveRowRef, resolveTargetRef } from "../names.ts";
 import { formatCommandResult } from "../result.ts";
 
 /** Scenes, Layers, Looks, Sets, Master and Blackout: composing a show from the shell. */
@@ -130,9 +130,8 @@ export function registerComposition(program: Command, cli: Cli): void {
   program
     .command("look <layer> <action> <target> <attribute> [value]")
     .description(
-      "Set or release a Look Layer row: look Base set Par dimmer 0.4, look Base set Strobe/panel-3 color '[1,1,1,1]', look Base release Par dimmer. Undoable.",
+      "Set or release a Look Layer row: look Base set Par dimmer 0.4, look Base set Strobe/panel-3 color '[1,1,1,1]', look Base set all dimmer 0.2, look Base release Par dimmer. Undoable.",
     )
-    .option("--alpha <number>", "the row's alpha, 0 to 1 (default 1)")
     .action(
       (
         layer: string,
@@ -140,7 +139,6 @@ export function registerComposition(program: Command, cli: Cli): void {
         target: string,
         attribute: string,
         value: string | undefined,
-        local: { alpha?: string },
       ) =>
         cli.withDocument(async (client, summary) => {
           if (action !== "set" && action !== "release")
@@ -149,7 +147,7 @@ export function registerComposition(program: Command, cli: Cli): void {
             );
           const { document } = await cli.replica(client, summary.id);
           const layerId = resolveId(document, "layers", layer);
-          const targets = [resolveTargetRef(document, target)];
+          const targets = [resolveRowRef(document, target)];
           if (action === "release") {
             const result = await client.command<CommandResult>(
               summary.id,
@@ -161,20 +159,11 @@ export function registerComposition(program: Command, cli: Cli): void {
             );
             return;
           }
-          if (value === undefined && local.alpha === undefined)
-            throw new Error("look set needs a value, --alpha, or both.");
+          if (value === undefined) throw new Error("look set needs a value.");
           const result = await client.command<CommandResult>(
             summary.id,
             "layer.row.set",
-            {
-              layerId,
-              targets,
-              attribute,
-              ...(value === undefined ? {} : { value: parseValue(value) }),
-              ...(local.alpha === undefined
-                ? {}
-                : { alpha: Number(local.alpha) }),
-            },
+            { layerId, targets, attribute, value: parseValue(value) },
           );
           cli.print(result, () => formatCommandResult(result, "layer.row.set"));
         }),

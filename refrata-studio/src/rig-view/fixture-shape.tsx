@@ -3,7 +3,7 @@ import {
   elementRef,
   elementsOf,
   placeShape,
-  subtreeOf,
+  settings,
   type Color,
   type PatchedFixture,
   type PlacedShape,
@@ -14,13 +14,16 @@ import { useMemo } from "react";
 import { useDocumentPath } from "@/lib/client";
 import { useResolved } from "@/lib/use-resolved";
 
+import { outlinesOf, type OutlineBox } from "./outline-boxes";
+
 /**
  * One Fixture's shapes at its Position, each filled with its Element's
  * resolved colour times dimmer (white times dimmer when it has no colour).
  * The group carries `data-fixture` and each shape `data-element`, which is
- * how the view knows what was clicked. A picked Element key outlines its
- * whole subtree, so a picked root outlines the Fixture; an outlined key
- * (a Target or a Set member) draws dashed.
+ * how the view knows what was clicked. A picked Element key that is one
+ * shape strokes it; one covering several shapes (a picked root, so the
+ * whole Fixture) draws one box around them. An outlined key (a Target or
+ * a Set member) does the same, dashed.
  */
 export function FixtureShape({
   view,
@@ -48,13 +51,14 @@ export function FixtureShape({
     () => (mode === undefined ? [] : placeShape(mode.shape, elements)),
     [mode, elements],
   );
-  const pickedKeys = useMemo(
-    () => expand(elements, picked),
-    [elements, picked],
+  const pad = settings.rigView.cellMetres * settings.rigView.outlinePad;
+  const pickedOutlines = useMemo(
+    () => outlinesOf(shapes, elements, picked, pad),
+    [shapes, elements, picked, pad],
   );
-  const outlinedKeys = useMemo(
-    () => expand(elements, outlined),
-    [elements, outlined],
+  const outlinedOutlines = useMemo(
+    () => outlinesOf(shapes, elements, outlined, pad),
+    [shapes, elements, outlined, pad],
   );
   const { x, y, rz } = fixture.position;
   return (
@@ -71,8 +75,8 @@ export function FixtureShape({
           fixtureId={fixture.id}
           shape={shape}
           scale={scale}
-          picked={pickedKeys.has(shape.key)}
-          outlined={outlinedKeys.has(shape.key)}
+          picked={pickedOutlines.single.has(shape.key)}
+          outlined={outlinedOutlines.single.has(shape.key)}
           name={
             mode?.elements[shape.key]?.name === undefined
               ? fixture.name
@@ -80,19 +84,41 @@ export function FixtureShape({
           }
         />
       ))}
+      {outlinedOutlines.boxes.map((box, index) => (
+        <OutlineRect key={`o${String(index)}`} box={box} scale={scale} dashed />
+      ))}
+      {pickedOutlines.boxes.map((box, index) => (
+        <OutlineRect key={`p${String(index)}`} box={box} scale={scale} />
+      ))}
     </g>
   );
 }
 
-/** Every key below each of `keys`, the keys themselves included. */
-function expand(
-  elements: Parameters<typeof subtreeOf>[0],
-  keys: readonly string[],
-): ReadonlySet<string> {
-  const result = new Set<string>();
-  for (const key of keys)
-    for (const element of subtreeOf(elements, key)) result.add(element.key);
-  return result;
+/** One box around several shapes: solid for a pick, dashed for an outline. Clicks fall through to the shapes. */
+function OutlineRect({
+  box,
+  scale,
+  dashed = false,
+}: {
+  readonly box: OutlineBox;
+  readonly scale: number;
+  readonly dashed?: boolean;
+}) {
+  const radius = settings.rigView.cellMetres * settings.rigView.outlinePad;
+  return (
+    <rect
+      x={box.x - box.width / 2}
+      y={box.y - box.height / 2}
+      width={box.width}
+      height={box.height}
+      rx={radius}
+      className="pointer-events-none fill-none stroke-selection"
+      strokeWidth={(dashed ? 1.5 : 2) / scale}
+      strokeDasharray={
+        dashed ? `${String(3 / scale)} ${String(2 / scale)}` : undefined
+      }
+    />
+  );
 }
 
 function ElementShape({

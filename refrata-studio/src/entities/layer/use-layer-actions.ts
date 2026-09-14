@@ -1,9 +1,10 @@
 import type { DocumentView } from "@refrata/client";
 import { LAYER_KINDS, LAYER_LABELS, type LayerKind } from "@refrata/core";
 
-import { useCommand } from "@/lib/client";
+import { useCommand, useSignal } from "@/lib/client";
 import { useExpansion } from "@/navigator/expansion";
 import type { CreateItem } from "@/navigator/navigator-row";
+import { selectedTargets } from "@/selection/selected-targets";
 import { useSelection } from "@/selection/selection";
 
 import { layerIcons } from "./layer-icons";
@@ -14,14 +15,18 @@ function generateLayerId(): string {
 
 /**
  * Creating Layers from a Scene row or a Group row: one entry per kind for
- * the "+" menu and the context menu. A new Look Layer starts with the
- * picked Elements as its Targets, so "pick, add Layer, set a colour" is
- * three gestures. The new Layer is selected and its parent opened.
+ * the "+" menu and the context menu. When the selection is Fixtures,
+ * Elements or Sets, a new Look Layer starts with them as its Targets, so
+ * "select, add Layer, set a colour" is three gestures. The new Layer is
+ * selected and its parent opened.
  */
 export function useLayerActions(view: DocumentView) {
   const command = useCommand(view);
-  const { select, picked } = useSelection();
+  const { selected, select } = useSelection();
+  const document = useSignal(view.document);
   const { setExpanded } = useExpansion();
+  const picked =
+    document === undefined ? undefined : selectedTargets(document, selected);
 
   function create(
     kind: LayerKind,
@@ -34,7 +39,7 @@ export function useLayerActions(view: DocumentView) {
       kind,
       sceneId,
       parentId,
-      ...(kind === "look" && picked.length > 0 ? { targets: picked } : {}),
+      ...(kind === "look" && picked !== undefined ? { targets: picked } : {}),
     }).then(() => {
       setExpanded("scene", sceneId, true);
       if (parentId !== null) setExpanded("layer", parentId, true);
@@ -48,7 +53,7 @@ export function useLayerActions(view: DocumentView) {
   ): readonly CreateItem[] {
     return LAYER_KINDS.map((kind) => ({
       label:
-        kind === "look" && picked.length > 0
+        kind === "look" && picked !== undefined
           ? `${LAYER_LABELS[kind]} on selection (${String(picked.length)})`
           : LAYER_LABELS[kind],
       icon: layerIcons[kind],

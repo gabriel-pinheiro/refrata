@@ -1,17 +1,16 @@
 /**
  * How a document Address is named on the OSC tree, shared by the runtime
  * that serves the tree and the CLI that lists it. Controllers and Macros
- * keep their short paths; a Look Layer row's value ends in `/value` so that
- * it and its `/alpha` are sibling leaves under the Attribute, since a node
- * with a value cannot also be a container.
+ * keep their short paths; a Look Layer row's value ends in `/value`, which
+ * leaves the Attribute node free for sibling leaves (a row's alpha, once it
+ * has an Address again), since a node with a value cannot also be a container.
  */
 export function oscPathOfAddress(address: string): string {
   const segments = address.split("/");
   const [head, id = "", tail] = segments;
   if (head === "controller" && tail === "value") return `/controller/${id}`;
   if (head === "macro" && tail === "run") return `/macro/${id}`;
-  if (head === "layer" && segments[2] === "row" && segments.at(-1) !== "alpha")
-    return `/${address}/value`;
+  if (head === "layer" && segments[2] === "row") return `/${address}/value`;
   return `/${address}`;
 }
 

@@ -8,6 +8,7 @@ import {
 import { useEffect } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { TargetActionsSection } from "@/entities/target/target-actions";
 import { InspectorHeading } from "@/inspector/fields/inspector-heading";
 import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { useDocumentPath } from "@/lib/client";
@@ -17,8 +18,8 @@ import { ParameterRows } from "./parameter-rows";
 
 /**
  * One Element below a Fixture's root: its name, the Tags its Mode declares,
- * and its own Parameters with resolved values. Nothing here is editable;
- * the Fixture Type defines it.
+ * its own Parameters with resolved values, and what it can be used for as
+ * a Target. Nothing else here is editable; the Fixture Type defines it.
  */
 export function ElementInspector({
   view,
@@ -67,6 +68,7 @@ export function ElementInspector({
         </div>
       </InspectorSection>
       <ParameterRows view={view} elementId={id} element={element} />
+      <TargetActionsSection view={view} refs={[id]} />
     </>
   );
 }

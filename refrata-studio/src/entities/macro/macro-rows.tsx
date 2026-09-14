@@ -18,7 +18,12 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 import { macroIcons } from "./macro-icons";
 import { useRunMacro } from "./run-macro";
@@ -37,7 +42,7 @@ export function MacroRows({
 }) {
   const command = useCommand(view);
   const run = useRunMacro(view);
-  const { selection, select } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const macros = useDocumentPath<Table<Macro>>(view, ["macros"]) ?? {};
   const rows = childMacros(macros, parentId);
@@ -55,7 +60,7 @@ export function MacroRows({
       kind="macro"
       listId={`macro:${parentId ?? ""}`}
       ids={rows.map((macro) => macro.id)}
-      selectedId={selection?.kind === "macro" ? selection.id : undefined}
+      selectedId={soleId(selected, "macro")}
       onMove={(macroId, after) =>
         void command("macro.move", { macroId, parentId, after })
       }
@@ -79,14 +84,16 @@ export function MacroRows({
                   icon={macroIcons[macro.kind]}
                   label={macro.name}
                   depth={depth}
-                  selected={isSelected(selection, "macro", macro.id)}
+                  selected={isSelected(selected, "macro", macro.id)}
                   expanded={expanded}
                   onToggle={
                     group
                       ? (next) => setExpanded("macro", macro.id, next)
                       : undefined
                   }
-                  onSelect={() => select({ kind: "macro", id: macro.id })}
+                  onSelect={(event) =>
+                    select({ kind: "macro", id: macro.id }, pickModeOf(event))
+                  }
                   createItems={group ? createItems(macro.id) : undefined}
                   actions={
                     macro.kind === "macro" ? (

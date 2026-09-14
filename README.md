@@ -15,12 +15,14 @@ a projection-mapping engine built the same way.
 
 Slice 2 of the build, "one Look": the composition exists end to end on top
 of the slice 1 Rig. Scenes as ordered stacks of Layers, Look Layers with
-rows per Target (an Element or a Fixture Set by list), Contributions with
-alpha, the five Blend Modes, Resolve bottom to top from Defaults with
+rows per Target (an Element or a Fixture Set by list) under "All Targets"
+rows every Target takes unless its own overrides, Contributions (alpha
+stored, read as 1 for now), the five Blend Modes, Resolve bottom to top from Defaults with
 fan-down and the Target rule, Master and Blackout after Resolve, Scene play
 as a cut, Layer Addresses linkable to Controllers, the OSC tree carrying
-Scenes, Master and Layer leaves, multi-select and marquee in the Rig View
-with Targets outlined, and the CLI's `scenes`, `play`, `layers`, `look`,
+Scenes, Master and Layer leaves, one ordered selection across the Rig View
+and the navigator with Targets outlined and a picker to fill Layers and
+Sets, and the CLI's `scenes`, `play`, `layers`, `look`,
 `sets`, `master` and `blackout`. Slice 1's Rig (Universes, one
 Enttec-compatible USB Output kind with hardware still to be verified,
 Fixture Types from `refrata-library/`, Patch, Highlight, Encoding at 40 Hz,
@@ -97,9 +99,9 @@ Chataigne finds it and reconnects to it whatever Installation is open.
 The OSC tree has one leaf per Controller at `/controller/<id>`, one per
 Macro at `/macro/<id>`, one per Scene at `/scene/<id>/play`, the grand
 master at `/installation/master`, and every Layer's `opacity`, `enabled`
-and Look Layer rows under `/layer/<id>/…` (a row's `…/<attribute>/value`
-and `…/<attribute>/alpha`). Paths carry ids, so a rename never breaks a
-mapping; the name is the leaf's description.
+and Look Layer rows under `/layer/<id>/row/…` (a Target's or the All
+Targets `…/<attribute>/value`). Paths carry ids, so a rename never breaks
+a mapping; the name is the leaf's description.
 
 ## Working from a shell
 

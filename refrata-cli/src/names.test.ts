@@ -115,12 +115,9 @@ describe("resolveTargetRef", () => {
     expect(
       resolveAddressNames(document, "layer/Base/row/Strobe/panel-3/color"),
     ).toBe("layer/base/row/strobe/panel-3/color");
-    expect(
-      resolveAddressNames(document, "layer/Base/row/Par/dimmer/alpha"),
-    ).toBe("layer/base/row/par/root/dimmer/alpha");
-    expect(
-      resolveAddressNames(document, "layer/Base/row/set:Wash/color/alpha"),
-    ).toBe("layer/base/row/set:wash/color/alpha");
+    expect(resolveAddressNames(document, "layer/Base/row/all/dimmer")).toBe(
+      "layer/base/row/all/dimmer",
+    );
     expect(resolveAddressNames(document, "layer/Base/row/wash/color")).toBe(
       "layer/base/row/set:wash/color",
     );

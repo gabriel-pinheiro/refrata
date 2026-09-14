@@ -6,6 +6,12 @@ import {
   type StoredFixtureType,
 } from "@refrata/core";
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { TargetContextItems } from "@/entities/target/target-actions";
 import { useDocumentPath } from "@/lib/client";
 import { NavigatorEmptyRow, NavigatorRow } from "@/navigator/navigator-row";
 import { isSelected, pickModeOf, useSelection } from "@/selection/selection";
@@ -14,8 +20,9 @@ import { elementIcon } from "./fixture-icons";
 
 /**
  * A Fixture's Elements as rows under it, derived from its Mode: selectable
- * to inspect and highlight, never dragged, renamed or removed, since the
- * Fixture Type defines them.
+ * to inspect and highlight, and offered to Layers and Sets from the context
+ * menu; never dragged, renamed or removed, since the Fixture Type defines
+ * them.
  */
 export function ElementRows({
   view,
@@ -26,7 +33,7 @@ export function ElementRows({
   readonly fixture: PatchedFixture;
   readonly depth: number;
 }) {
-  const { selection, select, pick } = useSelection();
+  const { selected, select } = useSelection();
   const stored = useDocumentPath<StoredFixtureType>(view, [
     "fixtureTypes",
     fixture.typeKey,
@@ -46,17 +53,22 @@ export function ElementRows({
       {elements.map((element) => {
         const ref = elementRef(fixture.id, element.key);
         return (
-          <NavigatorRow
-            key={ref}
-            icon={elementIcon}
-            label={element.name}
-            depth={depth + element.depth - 1}
-            selected={isSelected(selection, "element", ref)}
-            onSelect={(event) => {
-              pick([ref], pickModeOf(event));
-              select({ kind: "element", id: ref });
-            }}
-          />
+          <ContextMenu key={ref}>
+            <ContextMenuTrigger>
+              <NavigatorRow
+                icon={elementIcon}
+                label={element.name}
+                depth={depth + element.depth - 1}
+                selected={isSelected(selected, "element", ref)}
+                onSelect={(event) =>
+                  select({ kind: "element", id: ref }, pickModeOf(event))
+                }
+              />
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <TargetContextItems view={view} refs={[ref]} />
+            </ContextMenuContent>
+          </ContextMenu>
         );
       })}
     </>

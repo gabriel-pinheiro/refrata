@@ -454,9 +454,10 @@ describe("Fixture Sets", () => {
     expect(
       resolveAddress(document, "layer/base/row/set:wash/color"),
     ).toMatchObject({ type: "color", owner: "Base · Wash" });
-    expect(
-      resolveAddress(document, "layer/base/row/set:wash/color/alpha"),
-    ).toMatchObject({ type: "number", default: 1 });
+    expect(resolveAddress(document, "layer/base/row/all/color")).toMatchObject({
+      type: "color",
+      owner: "Base · All Targets",
+    });
     const removal = run(document, "set.remove", { setId: "sg" });
     expect(removal.warnings).toEqual(["Removed it from 1 Layer"]);
     expect(removal.document.fixtureSets).toEqual({});
@@ -661,7 +662,7 @@ describe("Resolve", () => {
 });
 
 describe("Addresses", () => {
-  it("resolves Layer and row Addresses, lists alpha only for rows that exist, and links Layers", () => {
+  it("resolves Layer and row Addresses, All Targets rows included, and links Layers", () => {
     let document = stage();
     expect(resolveAddress(document, "layer/base/opacity")).toMatchObject({
       type: "number",
@@ -687,20 +688,20 @@ describe("Addresses", () => {
     expect(
       resolveAddress(document, "layer/base/row/par/root/dimmer/alpha"),
     ).toBeUndefined();
-    document = run(document, "layer.row.set", {
-      layerId: "base",
-      targets: ["par/root"],
-      attribute: "dimmer",
-      value: 0.5,
-    }).document;
-    expect(
-      resolveAddress(document, "layer/base/row/par/root/dimmer/alpha"),
-    ).toMatchObject({ label: "Dimmer alpha", default: 1 });
+    expect(resolveAddress(document, "layer/base/row/all/dimmer")).toMatchObject(
+      {
+        type: "number",
+        owner: "Base · All Targets",
+        path: ["layers", "base", "all", "dimmer", "value"],
+      },
+    );
+    expect(resolveAddress(document, "layer/base/row/all/pan")).toBeUndefined();
     const listed = listAddresses(document).map((entry) => entry.address);
     expect(listed).toContain("scene/verse/play");
     expect(listed).toContain("layer/base/row/strobe/root/color");
-    expect(listed).toContain("layer/base/row/par/root/dimmer/alpha");
-    expect(listed).not.toContain("layer/base/row/strobe/root/dimmer/alpha");
+    expect(listed).toContain("layer/base/row/all/color");
+    expect(listed).not.toContain("layer/base/row/all/pan");
+    expect(listed.some((address) => address.endsWith("/alpha"))).toBe(false);
     expect(
       failure(document, "link.create", {
         controllerId: "x",
@@ -715,10 +716,7 @@ describe("Addresses", () => {
     expect(
       run(document, "link.create", {
         controllerId: "c",
-        addresses: [
-          "layer/base/enabled",
-          "layer/base/row/par/root/dimmer/alpha",
-        ],
+        addresses: ["layer/base/enabled", "layer/base/row/all/dimmer"],
       }).document.links,
     ).toSatisfy(
       (links: Record<string, unknown>) => Object.keys(links).length === 2,
@@ -729,6 +727,82 @@ describe("Addresses", () => {
         addresses: ["installation/blackout"],
       }),
     ).toContain("cannot be driven");
+  });
+});
+
+describe("All Targets", () => {
+  it("applies to every Target, is overridden by a Target's own row, and takes a Controller", () => {
+    let document = stage();
+    expect(
+      failure(document, "layer.row.set", {
+        layerId: "base",
+        targets: ["all"],
+        attribute: "pan",
+        value: 0,
+      }),
+    ).toContain("All Targets has no Pan");
+    document = run(document, "layer.row.set", {
+      layerId: "base",
+      targets: ["all"],
+      attribute: "dimmer",
+      value: 0.5,
+    }).document;
+    expect((document.layers.base as { all: object }).all).toEqual({
+      dimmer: { value: 0.5, alpha: 1 },
+    });
+    expect((document.layers.base as { rows: object }).rows).toEqual({});
+    expect(resolved(document, "par/root")?.dimmer).toBe(0.5);
+    expect(resolved(document, "strobe/section-1")?.dimmer).toBe(0.5);
+    expect(resolved(document, "strobe/panel-1")?.dimmer).toBe(0.5);
+
+    // The Target's own row overrides; releasing it shows All Targets again.
+    const own = run(document, "layer.row.set", {
+      layerId: "base",
+      targets: ["par/root"],
+      attribute: "dimmer",
+      value: 0.8,
+    }).document;
+    expect(resolved(own, "par/root")?.dimmer).toBe(0.8);
+    expect(resolved(own, "strobe/panel-1")?.dimmer).toBe(0.5);
+    const back = run(own, "layer.row.release", {
+      layerId: "base",
+      targets: ["par/root"],
+      attribute: "dimmer",
+    }).document;
+    expect(resolved(back, "par/root")?.dimmer).toBe(0.5);
+
+    // A Controller on the All Targets row drives every Target without a row of its own.
+    const driven = apply(own, [
+      ["controller.create", { id: "fader", kind: "number", name: "Fader" }],
+      [
+        "link.create",
+        { controllerId: "fader", addresses: ["layer/base/row/all/dimmer"] },
+      ],
+      ["address.set", { address: "controller/fader/value", value: 0.25 }],
+    ]);
+    expect(resolved(driven, "strobe/panel-1")?.dimmer).toBe(0.25);
+    expect(resolved(driven, "par/root")?.dimmer).toBe(0.8);
+    expect(
+      failure(driven, "layer.row.set", {
+        layerId: "base",
+        targets: ["all"],
+        attribute: "dimmer",
+        value: 0.1,
+      }),
+    ).toContain("controlled by Fader");
+
+    // Releasing All Targets drops its Link; duplicating keeps the rows.
+    const released = run(driven, "layer.row.release", {
+      layerId: "base",
+      targets: ["all"],
+      attribute: "dimmer",
+    });
+    expect(released.document.links).toEqual({});
+    expect((released.document.layers.base as { all: object }).all).toEqual({});
+    const copy = run(driven, "layer.duplicate", { layerId: "base", id: "b2" });
+    expect((copy.document.layers.b2 as { all: object }).all).toEqual({
+      dimmer: { value: 0.5, alpha: 1 },
+    });
   });
 });
 

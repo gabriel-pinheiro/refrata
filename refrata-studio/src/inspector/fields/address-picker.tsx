@@ -42,6 +42,7 @@ export function AddressPicker({
   title,
   testId,
   candidates,
+  placeholder = "Controller, Macro or property…",
   empty,
   submitLabel,
   onSubmit,
@@ -50,6 +51,8 @@ export function AddressPicker({
   readonly title: string;
   readonly testId: string;
   readonly candidates: readonly PickerCandidate[];
+  /** The search field's hint, naming what is on offer. */
+  readonly placeholder?: string;
   /** Shown when there is nothing to pick at all. */
   readonly empty: string;
   readonly submitLabel: (count: number) => string;
@@ -139,8 +142,8 @@ export function AddressPicker({
         <div className="flex items-center gap-2">
           <Input
             autoFocus
-            aria-label="Search Addresses"
-            placeholder="Controller, Macro or property…"
+            aria-label="Search"
+            placeholder={placeholder}
             value={query}
             onChange={(event) => {
               setQuery(event.currentTarget.value);

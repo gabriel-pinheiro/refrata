@@ -1,31 +1,28 @@
 import type { DocumentView } from "@refrata/client";
 import {
+  ALL_TARGETS_LABEL,
+  ALL_TARGETS_REF,
   ATTRIBUTES,
+  isAllTargetsRef,
+  layerAttributes,
   resolveAddress,
   rowAddress,
-  rowAlphaAddress,
-  sameAddressValue,
+  rowRefLabel,
+  settings,
+  storedRow,
   targetAttributes,
-  targetLabel,
   type AddressValue,
   type AttributeFamily,
   type AttributeKey,
   type Document,
   type LookLayer,
-  type LookRow,
-  type ResolvedAddress,
 } from "@refrata/core";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Control } from "@/inspector/fields/address-row";
-import {
-  LinkedControl,
-  LinkMenu,
-  type RowLinks,
-} from "@/inspector/fields/link-row";
+import { LinkedControl, LinkMenu } from "@/inspector/fields/link-row";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
@@ -56,221 +53,124 @@ function byFamily(attributes: readonly AttributeKey[]): readonly {
 }
 
 /**
- * One line of a Look Layer: the Control checkbox, the Attribute, the
- * Control when the row exists (or the Controller driving it), and the row's
- * Alpha at the end. `targets` is one Target, or every Target that has the
- * Attribute for the "All Targets" section, where the value shown is the
- * common one or "mixed".
+ * One line of a Look Layer for one row ref (a Target, or All Targets): the
+ * Control checkbox, the Attribute, then the Control when the row exists (or
+ * the Controller driving it) and its Link menu. The control wraps under
+ * the label when the inspector is too narrow to give it a usable width. A
+ * Target's line with no row of its own says when an All Targets row reaches
+ * it, and one with its own row that it overrides All Targets.
  */
 function LookLine({
   view,
   document,
   layer,
-  targets,
+  rowRef,
   attribute,
 }: {
   readonly view: DocumentView;
   readonly document: Document;
   readonly layer: LookLayer;
-  readonly targets: readonly string[];
+  readonly rowRef: string;
   readonly attribute: AttributeKey;
 }) {
   const command = useCommand(view);
   const rowLinks = useRowLinks(view);
-  const rows = targets.map((ref) => layer.rows[ref]?.[attribute]);
-  const present = rows.filter((row): row is LookRow => row !== undefined);
-  const checked = present.length === targets.length;
-  const indeterminate = present.length > 0 && !checked;
-  const first = targets[0] ?? "";
+  const row = storedRow(layer, rowRef, attribute);
   const resolved = resolveAddress(
     document,
-    rowAddress(layer.id, first, attribute),
+    rowAddress(layer.id, rowRef, attribute),
   );
-  const single = targets.length === 1;
-  const links: RowLinks | undefined =
-    single && resolved !== undefined
-      ? rowLinks(
+  const links =
+    resolved === undefined
+      ? undefined
+      : rowLinks(
           resolved,
-          `${layer.name} ${targetLabel(document, first)} ${resolved.label}`,
-        )
-      : undefined;
+          `${layer.name} ${rowRefLabel(document, rowRef)} ${resolved.label}`,
+        );
   const linked = links?.link !== undefined && links.controller !== undefined;
-  const mixed =
-    present.length > 1 &&
-    present.some((row) => !sameAddressValue(row.value, present[0]?.value));
+  const present = row !== undefined || linked;
+  const shared = isAllTargetsRef(rowRef)
+    ? undefined
+    : storedRow(layer, ALL_TARGETS_REF, attribute);
   const send = useLatestWins((value: AddressValue) =>
-    single && resolved !== undefined
-      ? command("address.edit", { address: resolved.address, value })
-      : command("layer.row.set", {
-          layerId: layer.id,
-          targets,
-          attribute,
-          value,
-        }),
+    resolved === undefined
+      ? Promise.resolve()
+      : command("address.edit", { address: resolved.address, value }),
   );
   const toggle = (on: boolean): void => {
-    if (on)
-      void command("layer.row.set", {
-        layerId: layer.id,
-        targets,
-        attribute,
-        ...(present[0] === undefined ? {} : { value: present[0].value }),
-      });
-    else
-      void command("layer.row.release", {
-        layerId: layer.id,
-        targets,
-        attribute,
-      });
+    void command(on ? "layer.row.set" : "layer.row.release", {
+      layerId: layer.id,
+      targets: [rowRef],
+      attribute,
+    });
   };
   const label = ATTRIBUTES[attribute].label;
   return (
-    <div className="flex min-h-6 items-center gap-1.5">
-      <Checkbox
-        aria-label={`${label} row`}
-        checked={checked}
-        indeterminate={indeterminate}
-        onCheckedChange={(next) => toggle(next)}
-      />
-      <span
-        className={cn(
-          "w-16 shrink-0 truncate text-xs",
-          present.length === 0 && "text-muted-foreground",
+    <div className="flex min-h-6 flex-wrap items-center gap-x-1.5 gap-y-1">
+      <span className="flex items-center gap-1.5">
+        <Checkbox
+          aria-label={`${label} row`}
+          checked={present}
+          onCheckedChange={(next) => toggle(next)}
+        />
+        <span
+          className={cn(
+            "w-16 shrink-0 truncate text-xs",
+            !present && "text-muted-foreground",
+          )}
+          title={label}
+        >
+          {label}
+        </span>
+        {shared !== undefined && (
+          <span
+            className="shrink-0 text-[0.625rem] text-muted-foreground/70 italic"
+            title={
+              present
+                ? `This row overrides the ${ALL_TARGETS_LABEL} row`
+                : `The ${ALL_TARGETS_LABEL} row reaches this Target`
+            }
+          >
+            {present ? "overrides all" : "from all"}
+          </span>
         )}
-        title={label}
-      >
-        {label}
       </span>
-      {present.length > 0 && resolved !== undefined && (
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-          {linked && links !== undefined ? (
+      {present && resolved !== undefined && links !== undefined ? (
+        <div
+          className="flex min-w-0 flex-1 items-center gap-1.5"
+          style={{ flexBasis: settings.inspector.controlWrapPx }}
+        >
+          {linked ? (
             <LinkedControl resolved={resolved} links={links} />
           ) : (
-            <>
-              {mixed && (
-                <span className="shrink-0 text-[0.6875rem] text-muted-foreground italic">
-                  mixed
-                </span>
-              )}
-              <Control
-                resolved={resolved}
-                value={present[0]?.value ?? resolved.default ?? 0}
-                send={send}
-              />
-            </>
+            <Control
+              resolved={resolved}
+              value={row?.value ?? resolved.default ?? 0}
+              send={send}
+            />
           )}
-        </div>
-      )}
-      {present.length === 0 && <span className="flex-1" />}
-      {present.length > 0 &&
-        single &&
-        links !== undefined &&
-        resolved !== undefined && (
           <LinkMenu resolved={resolved} links={links} />
-        )}
-      {present.length > 0 && (
-        <AlphaField
-          view={view}
-          document={document}
-          layer={layer}
-          targets={targets}
-          attribute={attribute}
-          rows={present}
-        />
+        </div>
+      ) : (
+        <span className="flex-1" />
       )}
     </div>
   );
 }
 
-/** The row's Alpha as a percent, typed; a Controller on it shows its effective value read-only. */
-function AlphaField({
-  view,
-  document,
-  layer,
-  targets,
-  attribute,
-  rows,
-}: {
-  readonly view: DocumentView;
-  readonly document: Document;
-  readonly layer: LookLayer;
-  readonly targets: readonly string[];
-  readonly attribute: AttributeKey;
-  readonly rows: readonly LookRow[];
-}) {
-  const command = useCommand(view);
-  const rowLinks = useRowLinks(view);
-  const [draft, setDraft] = useState<string | undefined>(undefined);
-  const first = targets[0] ?? "";
-  const resolved: ResolvedAddress | undefined =
-    targets.length === 1
-      ? resolveAddress(document, rowAlphaAddress(layer.id, first, attribute))
-      : undefined;
-  const links = resolved === undefined ? undefined : rowLinks(resolved, "");
-  const alphas = rows.map((row) => row.alpha ?? 1);
-  const mixed = alphas.some((alpha) => alpha !== alphas[0]);
-  const effective =
-    links?.link !== undefined && typeof links.effective === "number"
-      ? links.effective
-      : (alphas[0] ?? 1);
-  const shown = mixed ? "…" : String(Math.round(effective * 100));
-  const commit = (cancel: boolean): void => {
-    if (!cancel && draft !== undefined) {
-      const typed = Number(draft.trim());
-      if (Number.isFinite(typed)) {
-        const alpha = Math.min(1, Math.max(0, typed / 100));
-        void command("layer.row.set", {
-          layerId: layer.id,
-          targets,
-          attribute,
-          alpha,
-        });
-      }
-    }
-    setDraft(undefined);
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    if (event.key === "Enter") commit(false);
-    else if (event.key === "Escape") commit(true);
-    else return;
-    event.preventDefault();
-  };
-  const controlled = links?.link !== undefined;
-  return (
-    <span className="flex shrink-0 items-center gap-0.5" title="Alpha">
-      <span className="text-[0.625rem] text-muted-foreground">α</span>
-      <Input
-        aria-label={`${ATTRIBUTES[attribute].label} alpha`}
-        className="h-5 w-10 px-1 text-right text-[0.6875rem] tabular-nums"
-        value={draft ?? shown}
-        disabled={controlled}
-        title={
-          controlled
-            ? `Alpha is controlled by ${links?.controller?.name ?? "a Controller"}`
-            : "Alpha, 0 to 100%"
-        }
-        onFocus={() => setDraft(mixed ? "" : shown)}
-        onChange={(event) => setDraft(event.currentTarget.value)}
-        onBlur={() => commit(false)}
-        onKeyDown={onKeyDown}
-      />
-    </span>
-  );
-}
-
-/** Lines for `attributes` grouped under family captions. */
+/** Lines for `attributes` grouped under family captions, for one row ref. */
 function FamilyLines({
   view,
   document,
   layer,
   attributes,
-  targetsOf,
+  rowRef,
 }: {
   readonly view: DocumentView;
   readonly document: Document;
   readonly layer: LookLayer;
   readonly attributes: readonly AttributeKey[];
-  readonly targetsOf: (attribute: AttributeKey) => readonly string[];
+  readonly rowRef: string;
 }) {
   return (
     <>
@@ -285,7 +185,7 @@ function FamilyLines({
               view={view}
               document={document}
               layer={layer}
-              targets={targetsOf(attribute)}
+              rowRef={rowRef}
               attribute={attribute}
             />
           ))}
@@ -295,7 +195,7 @@ function FamilyLines({
   );
 }
 
-/** The "All Targets" lines: one per Attribute found across the Targets, writing to every Target that has it. */
+/** The "All Targets" lines: one per Attribute found across the Targets, each the Layer's own row that every Target takes unless it has its own. */
 export function AllTargetsRows({
   view,
   document,
@@ -305,18 +205,11 @@ export function AllTargetsRows({
   readonly document: Document;
   readonly layer: LookLayer;
 }) {
-  const perTarget = layer.targets.map((target) => ({
-    ref: target.ref,
-    attributes: targetAttributes(document, target.ref),
-  }));
-  const union = new Set(perTarget.flatMap((entry) => entry.attributes));
-  const attributes = (Object.keys(ATTRIBUTES) as AttributeKey[]).filter((key) =>
-    union.has(key),
-  );
+  const attributes = layerAttributes(document, layer);
   if (attributes.length === 0)
     return (
       <p className="text-[0.6875rem]/relaxed text-muted-foreground">
-        No Targets yet. Pick Elements or a Set and add the selection.
+        No Targets yet. Add some above.
       </p>
     );
   return (
@@ -325,11 +218,7 @@ export function AllTargetsRows({
       document={document}
       layer={layer}
       attributes={attributes}
-      targetsOf={(attribute) =>
-        perTarget
-          .filter((entry) => entry.attributes.includes(attribute))
-          .map((entry) => entry.ref)
-      }
+      rowRef={ALL_TARGETS_REF}
     />
   );
 }
@@ -363,7 +252,7 @@ export function TargetBlock({
           <ChevronRight className="size-3 shrink-0" />
         )}
         <span className="min-w-0 flex-1 truncate text-left">
-          {targetLabel(document, target)}
+          {rowRefLabel(document, target)}
         </span>
         <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
           {count === 0 ? "released" : `${String(count)} set`}
@@ -381,7 +270,7 @@ export function TargetBlock({
               document={document}
               layer={layer}
               attributes={attributes}
-              targetsOf={() => [target]}
+              rowRef={target}
             />
           )}
         </div>

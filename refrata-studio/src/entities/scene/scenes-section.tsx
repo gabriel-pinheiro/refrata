@@ -18,7 +18,12 @@ import { useExpansion } from "@/navigator/expansion";
 import { NavigatorRow, RowAction } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 function generateSceneId(): string {
   return `scene_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
@@ -31,7 +36,7 @@ function generateSceneId(): string {
  */
 export function ScenesSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
-  const { selection, select } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const { createItems } = useLayerActions(view);
   const scenes = useDocumentPath<Table<Scene>>(view, ["scenes"]) ?? {};
@@ -64,7 +69,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
         <SortableList
           kind="scene"
           ids={ordered.map((scene) => scene.id)}
-          selectedId={selection?.kind === "scene" ? selection.id : undefined}
+          selectedId={soleId(selected, "scene")}
           onMove={(sceneId, after) =>
             void command("scene.move", { sceneId, after })
           }
@@ -93,10 +98,15 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
                     <NavigatorRow
                       icon={Clapperboard}
                       label={scene.name}
-                      selected={isSelected(selection, "scene", scene.id)}
+                      selected={isSelected(selected, "scene", scene.id)}
                       expanded={expanded}
                       onToggle={(next) => setExpanded("scene", scene.id, next)}
-                      onSelect={() => select({ kind: "scene", id: scene.id })}
+                      onSelect={(event) =>
+                        select(
+                          { kind: "scene", id: scene.id },
+                          pickModeOf(event),
+                        )
+                      }
                       createItems={items}
                       actions={
                         <RowAction
@@ -104,11 +114,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
                           active={active}
                           onClick={() => play(scene.id)}
                         >
-                          <Play
-                            className={
-                              active ? "size-3 text-emerald-400" : "size-3"
-                            }
-                          />
+                          <Play className="size-3" />
                         </RowAction>
                       }
                     >

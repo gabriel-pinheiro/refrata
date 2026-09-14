@@ -1,4 +1,6 @@
 import {
+  ALL_TARGETS_REF,
+  isAllTargetsRef,
   parseSetRef,
   sameName,
   SET_REF_PREFIX,
@@ -129,6 +131,13 @@ export function resolveId(
  * an Element with the Fixture resolved by id or name, a Fixture's id or name
  * alone its root Element, and a Set's name alone that Set.
  */
+/** A row ref as `look` takes it: `all` for the All Targets rows, else a Target. */
+export function resolveRowRef(document: Document, text: string): string {
+  return isAllTargetsRef(text.toLowerCase())
+    ? ALL_TARGETS_REF
+    : resolveTargetRef(document, text);
+}
+
 export function resolveTargetRef(document: Document, text: string): string {
   const setName = parseSetRef(text);
   if (setName !== undefined)
@@ -170,14 +179,14 @@ export function resolveAddressNames(
   const rest = segments.slice(2);
   if (head === "layer" && rest[0] === "row" && rest.length >= 3) {
     const [, target = "", ...tail] = rest;
-    // A Set or a Fixture name is one segment; <fixture>/<key> is two.
+    // "all", a Set or a Fixture name is one segment; <fixture>/<key> is two.
     const single =
+      isAllTargetsRef(target) ||
       target.startsWith(SET_REF_PREFIX) ||
       tail.length === 1 ||
-      (tail.length === 2 && tail[1] === "alpha") ||
       findId(document, "fixtureSets", target) !== undefined;
     const text = single ? target : `${target}/${tail[0] ?? ""}`;
-    const ref = resolveTargetRef(document, text);
+    const ref = resolveRowRef(document, text);
     return [head, id, "row", ref, ...tail.slice(single ? 0 : 1)].join("/");
   }
   return [head, id, ...rest].join("/");

@@ -28,7 +28,12 @@ import {
 } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 import { outputIcons, universeIcon } from "./universe-icons";
 
@@ -43,7 +48,7 @@ function generateId(kind: "universe" | "output"): string {
  */
 export function UniversesSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
-  const { selection, select } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const table = useDocumentPath<Table<Universe>>(view, ["universes"]);
   const outputs = useDocumentPath<Table<Output>>(view, ["outputs"]) ?? {};
@@ -84,7 +89,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
       <SortableList
         kind="universe"
         ids={universes.map((universe) => universe.id)}
-        selectedId={selection?.kind === "universe" ? selection.id : undefined}
+        selectedId={soleId(selected, "universe")}
         onMove={(id, after) =>
           void command("entity.move", { table: "universes", id, after })
         }
@@ -102,13 +107,16 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                     icon={universeIcon}
                     label={universe.name}
                     depth={1}
-                    selected={isSelected(selection, "universe", universe.id)}
+                    selected={isSelected(selected, "universe", universe.id)}
                     expanded={expanded}
                     onToggle={(next) =>
                       setExpanded("universe", universe.id, next)
                     }
-                    onSelect={() =>
-                      select({ kind: "universe", id: universe.id })
+                    onSelect={(event) =>
+                      select(
+                        { kind: "universe", id: universe.id },
+                        pickModeOf(event),
+                      )
                     }
                     createItems={outputItems(universe.id)}
                   >
@@ -151,13 +159,12 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                             icon={outputIcons[output.kind]}
                             label={`${OUTPUT_LABELS[output.kind]} · ${output.device}`}
                             depth={2}
-                            selected={isSelected(
-                              selection,
-                              "output",
-                              output.id,
-                            )}
-                            onSelect={() =>
-                              select({ kind: "output", id: output.id })
+                            selected={isSelected(selected, "output", output.id)}
+                            onSelect={(event) =>
+                              select(
+                                { kind: "output", id: output.id },
+                                pickModeOf(event),
+                              )
                             }
                           >
                             <span

@@ -2,15 +2,18 @@ import { z } from "zod";
 
 import { linkAt } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import { rowAddress, rowAlphaAddress } from "../composition/contributions.ts";
+import { rowAddress } from "../composition/contributions.ts";
 import type { LookRow } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
-import type { Patch } from "../document/patch.ts";
 import {
-  rowDefinition,
-  targetAttributes,
-  targetLabel,
-} from "../document/targets.ts";
+  hasRowRef,
+  rowPath,
+  rowRefAttributes,
+  rowRefDefinition,
+  rowRefLabel,
+  storedRow,
+} from "../document/look-rows.ts";
+import type { Patch } from "../document/patch.ts";
 import { ParameterValueSchema, validateParameterValue } from "../parameters.ts";
 import { ATTRIBUTES, isAttributeKey } from "../rig/attributes.ts";
 
@@ -22,18 +25,18 @@ function controlledBy(document: Document, address: string): string | undefined {
 }
 
 /**
- * Sets one Attribute's row on one or more Targets of a Look Layer: the
- * value, the alpha, or both. A row that did not exist starts at the
- * Parameter's Default and alpha 1, so ticking an Attribute on is this
- * command with neither. Every Target given takes the same row, which is
- * what the inspector's "All Targets" section writes. A row a Controller
+ * Sets one Attribute's row on one or more row refs of a Look Layer: a
+ * Target, or `ALL_TARGETS_REF` for the "All Targets" row every Target takes
+ * unless its own row overrides it. The value, the alpha, or both; a row
+ * that did not exist starts at the Parameter's Default and alpha 1, so
+ * ticking an Attribute on is this command with neither. A row a Controller
  * drives refuses the hand edit, as every Address does.
  */
 export const layerRowSet = defineCommand({
   name: "layer.row.set",
   kind: "authoring",
   description:
-    "Set a Look Layer row: an Attribute's value and alpha on one or more Targets.",
+    "Set a Look Layer row: an Attribute's value on one or more Targets, or on All Targets.",
   payload: z
     .object({
       layerId: z.string().min(1),
@@ -56,14 +59,14 @@ export const layerRowSet = defineCommand({
       return rejected(`“${attribute}” is not an Attribute.`);
     const patches: Patch[] = [];
     for (const ref of new Set(payload.targets)) {
-      if (!layer.targets.some((target) => target.ref === ref))
+      if (!hasRowRef(layer, ref))
         return rejected(`“${ref}” is not a Target of ${layer.name}.`);
-      if (!targetAttributes(document, ref).includes(attribute))
+      if (!rowRefAttributes(document, layer, ref).includes(attribute))
         return rejected(
-          `${targetLabel(document, ref)} has no ${ATTRIBUTES[attribute].label}.`,
+          `${rowRefLabel(document, ref)} has no ${ATTRIBUTES[attribute].label}.`,
         );
-      const definition = rowDefinition(document, ref, attribute);
-      const existing = layer.rows[ref]?.[attribute];
+      const definition = rowRefDefinition(document, ref, attribute);
+      const existing = storedRow(layer, ref, attribute);
       if (payload.value !== undefined) {
         const problem = validateParameterValue(definition, payload.value);
         if (problem !== undefined)
@@ -74,16 +77,6 @@ export const layerRowSet = defineCommand({
         );
         if (owner !== undefined)
           return rejected(`${definition.label} is controlled by ${owner}.`);
-      }
-      if (payload.alpha !== undefined) {
-        const owner = controlledBy(
-          document,
-          rowAlphaAddress(layer.id, ref, attribute),
-        );
-        if (owner !== undefined)
-          return rejected(
-            `${definition.label} alpha is controlled by ${owner}.`,
-          );
       }
       const row: LookRow = {
         value: payload.value ?? existing?.value ?? definition.default,
@@ -97,7 +90,7 @@ export const layerRowSet = defineCommand({
         continue;
       patches.push({
         op: "set",
-        path: ["layers", layer.id, "rows", ref, attribute],
+        path: rowPath(layer.id, ref, attribute),
         value: row,
       });
     }

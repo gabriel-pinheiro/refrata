@@ -25,7 +25,12 @@ import {
   RowAction,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import {
+  isSelected,
+  pickModeOf,
+  soleId,
+  useSelection,
+} from "@/selection/selection";
 
 import { layerIcons } from "./layer-icons";
 import { useLayerActions } from "./use-layer-actions";
@@ -49,7 +54,7 @@ export function LayerRows({
   readonly depth: number;
 }) {
   const command = useCommand(view);
-  const { selection, select } = useSelection();
+  const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const { createItems } = useLayerActions(view);
   const layers = useDocumentPath<Table<Layer>>(view, ["layers"]) ?? {};
@@ -76,7 +81,7 @@ export function LayerRows({
       kind="layer"
       listId={`layer:${sceneId}:${parentId ?? ""}`}
       ids={rows.map((layer) => layer.id)}
-      selectedId={selection?.kind === "layer" ? selection.id : undefined}
+      selectedId={soleId(selected, "layer")}
       onMove={(layerId, after) =>
         void command("layer.move", { layerId, sceneId, parentId, after })
       }
@@ -105,7 +110,7 @@ export function LayerRows({
                   icon={layerIcons[layer.kind]}
                   label={layer.name}
                   depth={depth}
-                  selected={isSelected(selection, "layer", layer.id)}
+                  selected={isSelected(selected, "layer", layer.id)}
                   dimmed={!layerEffectivelyEnabled(layers, layer)}
                   expanded={expanded}
                   onToggle={
@@ -113,7 +118,9 @@ export function LayerRows({
                       ? (next) => setExpanded("layer", layer.id, next)
                       : undefined
                   }
-                  onSelect={() => select({ kind: "layer", id: layer.id })}
+                  onSelect={(event) =>
+                    select({ kind: "layer", id: layer.id }, pickModeOf(event))
+                  }
                   createItems={
                     group ? createItems(sceneId, layer.id) : undefined
                   }

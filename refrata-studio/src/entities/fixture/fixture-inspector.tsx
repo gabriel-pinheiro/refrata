@@ -10,6 +10,7 @@ import {
 } from "@refrata/core";
 import { useEffect } from "react";
 
+import { TargetActionsSection } from "@/entities/target/target-actions";
 import { InspectorHeading } from "@/inspector/fields/inspector-heading";
 import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { NameField } from "@/inspector/fields/name-field";
@@ -21,8 +22,9 @@ import { useSelection } from "@/selection/selection";
 import { ParameterRows } from "./parameter-rows";
 
 /**
- * A Fixture's name, Mode, Patch and Position, then the root Element's
- * Parameters with their resolved values. A Group shows only its name.
+ * A Fixture's name, Mode, Patch and Position, the root Element's
+ * Parameters with their resolved values, and what it can be used for as a
+ * Target. A Group shows only its name.
  */
 export function FixtureInspector({
   view,
@@ -51,7 +53,10 @@ export function FixtureInspector({
         />
       </div>
       {fixture.kind === "fixture" && (
-        <PatchedFixtureBody view={view} fixture={fixture} />
+        <>
+          <PatchedFixtureBody view={view} fixture={fixture} />
+          <TargetActionsSection view={view} refs={[`${fixture.id}/root`]} />
+        </>
       )}
     </>
   );

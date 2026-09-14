@@ -72,7 +72,15 @@ export function stageLook(): Document {
         targets: ["par/root"],
         attribute: "color",
         value: [0, 1, 0, 1],
-        alpha: 0.5,
+      },
+    ],
+    [
+      "layer.row.set",
+      {
+        layerId: "base",
+        targets: ["all"],
+        attribute: "dimmer",
+        value: 0.2,
       },
     ],
     [
@@ -105,7 +113,8 @@ describe("composition lines", () => {
       "Group “Folder”  g  [off]",
       "  Look “Top”  top  opacity 100%  normal  targets: none  [off]",
       "Look “Base”  base  opacity 100%  normal  targets: Par, Strobe › Panel 3, Wash",
-      "  Par: dimmer 40% · color #00ff00 @ 50%",
+      "  All Targets: dimmer 20%",
+      "  Par: dimmer 40% · color #00ff00",
     ]);
   });
 

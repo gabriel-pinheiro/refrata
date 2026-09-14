@@ -1,6 +1,5 @@
 import type { DocumentView } from "@refrata/client";
 import { childSets, type FixtureSet, type Table } from "@refrata/core";
-import { MousePointerClick } from "lucide-react";
 import { useState } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
@@ -19,12 +18,12 @@ function generateSetId(): string {
 
 /**
  * Navigator section listing the Fixture Sets as a tree of Groups. A Set is
- * an ordered list of Elements a Layer can Target as one thing; "Set from
- * selection" takes the Elements picked in the Rig View or the navigator.
+ * an ordered list of Elements a Layer can Target as one thing; a Set from
+ * the current selection is made from the selection's own inspector.
  */
 export function SetsSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
-  const { select, picked, pick } = useSelection();
+  const { select } = useSelection();
   const { setExpanded } = useExpansion();
   const table = useDocumentPath<Table<FixtureSet>>(view, ["fixtureSets"]);
   const sets = table ?? {};
@@ -32,11 +31,7 @@ export function SetsSection({ view }: { readonly view: DocumentView }) {
   const roots = childSets(sets, null);
   if (table === undefined) return null;
 
-  function request(
-    kind: "set" | "group",
-    parentId: string | null,
-    members: readonly string[] | undefined,
-  ): void {
+  function request(kind: "set" | "group", parentId: string | null): void {
     const siblings = childSets(sets, parentId);
     const noun = kind === "set" ? "Set" : "Group";
     setNaming({
@@ -46,15 +41,8 @@ export function SetsSection({ view }: { readonly view: DocumentView }) {
       submitLabel: "Create",
       onSubmit: (name) => {
         const id = generateSetId();
-        void command("set.create", {
-          id,
-          kind,
-          parentId,
-          name,
-          ...(members === undefined ? {} : { members }),
-        }).then(() => {
+        void command("set.create", { id, kind, parentId, name }).then(() => {
           if (parentId !== null) setExpanded("set", parentId, true);
-          if (members !== undefined) pick(members, "replace");
           select({ kind: "set", id });
         });
       },
@@ -65,21 +53,12 @@ export function SetsSection({ view }: { readonly view: DocumentView }) {
     {
       label: "Fixture Set",
       icon: setIcons.set,
-      onSelect: () => request("set", parentId, undefined),
+      onSelect: () => request("set", parentId),
     },
-    ...(picked.length === 0
-      ? []
-      : [
-          {
-            label: `Set from selection (${String(picked.length)})`,
-            icon: MousePointerClick,
-            onSelect: () => request("set", parentId, picked),
-          },
-        ]),
     {
       label: "Group",
       icon: setIcons.group,
-      onSelect: () => request("group", parentId, undefined),
+      onSelect: () => request("group", parentId),
     },
   ];
 
