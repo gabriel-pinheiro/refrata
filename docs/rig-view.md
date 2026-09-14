@@ -78,10 +78,14 @@ when highlighted. Nothing about the stream is saved.
 
 ## The view as an editor
 
-Click selects the Fixture, shift-click extends, clicking inside a fixture
+Click selects the Fixture, shift-click and ctrl-click extend, a marquee drag
+on empty canvas selects everything inside it, and clicking inside a fixture
 selects the Element under the cursor, so a Fixture Set or a Layer's Targets
-can be filled from the picture. Drag moves the Fixture. Zoom and pan are per
-Studio session and never saved. Hover shows the name.
+can be filled from the picture with "New Set from selection" and "Add
+selection". Drag on a shape moves the Fixture. When a Layer or a Fixture Set
+is selected the view outlines its Targets or members, so what a Layer
+reaches is visible without reading the inspector. Zoom and pan are per Studio
+session and never saved. Hover shows the name.
 
 ## Not in v1, on purpose
 

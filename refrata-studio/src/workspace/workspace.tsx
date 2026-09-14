@@ -11,7 +11,6 @@ import { Navigator } from "@/navigator/navigator";
 import { ExpansionProvider } from "@/navigator/expansion";
 import { RigStream } from "@/rig-view/rig-stream";
 import { RigView } from "@/rig-view/rig-view";
-import { SelectionProvider } from "@/selection/selection";
 import { SelectionKeys } from "@/selection/selection-keys";
 
 const LAYOUT_KEY = "refrata.workspace.layout";
@@ -23,19 +22,17 @@ const isLayout = (candidate: unknown): candidate is Record<string, number> =>
 
 /**
  * Navigator, the Rig View and inspector as three resizable columns. Column
- * sizes are remembered per browser; selection and which rows are open reset
- * with the document. The Resolved Stream follows every Fixture while the
- * workspace is open.
+ * sizes are remembered per browser; which rows are open resets with the
+ * document, as the selection (provided above, per document) does. The
+ * Resolved Stream follows every Fixture while the workspace is open.
  */
 export function Workspace({ view }: { readonly view: DocumentView }) {
   return (
-    <SelectionProvider key={view.documentId}>
-      <ExpansionProvider>
-        <SelectionKeys />
-        <RigStream view={view} />
-        <Columns view={view} />
-      </ExpansionProvider>
-    </SelectionProvider>
+    <ExpansionProvider key={view.documentId}>
+      <SelectionKeys />
+      <RigStream view={view} />
+      <Columns view={view} />
+    </ExpansionProvider>
   );
 }
 

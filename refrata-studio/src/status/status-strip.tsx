@@ -1,11 +1,13 @@
 import type { DocumentView } from "@refrata/client";
+import type { Layer, Scene, Table } from "@refrata/core";
 import type { LiveState } from "@refrata/protocol";
 
 import { useDocumentCommands } from "@/documents/document-commands";
 import { useClient, useDocumentPath, useSignal } from "@/lib/client";
 import { cn } from "@/lib/utils";
+import { useSelectionIfAny } from "@/selection/selection";
 
-/** Bottom strip: runtime connection, save state, the OSC door and blackout at a glance. */
+/** Bottom strip: runtime connection, save state, which Scene is edited versus playing, Master, the OSC door and blackout at a glance. */
 export function StatusStrip() {
   const client = useClient();
   const phase = useSignal(client.phase);
@@ -42,8 +44,40 @@ export function StatusStrip() {
           "Saved"
         )}
       </span>
+      {view !== undefined && <EditingWarning view={view} />}
       {view !== undefined && <DocumentStatus view={view} />}
     </footer>
+  );
+}
+
+/** Amber when the Scene being edited is not the one playing, so a show is never changed by clicking around. */
+function EditingWarning({ view }: { readonly view: DocumentView }) {
+  const selection = useSelectionIfAny()?.selection;
+  const scenes = useDocumentPath<Table<Scene>>(view, ["scenes"]) ?? {};
+  const layer = useDocumentPath<Layer>(view, [
+    "layers",
+    selection?.kind === "layer" ? selection.id : "",
+  ]);
+  const activeScene = useDocumentPath<string | null>(view, [
+    "installation",
+    "activeScene",
+  ]);
+  const editedId = selection?.kind === "scene" ? selection.id : layer?.sceneId;
+  if (editedId === undefined || editedId === activeScene) return null;
+  const edited = scenes[editedId];
+  if (edited === undefined) return null;
+  const playing =
+    activeScene === null || activeScene === undefined
+      ? undefined
+      : scenes[activeScene];
+  return (
+    <span
+      className="truncate text-amber-400"
+      title="The Rig View shows the playing Scene, not this one"
+    >
+      Editing “{edited.name}”,{" "}
+      {playing === undefined ? "nothing playing" : `playing “${playing.name}”`}
+    </span>
   );
 }
 
@@ -54,6 +88,7 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
     useDocumentPath<LiveState["outputs"]>(view, ["live", "outputs"]) ?? {};
   const blackout =
     useDocumentPath<boolean>(view, ["operational", "blackout"]) ?? false;
+  const master = useDocumentPath<number>(view, ["installation", "master"]) ?? 1;
   const statuses = Object.values(outputs);
   const delivering = statuses.filter(
     (status) => status.state === "delivering",
@@ -86,6 +121,11 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
         <span title="OSC and OSCQuery port, and the OSCQuery clients connected">
           OSC {String(osc.port)} · {String(osc.listeners)}{" "}
           {osc.listeners === 1 ? "listener" : "listeners"}
+        </span>
+      )}
+      {master < 1 && (
+        <span className="text-amber-400 tabular-nums" title="Grand master">
+          Master {String(Math.round(master * 100))}%
         </span>
       )}
       {blackout && (

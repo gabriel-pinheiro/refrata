@@ -18,6 +18,9 @@ import { Signal, type ReadonlySignal } from "./signal.ts";
 /** Root segment under which the live state is addressed in paths. */
 export const LIVE_ROOT = "live";
 
+/** Joins a path into one listener key; no segment can contain it, unlike "/" (an Element ref or a Fixture Type key). */
+const PATH_SEPARATOR = "\u0000";
+
 /**
  * The client-side replica of one Document, plus its live state when the view
  * was opened with `live`. Listeners subscribe to a path and are notified only
@@ -61,7 +64,7 @@ export class DocumentView {
 
   /** Notifies when any change overlaps `path` (ancestor or descendant). */
   subscribePath(path: PatchPath, listener: () => void): () => void {
-    const key = path.join("/");
+    const key = path.join(PATH_SEPARATOR);
     let listeners = this.#pathListeners.get(key);
     if (listeners === undefined) {
       listeners = new Set();
@@ -187,7 +190,7 @@ export class DocumentView {
 
   #notify(changed: readonly PatchPath[]): void {
     for (const [key, listeners] of this.#pathListeners) {
-      const path = key === "" ? [] : key.split("/");
+      const path = key === "" ? [] : key.split(PATH_SEPARATOR);
       if (changed.some((candidate) => pathsOverlap(candidate, path))) {
         for (const listener of listeners) listener();
       }

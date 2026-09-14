@@ -8,7 +8,7 @@ import {
 
 import { useDocumentPath } from "@/lib/client";
 import { NavigatorEmptyRow, NavigatorRow } from "@/navigator/navigator-row";
-import { isSelected, useSelection } from "@/selection/selection";
+import { isSelected, pickModeOf, useSelection } from "@/selection/selection";
 
 import { elementIcon } from "./fixture-icons";
 
@@ -26,7 +26,7 @@ export function ElementRows({
   readonly fixture: PatchedFixture;
   readonly depth: number;
 }) {
-  const { selection, select } = useSelection();
+  const { selection, select, pick } = useSelection();
   const stored = useDocumentPath<StoredFixtureType>(view, [
     "fixtureTypes",
     fixture.typeKey,
@@ -52,7 +52,10 @@ export function ElementRows({
             label={element.name}
             depth={depth + element.depth - 1}
             selected={isSelected(selection, "element", ref)}
-            onSelect={() => select({ kind: "element", id: ref })}
+            onSelect={(event) => {
+              pick([ref], pickModeOf(event));
+              select({ kind: "element", id: ref });
+            }}
           />
         );
       })}

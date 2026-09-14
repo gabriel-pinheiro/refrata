@@ -115,6 +115,17 @@ driven by a Controller through a Link, set by a Macro, and shown or hidden by
 the Layer's enabled switch. There is no new mechanism, only a Layer kind whose
 inspector is computed.
 
+The shape chosen in slice 2: rows are stored per Target, keyed by the
+Target's reference, one row per Attribute with a value and an alpha, released
+when absent. A row on a Fixture Set Target fans to every member, so a member
+that joins the Set later inherits the row; a member that needs its own value
+is added as a Target of its own and wins by the Target rule. The inspector
+shows an "All Targets" section that writes one Attribute to every Target at
+once, then one block per Target with a Control checkbox per Parameter. The
+per-Element table inside a Set Target, the mover case that justified the Look
+Layer in the first place, is deferred until a rig needs it; the storage is
+shaped so it is an addition, not a migration.
+
 And it is where Presets will attach: a row can reference a Preset instead of
 holding its own value, so ten Look Layers pointing at `Centre Stage` all move
 when the position is refocused on the day. That is grandMA3's central

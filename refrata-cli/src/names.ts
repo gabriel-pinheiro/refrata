@@ -1,5 +1,8 @@
 import {
+  parseSetRef,
   sameName,
+  SET_REF_PREFIX,
+  setRef,
   TABLE_SCHEMAS,
   type Document,
   type TableName,
@@ -18,6 +21,9 @@ const NOUNS: Record<TableName, string> = {
   outputs: "Output",
   fixtureTypes: "Fixture Type",
   fixtures: "Fixture",
+  fixtureSets: "Fixture Set",
+  scenes: "Scene",
+  layers: "Layer",
   controllers: "Controller",
   links: "Link",
   macros: "Macro",
@@ -28,6 +34,8 @@ const ADDRESS_TABLES: Readonly<Record<string, TableName>> = {
   controller: "controllers",
   macro: "macros",
   element: "fixtures",
+  scene: "scenes",
+  layer: "layers",
 };
 
 /** Payload keys that hold one entity id, and which table it belongs to. */
@@ -38,6 +46,9 @@ const KEY_TABLES: Readonly<Record<string, TableName>> = {
   fixtureId: "fixtures",
   universeId: "universes",
   outputId: "outputs",
+  sceneId: "scenes",
+  layerId: "layers",
+  setId: "fixtureSets",
 };
 
 /** `parentId` and `after` belong to the table the command's prefix names. */
@@ -46,6 +57,9 @@ const PREFIX_TABLES: Readonly<Record<string, TableName>> = {
   macro: "macros",
   fixture: "fixtures",
   universe: "universes",
+  scene: "scenes",
+  layer: "layers",
+  set: "fixtureSets",
 };
 
 interface Named {
@@ -110,7 +124,39 @@ export function resolveId(
   return id;
 }
 
-/** An Address with its entity segment turned into an id: `controller/Energy/value` → `controller/controller_…/value`. */
+/**
+ * The Target ref `text` names: `set:<id|name>` a Fixture Set, `<fixture>/<key>`
+ * an Element with the Fixture resolved by id or name, a Fixture's id or name
+ * alone its root Element, and a Set's name alone that Set.
+ */
+export function resolveTargetRef(document: Document, text: string): string {
+  const setName = parseSetRef(text);
+  if (setName !== undefined)
+    return setRef(resolveId(document, "fixtureSets", setName));
+  const slash = text.indexOf("/");
+  if (slash !== -1)
+    return `${resolveId(document, "fixtures", text.slice(0, slash))}/${text.slice(slash + 1)}`;
+  const fixtureId = findId(document, "fixtures", text);
+  if (
+    fixtureId !== undefined &&
+    document.fixtures[fixtureId]?.kind === "fixture"
+  )
+    return `${fixtureId}/root`;
+  const setId = findId(document, "fixtureSets", text);
+  if (setId !== undefined && document.fixtureSets[setId]?.kind === "set")
+    return setRef(setId);
+  throw new Error(
+    `No Fixture or Fixture Set is called or identified “${text}”; a Target is <fixture>, <fixture>/<key> or ${SET_REF_PREFIX}<set>.`,
+  );
+}
+
+/**
+ * An Address with its entity segment turned into an id:
+ * `controller/Energy/value` → `controller/controller_…/value`. In a Look
+ * Layer row Address the Target after `row` is resolved too:
+ * `layer/Base/row/Par/dimmer` → `layer/…/row/<fixtureId>/root/dimmer`,
+ * `layer/Base/row/set:Wash/color` → the Set's id.
+ */
 export function resolveAddressNames(
   document: Document,
   address: string,
@@ -120,9 +166,21 @@ export function resolveAddressNames(
   const table = head === undefined ? undefined : ADDRESS_TABLES[head];
   if (table === undefined || entity === undefined || segments.length < 3)
     return address;
-  return [head, resolveId(document, table, entity), ...segments.slice(2)].join(
-    "/",
-  );
+  const id = resolveId(document, table, entity);
+  const rest = segments.slice(2);
+  if (head === "layer" && rest[0] === "row" && rest.length >= 3) {
+    const [, target = "", ...tail] = rest;
+    // A Set or a Fixture name is one segment; <fixture>/<key> is two.
+    const single =
+      target.startsWith(SET_REF_PREFIX) ||
+      tail.length === 1 ||
+      (tail.length === 2 && tail[1] === "alpha") ||
+      findId(document, "fixtureSets", target) !== undefined;
+    const text = single ? target : `${target}/${tail[0] ?? ""}`;
+    const ref = resolveTargetRef(document, text);
+    return [head, id, "row", ref, ...tail.slice(single ? 0 : 1)].join("/");
+  }
+  return [head, id, ...rest].join("/");
 }
 
 /**

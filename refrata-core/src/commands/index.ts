@@ -19,6 +19,18 @@ import { fixtureRename } from "./fixture.rename.ts";
 import { fixtureUngroup } from "./fixture.ungroup.ts";
 import { fixtureUpdate } from "./fixture.update.ts";
 import { installationRename } from "./installation.rename.ts";
+import { layerCreate } from "./layer.create.ts";
+import { layerDuplicate } from "./layer.duplicate.ts";
+import { layerMove } from "./layer.move.ts";
+import { layerRemove } from "./layer.remove.ts";
+import { layerRename } from "./layer.rename.ts";
+import { layerRowRelease } from "./layer.row.release.ts";
+import { layerRowSet } from "./layer.row.set.ts";
+import { layerTargetsAdd } from "./layer.targets.add.ts";
+import { layerTargetsMove } from "./layer.targets.move.ts";
+import { layerTargetsRemove } from "./layer.targets.remove.ts";
+import { layerUngroup } from "./layer.ungroup.ts";
+import { layerUpdate } from "./layer.update.ts";
 import { linkCreate } from "./link.create.ts";
 import { linkRemove } from "./link.remove.ts";
 import { linkUpdate } from "./link.update.ts";
@@ -35,6 +47,19 @@ import { macroUngroup } from "./macro.ungroup.ts";
 import { outputCreate } from "./output.create.ts";
 import { outputRemove } from "./output.remove.ts";
 import { outputUpdate } from "./output.update.ts";
+import { sceneCreate } from "./scene.create.ts";
+import { sceneDuplicate } from "./scene.duplicate.ts";
+import { sceneMove } from "./scene.move.ts";
+import { sceneRemove } from "./scene.remove.ts";
+import { sceneRename } from "./scene.rename.ts";
+import { setCreate } from "./set.create.ts";
+import { setMembersAdd } from "./set.members.add.ts";
+import { setMembersMove } from "./set.members.move.ts";
+import { setMembersRemove } from "./set.members.remove.ts";
+import { setMove } from "./set.move.ts";
+import { setRemove } from "./set.remove.ts";
+import { setRename } from "./set.rename.ts";
+import { setUngroup } from "./set.ungroup.ts";
 import { universeCreate } from "./universe.create.ts";
 import { universeRemove } from "./universe.remove.ts";
 import { universeRename } from "./universe.rename.ts";
@@ -56,6 +81,31 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   fixturePatch,
   fixturePlace,
   fixtureRemove,
+  setCreate,
+  setRename,
+  setMove,
+  setUngroup,
+  setRemove,
+  setMembersAdd,
+  setMembersRemove,
+  setMembersMove,
+  sceneCreate,
+  sceneRename,
+  sceneMove,
+  sceneDuplicate,
+  sceneRemove,
+  layerCreate,
+  layerRename,
+  layerMove,
+  layerUngroup,
+  layerDuplicate,
+  layerUpdate,
+  layerTargetsAdd,
+  layerTargetsRemove,
+  layerTargetsMove,
+  layerRowSet,
+  layerRowRelease,
+  layerRemove,
   controllerCreate,
   controllerRename,
   controllerMove,

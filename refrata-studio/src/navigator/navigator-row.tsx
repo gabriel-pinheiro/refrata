@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, Plus, type LucideIcon } from "lucide-react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 
 import {
   DropdownMenu,
@@ -52,7 +52,8 @@ export function NavigatorRow({
   readonly expanded?: boolean | undefined;
   /** Makes the row collapsible: shows a chevron that flips `expanded`. */
   readonly onToggle?: ((next: boolean) => void) | undefined;
-  readonly onSelect: () => void;
+  /** The click, so a row that picks Elements can read its modifiers. */
+  readonly onSelect: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Double-click: opens what the row stands for. */
   readonly onOpen?: (() => void) | undefined;
   /** Adds a child; shows a "+" at the row's end, as section headers have. */

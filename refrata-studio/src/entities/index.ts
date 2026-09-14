@@ -3,7 +3,10 @@ import type { ComponentType } from "react";
 
 import { controllerEntity } from "./controller/controller-entity";
 import { elementEntity, fixtureEntity } from "./fixture/fixture-entity";
+import { layerEntity } from "./layer/layer-entity";
 import { macroEntity } from "./macro/macro-entity";
+import { sceneEntity } from "./scene/scene-entity";
+import { setEntity } from "./set/set-entity";
 import { outputEntity, universeEntity } from "./universe/universe-entity";
 
 /**
@@ -27,6 +30,9 @@ export const entities = {
   output: outputEntity,
   fixture: fixtureEntity,
   element: elementEntity,
+  set: setEntity,
+  scene: sceneEntity,
+  layer: layerEntity,
   controller: controllerEntity,
   macro: macroEntity,
 } as const satisfies Record<string, EntityModule>;

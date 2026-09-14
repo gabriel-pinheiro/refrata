@@ -17,7 +17,7 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
-import { isSelected, useSelection } from "@/selection/selection";
+import { isSelected, pickModeOf, useSelection } from "@/selection/selection";
 
 import { ElementRows } from "./element-rows";
 import { fixtureIcons } from "./fixture-icons";
@@ -35,7 +35,7 @@ export function FixtureRows({
   readonly createItems: (parentId: string | null) => readonly CreateItem[];
 }) {
   const command = useCommand(view);
-  const { selection, select } = useSelection();
+  const { selection, select, pick } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
   const rows = childFixtures(fixtures, parentId);
@@ -84,7 +84,10 @@ export function FixtureRows({
                   selected={isSelected(selection, "fixture", fixture.id)}
                   expanded={expanded}
                   onToggle={(next) => setExpanded("fixture", fixture.id, next)}
-                  onSelect={() => select({ kind: "fixture", id: fixture.id })}
+                  onSelect={(event) => {
+                    if (!group) pick([`${fixture.id}/root`], pickModeOf(event));
+                    select({ kind: "fixture", id: fixture.id });
+                  }}
                   createItems={group ? createItems(fixture.id) : undefined}
                 >
                   {fixture.kind === "fixture" && (

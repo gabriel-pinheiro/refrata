@@ -8,7 +8,8 @@ import { emptyDocument, type Document } from "../document/document.ts";
 import { orderedEntries } from "../document/order.ts";
 import { applyPatches } from "../document/patch.ts";
 import type { PatchedFixture } from "../document/rig.ts";
-import { formatFrame, resolveDocument, universeFrame } from "../rig/frames.ts";
+import { resolveDocument } from "../composition/resolve.ts";
+import { formatFrame, universeFrame } from "../rig/frames.ts";
 import { createBuiltInRegistry } from "./index.ts";
 
 const registry = createBuiltInRegistry();
@@ -249,7 +250,9 @@ describe("Highlight and frames", () => {
       resolveAddress(document, "element/strobe/nope/highlight"),
     ).toBeUndefined();
     const universe = universeId(document);
-    expect(formatFrame(universeFrame(document, universe))).toBe("<512x 0>");
+    expect(
+      formatFrame(universeFrame(document, universe, resolveDocument(document))),
+    ).toBe("<512x 0>");
     const held = run(document, "address.set", {
       address: "element/par/root/highlight",
       value: true,
@@ -260,14 +263,14 @@ describe("Highlight and frames", () => {
       dimmer: 1,
       color: [1, 1, 1, 1],
     });
-    expect(formatFrame(universeFrame(document, universe))).toBe(
-      "<3x 255> <509x 0>",
-    );
+    expect(
+      formatFrame(universeFrame(document, universe, resolveDocument(document))),
+    ).toBe("<3x 255> <509x 0>");
     document = run(document, "address.set", {
       address: "element/strobe/backlight/highlight",
       value: true,
     }).document;
-    const frame = universeFrame(document, universe);
+    const frame = universeFrame(document, universe, resolveDocument(document));
     expect(frame[3]).toBe(255);
     expect(frame[26]).toBe(255);
     expect(frame[27]).toBe(0);

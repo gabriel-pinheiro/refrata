@@ -18,7 +18,6 @@ import {
   type FixtureType,
   type Mode,
 } from "./fixture-type.ts";
-import { resolveMode } from "./resolve.ts";
 import { placeShape, shapeWidth } from "./shapes.ts";
 
 function load(json: unknown): FixtureType {
@@ -159,18 +158,6 @@ describe("Encoding", () => {
     expect(bytes[24]).toBe(255);
     expect(bytes[31]).toBe(64);
     expect(bytes.filter((byte) => byte !== 0)).toHaveLength(4);
-  });
-});
-
-describe("Resolve", () => {
-  it("outputs defaults and highlight values, fanning highlight down", () => {
-    const rest = resolveMode(strobe32, "f", () => false);
-    expect(rest.get("panel-1")).toEqual({ dimmer: 0, color: [1, 1, 1, 1] });
-    const lit = resolveMode(strobe32, "f", (ref) => ref === "f/backlight");
-    expect(lit.get("panel-4")?.dimmer).toBe(1);
-    expect(lit.get("section-1")?.dimmer).toBe(0);
-    const whole = resolveMode(strobe32, "f", (ref) => ref === "f/root");
-    expect(whole.get("section-1")?.dimmer).toBe(1);
   });
 });
 

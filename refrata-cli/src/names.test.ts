@@ -6,11 +6,13 @@ import {
 } from "@refrata/core";
 import { describe, expect, it } from "vitest";
 
+import { stageLook } from "./composition-lines.test.ts";
 import {
   resolveAddressNames,
   resolveId,
   resolvePathNames,
   resolvePayloadNames,
+  resolveTargetRef,
 } from "./names.ts";
 
 const registry = createBuiltInRegistry();
@@ -89,6 +91,42 @@ describe("resolveAddressNames", () => {
       "controller/Energy",
     );
     expect(resolveAddressNames(document, "thing/x/y")).toBe("thing/x/y");
+  });
+});
+
+describe("resolveTargetRef", () => {
+  it("names a Fixture's root, an Element, or a Set by id or name", () => {
+    const document = stageLook();
+    expect(resolveTargetRef(document, "Par")).toBe("par/root");
+    expect(resolveTargetRef(document, "par")).toBe("par/root");
+    expect(resolveTargetRef(document, "Strobe/panel-3")).toBe("strobe/panel-3");
+    expect(resolveTargetRef(document, "set:Wash")).toBe("set:wash");
+    expect(resolveTargetRef(document, "wash")).toBe("set:wash");
+    expect(() => resolveTargetRef(document, "nope")).toThrow(
+      "No Fixture or Fixture Set is called or identified “nope”",
+    );
+  });
+
+  it("resolves the Target inside a row Address", () => {
+    const document = stageLook();
+    expect(resolveAddressNames(document, "layer/Base/row/Par/dimmer")).toBe(
+      "layer/base/row/par/root/dimmer",
+    );
+    expect(
+      resolveAddressNames(document, "layer/Base/row/Strobe/panel-3/color"),
+    ).toBe("layer/base/row/strobe/panel-3/color");
+    expect(
+      resolveAddressNames(document, "layer/Base/row/Par/dimmer/alpha"),
+    ).toBe("layer/base/row/par/root/dimmer/alpha");
+    expect(
+      resolveAddressNames(document, "layer/Base/row/set:Wash/color/alpha"),
+    ).toBe("layer/base/row/set:wash/color/alpha");
+    expect(resolveAddressNames(document, "layer/Base/row/wash/color")).toBe(
+      "layer/base/row/set:wash/color",
+    );
+    expect(resolveAddressNames(document, "layer/Base/opacity")).toBe(
+      "layer/base/opacity",
+    );
   });
 });
 

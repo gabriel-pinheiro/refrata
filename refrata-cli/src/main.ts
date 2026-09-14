@@ -2,6 +2,7 @@ import { Command } from "commander";
 
 import { Cli, type GlobalOptions } from "./cli.ts";
 import { registerAddress } from "./commands/address.ts";
+import { registerComposition } from "./commands/composition.ts";
 import { registerDocuments } from "./commands/documents.ts";
 import { registerRead } from "./commands/read.ts";
 import { registerRig } from "./commands/rig.ts";
@@ -39,6 +40,7 @@ const program = new Command("refrata")
 const cli = new Cli(program);
 registerStatus(program, cli);
 registerRig(program, cli);
+registerComposition(program, cli);
 registerTree(program, cli);
 registerRead(program, cli);
 registerRun(program, cli);

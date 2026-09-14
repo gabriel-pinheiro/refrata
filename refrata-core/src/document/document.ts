@@ -20,6 +20,14 @@ import {
   type StoredFixtureType,
   type Universe,
 } from "./rig.ts";
+import {
+  FixtureSetSchema,
+  LayerSchema,
+  SceneSchema,
+  type FixtureSet,
+  type Layer,
+  type Scene,
+} from "./composition.ts";
 
 /**
  * A Document is one Installation as normalized entity tables. Every table is
@@ -51,6 +59,10 @@ export const InstallationSchema = z
   .object({
     id: z.string().min(1),
     name: EntityName,
+    /** The Scene the Outputs render, or null for Defaults (dark). Saved, so a reopened file is still playing. */
+    activeScene: z.string().min(1).nullable().default(null),
+    /** The grand master: scales every `dimmer` after Resolve, 0 to 1. */
+    master: z.number().min(0).max(1).default(1),
   })
   .strict();
 export type Installation = Entity<typeof InstallationSchema, InstallationId>;
@@ -201,6 +213,9 @@ export const DocumentSchema = z
     outputs: z.record(z.string(), OutputSchema),
     fixtureTypes: z.record(z.string(), StoredFixtureTypeSchema),
     fixtures: z.record(z.string(), FixtureSchema),
+    fixtureSets: z.record(z.string(), FixtureSetSchema),
+    scenes: z.record(z.string(), SceneSchema),
+    layers: z.record(z.string(), LayerSchema),
     controllers: z.record(z.string(), ControllerSchema),
     links: z.record(z.string(), LinkSchema),
     macros: z.record(z.string(), MacroSchema),
@@ -214,6 +229,9 @@ export interface Document {
   readonly outputs: Table<Output>;
   readonly fixtureTypes: Table<StoredFixtureType>;
   readonly fixtures: Table<Fixture>;
+  readonly fixtureSets: Table<FixtureSet>;
+  readonly scenes: Table<Scene>;
+  readonly layers: Table<Layer>;
   readonly controllers: Table<Controller>;
   readonly links: Table<Link>;
   readonly macros: Table<Macro>;
@@ -226,6 +244,9 @@ export const TABLE_SCHEMAS = {
   outputs: OutputSchema,
   fixtureTypes: StoredFixtureTypeSchema,
   fixtures: FixtureSchema,
+  fixtureSets: FixtureSetSchema,
+  scenes: SceneSchema,
+  layers: LayerSchema,
   controllers: ControllerSchema,
   links: LinkSchema,
   macros: MacroSchema,
@@ -236,6 +257,9 @@ export type TableName = keyof typeof TABLE_SCHEMAS;
 export const ORDERED_TABLES = [
   "universes",
   "fixtures",
+  "fixtureSets",
+  "scenes",
+  "layers",
   "controllers",
   "macros",
 ] as const satisfies readonly TableName[];
@@ -249,6 +273,8 @@ export const PARENT_FIELDS: Partial<
   Record<OrderedTableName, readonly string[]>
 > = {
   fixtures: ["parentId"],
+  fixtureSets: ["parentId"],
+  layers: ["sceneId", "parentId"],
   controllers: ["parentId"],
   macros: ["parentId"],
 };
@@ -284,7 +310,12 @@ export const FIRST_UNIVERSE_NAME = "Universe 1";
 export function emptyDocument(name: string): Document {
   const universeId = generateId("universe");
   return {
-    installation: { id: generateId("installation"), name },
+    installation: {
+      id: generateId("installation"),
+      name,
+      activeScene: null,
+      master: 1,
+    },
     universes: {
       [universeId]: {
         id: universeId,
@@ -295,6 +326,9 @@ export function emptyDocument(name: string): Document {
     outputs: {},
     fixtureTypes: {},
     fixtures: {},
+    fixtureSets: {},
+    scenes: {},
+    layers: {},
     controllers: {},
     links: {},
     macros: {},

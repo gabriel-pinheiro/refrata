@@ -30,7 +30,7 @@ The stack is then resolved per Element per Parameter:
 out = Default of the Parameter (alpha 1)            the Scene background
 for each Layer from bottom to top:
     for each Contribution the Layer makes to this Element and Parameter:
-        a = contribution.alpha × layer.opacity × enclosing Groups' opacity
+        a = contribution.alpha × layer.opacity        (a disabled Layer or Group contributes nothing)
         out = blend(out, contribution.value, a, layer.blendMode)
 ```
 
@@ -120,8 +120,9 @@ works for colours" is right; the generalization makes it work for the
 parameter that actually turns lights off.
 
 Then the Layer's `opacity` is the fader. Give `Shimmer` a Controller on its
-opacity and Chataigne rides it. Give a Group of Layers an opacity and it is a
-submaster. This is the model's best property: Difracta's one Address table,
+opacity and Chataigne rides it. Link one Controller to the opacity of several
+Layers and it is a submaster; a Group has no opacity of its own, only
+`enabled`. This is the model's best property: Difracta's one Address table,
 Controllers and OSC give a playback surface for free.
 
 ## 4. Where it bends
@@ -138,9 +139,17 @@ per Attribute found across its Targets' Elements, each row either released or
 set to a value with an alpha. It is the console's programmer, frozen into a
 Layer.
 
-A row holds one value for every Element or a value per Element; the latter is
-what a mover's focus position and a hand-painted pixel look need. And Look
-Layers want **Presets**: a stored, named bundle of Attribute values (`Warm
+Rows are stored per Target. A row on an Element Target is one value for that
+Element and its fanned-down descendants; a row on a Fixture Set Target is one
+value for every member, and a member added to the Set later inherits it
+without anyone reopening the Layer. That inheritance is why the Set-level row
+is real storage and not a convenience over per-Element values: with only
+per-Element rows, a par added to `Wash Left` would stay released until
+someone noticed. To override one member, the Element is added as its own
+Target and wins by the Target rule. A value per Element inside one Set (a
+mover's focus position, a hand-painted pixel look) is deferred as a table on
+the Set Target; today it is one Target per Element. And Look Layers want
+**Presets**: a stored, named bundle of Attribute values (`Warm
 White`, `Stage Centre`) that many Look Layers reference, so that fixing the
 preset fixes every Layer. grandMA3 lives on this; it is the second most
 important thing after the stack and belongs in the glossary once the stack is
@@ -177,8 +186,8 @@ Tracking between cues is deliberately absent.
 Keep Difracta's Filter Layer: it transforms the accumulated values below it,
 for its Targets or for everything. Candidates that matter for lighting:
 Smooth, Master (multiply dimmer), Tint, Limit (clamp pan or tilt range to keep
-a mover off the audience), Invert. A Group's opacity covers the "submaster"
-case, so Filters stay few.
+a mover off the audience), Invert. A Controller linked to several Layers'
+opacity covers the "submaster" case, so Filters stay few.
 
 ### The Runtime renders
 
@@ -235,8 +244,11 @@ Honest limits, so the choice is made knowingly.
   setting. Recommended: on the entry, so one Layer can mix a spread Set and a
   single Element.
 - Whether Look Layers and Presets go in now or after the stack is agreed.
-  Recommended: name them now, detail Presets later.
-- Whether a Group gets an opacity. Recommended: yes; it is the submaster.
+  Decided: Look Layers are slice 2 with rows per Target; Presets are named
+  and detailed later.
+- Whether a Group gets an opacity. Decided in the slice 2 grill: no, a Group
+  has `enabled` only; a submaster is a Controller on the opacity of the Layers
+  it rides.
 - Whether Transition time is a Scene property, a play argument, or both.
   Decided in docs/transitions.md: a default on the Scene, overridable by the
   `play` trigger's argument from OSC or a Macro.

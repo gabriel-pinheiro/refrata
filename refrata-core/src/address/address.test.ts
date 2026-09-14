@@ -100,19 +100,23 @@ describe("addresses", () => {
   it("lists every reachable Address in a stable order", () => {
     expect(listAddresses(stage()).map((entry) => entry.address)).toEqual([
       "installation/blackout",
+      "installation/master",
       "macro/hit/run",
       "controller/energy/value",
       "controller/tint/value",
     ]);
   });
 
-  it("links nothing until a linkable table exists", () => {
+  it("links Master but never a Controller's value or Blackout", () => {
     const document = stage();
     const energy = resolveAddress(document, "controller/energy/value");
     const blackout = resolveAddress(document, "installation/blackout");
-    if (!energy || !blackout) throw new Error("unresolved");
+    const master = resolveAddress(document, "installation/master");
+    if (!energy || !blackout || !master) throw new Error("unresolved");
     expect(linkable(energy, "number")).toBe(false);
     expect(linkable(blackout, "number")).toBe(false);
+    expect(linkable(master, "number")).toBe(true);
+    expect(linkable(master, "color")).toBe(false);
   });
 
   it("checks values against the resolved type", () => {

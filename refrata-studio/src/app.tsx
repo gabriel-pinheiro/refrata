@@ -6,6 +6,7 @@ import {
 import { ShortcutKeys } from "@/keyboard/shortcut-keys";
 import { useClient, useSignal } from "@/lib/client";
 import { MenuBar } from "@/menu/menu-bar";
+import { SelectionProvider } from "@/selection/selection";
 import { StatusStrip } from "@/status/status-strip";
 import { Workspace } from "@/workspace/workspace";
 
@@ -15,7 +16,6 @@ export function App() {
       <div className="flex h-dvh flex-col">
         <MenuBar />
         <Main />
-        <StatusStrip />
       </div>
       <ShortcutKeys />
       <Toaster position="bottom-right" closeButton />
@@ -29,12 +29,21 @@ function Main() {
   const { view } = useDocumentCommands();
   if (view === undefined) {
     return (
-      <main className="grid flex-1 place-items-center text-muted-foreground">
-        {phase === "connected"
-          ? "Open or create an Installation from the File menu."
-          : "Connecting to the runtime…"}
-      </main>
+      <>
+        <main className="grid flex-1 place-items-center text-muted-foreground">
+          {phase === "connected"
+            ? "Open or create an Installation from the File menu."
+            : "Connecting to the runtime…"}
+        </main>
+        <StatusStrip />
+      </>
     );
   }
-  return <Workspace view={view} />;
+  // The selection lives above the status strip, which warns about the edited Scene.
+  return (
+    <SelectionProvider key={view.documentId}>
+      <Workspace view={view} />
+      <StatusStrip />
+    </SelectionProvider>
+  );
 }

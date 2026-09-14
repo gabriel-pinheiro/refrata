@@ -1,4 +1,5 @@
-import { flattenTree, qualifiedName } from "@refrata/core";
+import { effectiveValue, listAddresses } from "@refrata/core";
+import { oscPathOfAddress, oscTypeOf } from "@refrata/protocol";
 import type { Command } from "commander";
 
 import type { Cli } from "../cli.ts";
@@ -27,40 +28,29 @@ export function registerTree(program: Command, cli: Cli): void {
   program
     .command("osc")
     .description(
-      "List the OSC tree a hub such as Chataigne binds to: one leaf per Controller (float 0–1 or RGBA colour) and per Macro (impulse), each described as Group · Name.",
+      "List the OSC tree a hub such as Chataigne binds to: one leaf per Controller (float 0–1 or RGBA colour), Macro (impulse), Scene play, Master, Layer opacity, enabled and Look Layer row, each described by its owner and name.",
     )
     .action(() =>
       cli.withDocument(async (client, summary) => {
         const { document, view } = await cli.replica(client, summary.id);
         const live = liveStatus(view.liveState.get());
-        const leaves = [
-          ...flattenTree(document.controllers).flatMap((controller) =>
-            controller.kind === "group"
-              ? []
-              : [
-                  {
-                    path: `/controller/${controller.id}`,
-                    type: controller.kind === "number" ? "f" : "r",
-                    description: qualifiedName(
-                      document.controllers,
-                      controller,
-                    ),
-                    value: controller.value,
-                  },
-                ],
-          ),
-          ...flattenTree(document.macros).flatMap((macro) =>
-            macro.kind === "group"
-              ? []
-              : [
-                  {
-                    path: `/macro/${macro.id}`,
-                    type: "I",
-                    description: qualifiedName(document.macros, macro),
-                  },
-                ],
-          ),
-        ];
+        const leaves = listAddresses(document)
+          .filter((entry) => entry.path[0] !== "operational")
+          .map((entry) => {
+            const value =
+              entry.type === "trigger"
+                ? undefined
+                : effectiveValue(document, entry);
+            return {
+              path: oscPathOfAddress(entry.address),
+              type: oscTypeOf(entry.type, value),
+              description:
+                entry.owner === undefined
+                  ? entry.label
+                  : `${entry.owner} · ${entry.label}`,
+              ...(value === undefined ? {} : { value }),
+            };
+          });
         cli.print({ osc: live.osc, leaves }, () =>
           [
             live.osc.port === null
@@ -68,7 +58,7 @@ export function registerTree(program: Command, cli: Cli): void {
               : `OSC and OSCQuery on port ${String(live.osc.port)}`,
             ...leaves.map(
               (leaf) =>
-                `${leaf.path.padEnd(36)} ${leaf.type}  ${leaf.description}${"value" in leaf ? `  ${JSON.stringify(leaf.value)}` : ""}`,
+                `${leaf.path.padEnd(48)} ${leaf.type}  ${leaf.description}${"value" in leaf ? `  ${JSON.stringify(leaf.value)}` : ""}`,
             ),
           ].join("\n"),
         );

@@ -3,6 +3,7 @@ import {
   elementRef,
   elementsOf,
   placeShape,
+  subtreeOf,
   type Color,
   type PatchedFixture,
   type PlacedShape,
@@ -17,29 +18,43 @@ import { useResolved } from "@/lib/use-resolved";
  * One Fixture's shapes at its Position, each filled with its Element's
  * resolved colour times dimmer (white times dimmer when it has no colour).
  * The group carries `data-fixture` and each shape `data-element`, which is
- * how the view knows what was clicked.
+ * how the view knows what was clicked. A picked Element key outlines its
+ * whole subtree, so a picked root outlines the Fixture; an outlined key
+ * (a Target or a Set member) draws dashed.
  */
 export function FixtureShape({
   view,
   fixture,
   scale,
-  selected,
-  selectedElement,
+  picked,
+  outlined,
 }: {
   readonly view: DocumentView;
   readonly fixture: PatchedFixture;
   readonly scale: number;
-  readonly selected: boolean;
-  readonly selectedElement: string | undefined;
+  readonly picked: readonly string[];
+  readonly outlined: readonly string[];
 }) {
   const stored = useDocumentPath<StoredFixtureType>(view, [
     "fixtureTypes",
     fixture.typeKey,
   ]);
   const mode = stored?.type.modes[fixture.modeKey];
-  const shapes = useMemo(
-    () => (mode === undefined ? [] : placeShape(mode.shape, elementsOf(mode))),
+  const elements = useMemo(
+    () => (mode === undefined ? [] : elementsOf(mode)),
     [mode],
+  );
+  const shapes = useMemo(
+    () => (mode === undefined ? [] : placeShape(mode.shape, elements)),
+    [mode, elements],
+  );
+  const pickedKeys = useMemo(
+    () => expand(elements, picked),
+    [elements, picked],
+  );
+  const outlinedKeys = useMemo(
+    () => expand(elements, outlined),
+    [elements, outlined],
   );
   const { x, y, rz } = fixture.position;
   return (
@@ -56,10 +71,8 @@ export function FixtureShape({
           fixtureId={fixture.id}
           shape={shape}
           scale={scale}
-          selected={
-            selected &&
-            (selectedElement === undefined || selectedElement === shape.key)
-          }
+          picked={pickedKeys.has(shape.key)}
+          outlined={outlinedKeys.has(shape.key)}
           name={
             mode?.elements[shape.key]?.name === undefined
               ? fixture.name
@@ -71,19 +84,32 @@ export function FixtureShape({
   );
 }
 
+/** Every key below each of `keys`, the keys themselves included. */
+function expand(
+  elements: Parameters<typeof subtreeOf>[0],
+  keys: readonly string[],
+): ReadonlySet<string> {
+  const result = new Set<string>();
+  for (const key of keys)
+    for (const element of subtreeOf(elements, key)) result.add(element.key);
+  return result;
+}
+
 function ElementShape({
   view,
   fixtureId,
   shape,
   scale,
-  selected,
+  picked,
+  outlined,
   name,
 }: {
   readonly view: DocumentView;
   readonly fixtureId: string;
   readonly shape: PlacedShape;
   readonly scale: number;
-  readonly selected: boolean;
+  readonly picked: boolean;
+  readonly outlined: boolean;
   readonly name: string;
 }) {
   const resolved = useResolved(view, elementRef(fixtureId, shape.key));
@@ -103,8 +129,15 @@ function ElementShape({
       height={shape.height - gap * 2}
       rx={gap}
       fill={`rgb(${String(lit(color[0]))}, ${String(lit(color[1]))}, ${String(lit(color[2]))})`}
-      className={selected ? "stroke-selection" : "stroke-muted-foreground/50"}
-      strokeWidth={(selected ? 2 : 1) / scale}
+      className={
+        picked || outlined ? "stroke-selection" : "stroke-muted-foreground/50"
+      }
+      strokeWidth={(picked ? 2 : outlined ? 1.5 : 1) / scale}
+      strokeDasharray={
+        outlined && !picked
+          ? `${String(3 / scale)} ${String(2 / scale)}`
+          : undefined
+      }
     >
       <title>{name}</title>
     </rect>

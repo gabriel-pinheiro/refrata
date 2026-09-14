@@ -8,6 +8,7 @@ import type {
 import { getAtPath } from "../document/patch.ts";
 import {
   linkable,
+  resolveAddress,
   type AddressValue,
   type ResolvedAddress,
 } from "./address.ts";
@@ -84,6 +85,24 @@ export function effectiveValue(
   if (link === undefined) return authored;
   const controller = document.controllers[link.controllerId];
   if (controller === undefined) return authored;
+  return mappedValue(controller, link, resolved) ?? authored;
+}
+
+/**
+ * What an Address shows right now given what is authored there: the
+ * Controller's mapped value when a Link drives it, `authored` otherwise.
+ * Cheap when nothing is linked, so Resolve asks it at the output rate.
+ */
+export function effectiveAt(
+  document: Document,
+  address: string,
+  authored: AddressValue | undefined,
+): AddressValue | undefined {
+  const link = linkAt(document, address);
+  if (link === undefined) return authored;
+  const resolved = resolveAddress(document, address);
+  const controller = document.controllers[link.controllerId];
+  if (resolved === undefined || controller === undefined) return authored;
   return mappedValue(controller, link, resolved) ?? authored;
 }
 

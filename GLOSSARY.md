@@ -450,8 +450,14 @@ A`, `All Aura Panels`, `Atomic Bottom Panels`. It is written one of two ways:
 
 Order is part of the Set and is what effects spread along. A Fixture Set only
 points; it stores no Parameter Values. Removing a Fixture removes it from every
-Set. The built-in Set `All` is the rule with no Tags. A grid arrangement for
-spatial effects is deferred; see docs/moving-heads-and-geometry.md.
+Set, and a Mode change that drops an Element key drops that member with a
+removal warning. An empty Set is allowed. The built-in Set `All` is the rule
+with no Tags. A grid arrangement for spatial effects is deferred; see
+docs/moving-heads-and-geometry.md.
+
+Sets by list ship in slice 2; Sets by rule in slice 3. A rule Set persists its
+rule, so a Fixture added later with the right Tags joins the Set on its own
+and takes whatever a Look Layer says about that Set.
 
 Do not call a Fixture Set a Group: Group is the navigator folder, as in
 Difracta, and has no meaning in the Rig.
@@ -463,11 +469,14 @@ Matrix). Neither has Sets by rule.
 ### Selection
 
 The transient list of Elements a Studio session has picked, used to make a
-Fixture Set, to fill a Layer's Target list, and to Highlight. Picking a Fixture
-Set replaces or extends it; picking a Fixture selects its root Element.
-Selection is Runtime state per Studio session, never saved; a Fixture Set is
-its saved form. Programming itself does not read the Selection: Layers read
-their Targets.
+Fixture Set, to fill a Layer's Target list, and to Highlight. Shift-click and
+ctrl-click extend it in the Rig View and in the navigator's Fixture rows, and
+a marquee drag on empty canvas picks everything inside. Picking a Fixture Set
+selects its members; picking a Fixture selects its root Element. Two actions
+read it: "New Set from selection" and "Add selection", which adds the picked
+Elements as a Set's members or as a Layer's Targets. Selection is per Studio
+session, never saved; a Fixture Set is its saved form. Programming itself does
+not read the Selection: Layers read their Targets.
 
 **Elsewhere:** grandMA3 "selection" (with a selection grid), QLC+ has no
 persistent selection outside an editor.
@@ -485,6 +494,11 @@ ordered list of Targets. To a Visual a Target is one opaque controllable thing
 that accepts Contributions; the Runtime expands it to Elements and applies the
 Rig's fan-down rule.
 
+When two Targets of one Layer reach the same Element for the same Attribute,
+the Element's own Target beats a value fanned down from an ancestor Target,
+and among equals the later entry in the Target list wins. So a Layer with the
+Fixture root and its Panel 3 as Targets says "all green, Panel 3 white".
+
 Do not say "Fixture Target"; Target is the whole term, as in Difracta.
 
 ### Spread
@@ -500,7 +514,8 @@ Spread is one level deep; grids are deferred.
 One value for one Parameter of one Element with an alpha from 0 to 1, produced
 by a Layer for one frame. It is the lighting counterpart of Difracta's RGBA
 pixel: the unit everything composes in. Every Parameter kind has an alpha, not
-only colour.
+only colour. In Studio the alpha field of a row is labelled "Alpha"; the word
+Contribution names the whole value-and-alpha, not the alpha.
 
 ### Release
 
@@ -533,6 +548,11 @@ active at a time, and playing one is a cut until Transitions arrive. A Scene is
 complete: nothing tracks from the previous one, and what no Layer sets is at
 Default. Scenes have an order among themselves, which Next and Previous will
 follow.
+
+Selecting a Scene in Studio edits it and does not play it; the play button on
+its row does. The Rig View always shows the active Scene, and the status
+strip warns when the Scene being edited is not the one playing, so a show is
+never changed by clicking around the navigator.
 
 ### Transition (designed, not in the first build)
 
@@ -592,12 +612,19 @@ of four kinds: Look Layer, Visual Layer, Filter Layer or Group.
 ### Look Layer
 
 The static Visual: a Layer whose rows are not declared by code but derived
-from its Targets, one row per Attribute found across their Elements. Each row
-is released or set to a value with an alpha, and a row may hold one value for
-every Element or a value per Element (a mover's focus position is per Element
-by nature). Every row is an Address, so a Controller can drive it through a
-Parameter Link and the row shows who drives it. It is the console's programmer
-frozen into a Layer, and the most common Layer in a show.
+from its Targets, one row per Attribute found across their Elements. Rows are
+stored per Target, an Element or a Fixture Set: one row per Attribute, each a
+value and an alpha (default 1), released when absent. A Set Target's rows fan
+to its members, so a member added later inherits them without reopening the
+Layer; to override one member, that Element is added as a Target of its own
+and wins by the Target rule. The inspector's "All Targets" section is a
+convenience that writes one Attribute to every Target at once. Every row and
+its alpha is an Address, so a Controller can drive it through a Parameter Link
+and the row shows who drives it. It is the console's programmer frozen into a
+Layer, and the most common Layer in a show.
+
+A value per Element inside one Set Target (a mover's focus position is per
+Element by nature) is deferred: today that is one Target per Element.
 
 ### Slot
 
@@ -654,23 +681,27 @@ arrived. Kept here so the settle time on Parameter has a stated purpose.
 
 ### Group
 
-Difracta's navigator folder and stack folder, unchanged, plus one addition: an
-opacity that scales every Layer inside it, which makes a Group a submaster.
-Proposed, to be confirmed when the stack is built (slice 2).
+Difracta's navigator folder and stack folder, unchanged: a Group in a stack
+has `enabled` and nothing else. A Group opacity as a submaster was proposed
+and declined in the slice 2 grill; opacity stays on Layers, and a submaster is
+a Controller linked to the opacity of the Layers it should ride.
 
 ### Blackout
 
 A Runtime switch that forces every `dimmer` to 0 (and `shutter` closed where
 one exists) after Resolve, leaving colour, position and everything else as the
 stack left them, so releasing it restores the look at once. Not saved. It is
-an Address, so a hub's button reaches it.
+an Address, so a hub's button reaches it through a Macro; it is not linkable
+to a Controller.
 
 ### Master
 
 The Installation's grand master: one number from 0 to 1 that scales every `dimmer`
-after Resolve, before Encoding. Saved with the Installation and an Address. Anything
-finer ("all colours", "the floor package") is a Look Layer or a Filter Layer
-targeting the Set `All` or a smaller one; no other global controls exist.
+after Resolve, before Encoding. Saved with the Installation and an Address,
+linkable to a Controller, since a grand master on a hub fader is the first
+thing a show asks for. Anything finer ("all colours", "the floor package") is
+a Look Layer or a Filter Layer targeting the Set `All` or a smaller one; no
+other global controls exist.
 
 ## 5. Rig View
 
@@ -703,9 +734,12 @@ pixel matrix; hand-written types name a template and its Tags.
 The Studio panel that draws every placed Element as a flat shape filled with
 its resolved `color` times `dimmer` (white times `dimmer` when the Element has
 no `color`) on a dark canvas, in front view (`x`, `y`, and the rotation about
-`z`). Clicking selects a Fixture or an Element, dragging moves a Fixture
-through an undoable command, zoom and pan are per session. It reads the
-Resolved Stream and shows Defaults and Highlight before any Layer exists.
+`z`). Clicking selects a Fixture or an Element, shift-click and ctrl-click
+extend the Selection, a marquee on empty canvas picks everything inside,
+dragging a shape moves its Fixture through an undoable command, and zoom and
+pan are per session. When a Layer or a Fixture Set is selected the view
+outlines its Targets or members, so what a Layer reaches is visible. It reads
+the Resolved Stream and shows Defaults and Highlight before any Layer exists.
 Always schematic; a beam-like 3D view is a later, separate view.
 
 ### Resolved Stream

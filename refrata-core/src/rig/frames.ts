@@ -1,36 +1,21 @@
 import type { Document } from "../document/document.ts";
-import { allFixtures, fixtureModeOf, patchedIn } from "../document/fixtures.ts";
+import { fixtureModeOf, patchedIn } from "../document/fixtures.ts";
 import type { ParameterValues } from "../parameters.ts";
 import { elementRef, elementsOf } from "./elements.ts";
 import { encodeMode } from "./encoding.ts";
 import { footprintOf } from "./fixture-type.ts";
-import { resolveMode } from "./resolve.ts";
 
 /** The 512 slots of a Universe. */
 export const UNIVERSE_SIZE = 512;
 
-/** Every Element's resolved values, keyed by `<fixtureId>/<key>`. */
-export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
-
-/** Resolve the whole Installation: Defaults with held highlights applied. */
-export function resolveDocument(document: Document): ResolvedDocument {
-  const highlighted = (ref: string): boolean =>
-    document.operational.highlight[ref] === true;
-  const result = new Map<string, ParameterValues>();
-  for (const fixture of allFixtures(document.fixtures)) {
-    const mode = fixtureModeOf(document, fixture);
-    if (mode === undefined) continue;
-    for (const [key, values] of resolveMode(mode, fixture.id, highlighted))
-      result.set(elementRef(fixture.id, key), values);
-  }
-  return result;
-}
+/** Every Element's resolved values, keyed by `<fixtureId>/<key>`; Resolve (composition/resolve.ts) produces it. */
+export type ResolvedValuesByRef = ReadonlyMap<string, ParameterValues>;
 
 /** The DMX Frame of one Universe from resolved values: 512 bytes, unpatched slots at 0. */
 export function universeFrame(
   document: Document,
   universeId: string,
-  resolved: ResolvedDocument = resolveDocument(document),
+  resolved: ResolvedValuesByRef,
 ): Uint8Array {
   const frame = new Uint8Array(UNIVERSE_SIZE);
   for (const fixture of patchedIn(document, universeId)) {
@@ -49,7 +34,7 @@ export function universeFrame(
 /** Every Universe's DMX Frame, keyed by Universe id. */
 export function universeFrames(
   document: Document,
-  resolved: ResolvedDocument = resolveDocument(document),
+  resolved: ResolvedValuesByRef,
 ): ReadonlyMap<string, Uint8Array> {
   return new Map(
     Object.keys(document.universes).map((universeId) => [

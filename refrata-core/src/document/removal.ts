@@ -10,6 +10,7 @@ export function removalWarnings(
   document: Document,
   patches: readonly Patch[],
   name: string,
+  extra: readonly string[] = [],
 ): string[] {
   const links = patches.filter(
     (patch) => patch.op === "remove" && patch.path[0] === "links",
@@ -22,7 +23,7 @@ export function removalWarnings(
     if (macro?.kind !== "macro") continue;
     actions += macro.actions.length - (patch.value as unknown[]).length;
   }
-  const warnings: string[] = [];
+  const warnings: string[] = [...extra];
   if (actions > 0)
     warnings.push(
       `Removed ${actions} Macro action${actions === 1 ? "" : "s"} targeting “${name}”`,

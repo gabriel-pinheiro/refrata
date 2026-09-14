@@ -40,7 +40,23 @@ function fireResolved(
 ): Fired {
   const [kind, id = ""] = address.split("/");
   if (kind === "macro") return runMacro(document, id, ran);
+  if (kind === "scene") return playScene(document, id, address);
   return { patches: [], events: [address], warnings: [] };
+}
+
+/** Playing a Scene is a cut: the active Scene changes and the Outputs render it from the next frame. */
+function playScene(
+  document: Document,
+  sceneId: string,
+  address: string,
+): Fired {
+  if (!(sceneId in document.scenes))
+    return { patches: [], events: [], warnings: [] };
+  const patches: Patch[] =
+    document.installation.activeScene === sceneId
+      ? []
+      : [{ op: "set", path: ["installation", "activeScene"], value: sceneId }];
+  return { patches, events: [address], warnings: [] };
 }
 
 function runMacro(

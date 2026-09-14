@@ -93,6 +93,7 @@ describe("OSC tree", () => {
       ["/controller/tint", "Looks · Tint", "r"],
       ["/controller/energy", "Energy", "f"],
       ["/macro/hit", "Hit", "I"],
+      ["/installation/master", "Master", "f"],
     ]);
     const tree = buildTree(document);
     expect(tree.CONTENTS?.controller?.CONTENTS?.energy).toMatchObject({
@@ -102,7 +103,122 @@ describe("OSC tree", () => {
     });
     expect(targetOf("/controller/x")).toEqual({ kind: "controller", id: "x" });
     expect(targetOf("/controller/*")).toBeUndefined();
-    expect(targetOf("/thing/x/opacity")).toBeUndefined();
+    expect(targetOf("/thing/x/opacity")).toEqual({
+      kind: "address",
+      address: "thing/x/opacity",
+    });
+    expect(targetOf("/thing")).toBeUndefined();
+  });
+});
+
+describe("OSC composition leaves", () => {
+  it("exposes Scene play, Master and Look Layer rows, and takes values for them", async () => {
+    const session = store.currentSession();
+    if (session === undefined) throw new Error("no session");
+    for (const [name, payload] of [
+      ["scene.create", { id: "verse", name: "Verse" }],
+      ["scene.create", { id: "chorus", name: "Chorus" }],
+      [
+        "fixture.create",
+        {
+          id: "par",
+          typeKey: "generic/rgb-3ch",
+          modeKey: "3ch",
+          name: "Par",
+          fixtureType: {
+            kind: "refrata-fixture-type",
+            formatVersion: 1,
+            key: "generic/rgb-3ch",
+            manufacturer: "Generic",
+            model: "RGB",
+            modes: {
+              "3ch": {
+                name: "3ch",
+                channels: [
+                  { key: "r", element: "root" },
+                  { key: "g", element: "root" },
+                  { key: "b", element: "root" },
+                ],
+                elements: {
+                  root: {
+                    name: "RGB",
+                    parameters: {
+                      dimmer: { encode: { multiply: ["r", "g", "b"] } },
+                      color: { encode: { color: ["r", "g", "b"] } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+      [
+        "layer.create",
+        { id: "base", sceneId: "verse", name: "Base", targets: ["par/root"] },
+      ],
+      [
+        "layer.row.set",
+        {
+          layerId: "base",
+          targets: ["par/root"],
+          attribute: "dimmer",
+          value: 0.4,
+        },
+      ],
+    ] as const) {
+      const result = session.execute(name, payload, "test");
+      if (!result.ok) throw new Error(result.error);
+    }
+    await wait(20);
+    expect(await get("/scene/chorus/play")).toMatchObject({
+      TYPE: "I",
+      DESCRIPTION: "Chorus · Play",
+    });
+    expect(await get("/installation/master?VALUE")).toEqual({ VALUE: [1] });
+    expect(await get("/layer/base/row/par/root/dimmer/value")).toMatchObject({
+      TYPE: "f",
+      VALUE: [0.4],
+      RANGE: [{ MIN: 0, MAX: 1 }],
+      DESCRIPTION: "Base · Par · Dimmer",
+    });
+    expect(await get("/layer/base/enabled")).toMatchObject({ TYPE: "T" });
+    await send(encodeMessage({ address: "/scene/chorus/play", args: [] }));
+    await send(
+      encodeMessage({
+        address: "/installation/master",
+        args: [{ type: "float32", value: 0.5 }],
+      }),
+    );
+    await send(
+      encodeMessage({
+        address: "/layer/base/row/par/root/dimmer/value",
+        args: [{ type: "float32", value: 1.7 }],
+      }),
+    );
+    await send(
+      encodeMessage({
+        address: "/layer/base/enabled",
+        args: [{ type: "false" }],
+      }),
+    );
+    await wait(60);
+    expect(session.document.installation).toMatchObject({
+      activeScene: "chorus",
+      master: 0.5,
+    });
+    expect(session.document.layers.base).toMatchObject({
+      enabled: false,
+      rows: { "par/root": { dimmer: { value: 1 } } },
+    });
+    await send(
+      encodeMessage({
+        address: "/installation/blackout",
+        args: [{ type: "true" }],
+      }),
+    );
+    await wait(30);
+    expect(logged.at(-1)).toBe("OSC unknown-address: /installation/blackout");
   });
 });
 

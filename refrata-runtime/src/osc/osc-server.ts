@@ -3,6 +3,7 @@ import {
   settings,
   type Color,
   type Patch,
+  type ResolvedAddress,
 } from "@refrata/core";
 import type { OscLive } from "@refrata/protocol";
 import { Bonjour } from "bonjour-service";
@@ -26,14 +27,12 @@ import {
 } from "./osc-codec.ts";
 import {
   buildTree,
-  controllerArguments,
   hostInfo,
   leavesOf,
   nodeAt,
   OSC_ATTRIBUTES,
   targetOf,
   type OscLeaf,
-  type OscTarget,
 } from "./osc-tree.ts";
 
 export interface OscServerOptions {
@@ -187,19 +186,22 @@ export class OscServer {
         this.#reject("skipped", `${message.address}: ${warning}`);
       return;
     }
-    const controller = session.document.controllers[target.id];
-    if (controller === undefined || controller.kind === "group") {
+    const address =
+      target.kind === "controller"
+        ? `controller/${target.id}/value`
+        : target.address;
+    const resolved = resolveAddress(session.document, address);
+    if (resolved === undefined || resolved.path[0] === "operational") {
       this.#reject("unknown-address", message.address);
       return;
     }
-    const address = `controller/${target.id}/value`;
-    const value =
-      controller.kind === "number"
-        ? snapped(
-            numberFrom(message.args),
-            resolveAddress(session.document, address)?.range,
-          )
-        : colorFrom(message.args);
+    if (resolved.type === "trigger") {
+      const result = session.execute("address.trigger", { address }, "osc");
+      if (!result.ok)
+        this.#reject("refused", `${message.address}: ${result.error}`);
+      return;
+    }
+    const value = valueFrom(resolved, message.args);
     if (value === undefined) {
       this.#reject(
         "bad-arguments",
@@ -222,12 +224,8 @@ export class OscServer {
     if (session?.id === this.#attachedDocumentId) return;
     this.#unsubscribeDeltas?.();
     this.#unsubscribeDeltas = session?.onDelta((delta) => {
-      if (
-        delta.patches.some(
-          (patch) =>
-            patch.path[0] === "controllers" || patch.path[0] === "macros",
-        )
-      )
+      // Any saved-part change may add, drop, rename or move a leaf.
+      if (delta.patches.some((patch) => patch.path[0] !== "operational"))
         this.#scheduleFlush();
     });
     this.#attachedDocumentId = session?.id;
@@ -264,14 +262,15 @@ export class OscServer {
       }
       if (
         before.node.DESCRIPTION !== leaf.node.DESCRIPTION ||
-        before.node.TYPE !== leaf.node.TYPE
+        (before.node.TYPE !== leaf.node.TYPE &&
+          !(isSwitch(before.node.TYPE) && isSwitch(leaf.node.TYPE)))
       )
         this.#notify({ COMMAND: "PATH_CHANGED", DATA: path });
       if (
-        leaf.target.kind === "controller" &&
+        leaf.node.VALUE !== undefined &&
         JSON.stringify(before.node.VALUE) !== JSON.stringify(leaf.node.VALUE)
       )
-        this.#push(leaf.target);
+        this.#push(leaf);
     }
   }
 
@@ -280,17 +279,10 @@ export class OscServer {
     for (const socket of this.#clients.keys()) socket.send(text);
   }
 
-  #push(target: OscTarget): void {
-    const controller =
-      this.#options.store.currentSession()?.document.controllers[target.id];
-    if (controller === undefined) return;
-    const path = `/${target.kind}/${target.id}`;
-    const bytes = encodeMessage({
-      address: path,
-      args: controllerArguments(controller),
-    });
+  #push(leaf: OscLeaf): void {
+    const bytes = encodeMessage({ address: leaf.path, args: leaf.args });
     for (const [socket, listened] of this.#clients)
-      if (listened.has(path)) socket.send(bytes);
+      if (listened.has(leaf.path)) socket.send(bytes);
   }
 
   #accept(socket: WebSocket): void {
@@ -413,10 +405,14 @@ export class OscServer {
   }
 }
 
+/** A boolean leaf's TYPE follows its value; T to F is a value change, not a tree change. */
+const isSwitch = (type: string | undefined): boolean =>
+  type === "T" || type === "F";
+
 /** float32 noise (0.9 arrives as 0.89999997…) rounded away, so files and readouts stay tidy. */
 const tidy = (value: number): number => Math.round(value * 1e6) / 1e6;
 
-/** A number in 0..1 from one numeric or boolean argument; out-of-range values are clamped. */
+/** One numeric argument as a number; true and false count as 1 and 0. */
 function numberFrom(args: readonly OscArgument[]): number | undefined {
   const [arg] = args;
   if (arg === undefined || args.length !== 1) return undefined;
@@ -430,21 +426,50 @@ function numberFrom(args: readonly OscArgument[]): number | undefined {
   )
     return undefined;
   if (!Number.isFinite(arg.value)) return undefined;
-  return tidy(Math.min(1, Math.max(0, arg.value)));
+  return arg.value;
 }
 
 /**
- * A fader sends any float; the Controller's Address accepts only its step
- * grid, so the value is snapped to the nearest step before it is written.
+ * A fader sends any float; the Address accepts only its range and step
+ * grid, so the value is clamped and snapped before it is written.
  */
 function snapped(
   value: number | undefined,
-  range: { min: number; step?: number } | undefined,
+  range: { min: number; max: number; step?: number } | undefined,
 ): number | undefined {
-  if (value === undefined || range?.step === undefined) return value;
-  return tidy(
-    range.min + Math.round((value - range.min) / range.step) * range.step,
-  );
+  if (value === undefined) return undefined;
+  const bounds = range ?? { min: 0, max: 1 };
+  let result = Math.min(bounds.max, Math.max(bounds.min, value));
+  if (bounds.step !== undefined && bounds.step > 0)
+    result =
+      bounds.min +
+      Math.round((result - bounds.min) / bounds.step) * bounds.step;
+  return tidy(result);
+}
+
+/** The value an Address of `resolved`'s type takes from OSC arguments, or undefined when they do not fit. */
+function valueFrom(
+  resolved: ResolvedAddress,
+  args: readonly OscArgument[],
+): unknown {
+  switch (resolved.type) {
+    case "number":
+      return snapped(numberFrom(args), resolved.range);
+    case "boolean": {
+      const number = numberFrom(args);
+      return number === undefined ? undefined : number >= 0.5;
+    }
+    case "color":
+      return colorFrom(args);
+    case "choice": {
+      const [arg] = args;
+      return arg?.type === "string" && args.length === 1
+        ? arg.value
+        : undefined;
+    }
+    case "trigger":
+      return undefined;
+  }
 }
 
 /** A color from one RGBA argument, or three or four numbers in 0..1. */

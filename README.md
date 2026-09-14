@@ -13,16 +13,20 @@ a projection-mapping engine built the same way.
 
 ## Status
 
-Slice 1 of the build, "light one fixture": the Rig exists end to end.
-Universes, one Enttec-compatible USB Output kind over serial (Open DMX and
-DMX USB Pro drivers, hardware still to be verified), Fixture Types as JSON
-files in `refrata-library/` copied into the Installation on use, Fixtures
-with derived Element trees, Patch with overlap refused, Defaults and a held
-Highlight, Resolve and Encoding at 40 Hz into one DMX Frame per Universe, a
-Resolved Stream to Studio, the Rig View, and the CLI's `library`,
-`fixtures`, `patch`, `highlight` and `dmx`. There are no Layers yet, so the
-only light is Highlight. The design the rest is built against is in
-`GLOSSARY.md` and `docs/`.
+Slice 2 of the build, "one Look": the composition exists end to end on top
+of the slice 1 Rig. Scenes as ordered stacks of Layers, Look Layers with
+rows per Target (an Element or a Fixture Set by list), Contributions with
+alpha, the five Blend Modes, Resolve bottom to top from Defaults with
+fan-down and the Target rule, Master and Blackout after Resolve, Scene play
+as a cut, Layer Addresses linkable to Controllers, the OSC tree carrying
+Scenes, Master and Layer leaves, multi-select and marquee in the Rig View
+with Targets outlined, and the CLI's `scenes`, `play`, `layers`, `look`,
+`sets`, `master` and `blackout`. Slice 1's Rig (Universes, one
+Enttec-compatible USB Output kind with hardware still to be verified,
+Fixture Types from `refrata-library/`, Patch, Highlight, Encoding at 40 Hz,
+the Resolved Stream) is unchanged underneath. Not yet: Transitions, Layer
+Fade, Visuals, Sets by rule. Slice 3, "parts and rules", is next to grill.
+The design the rest is built against is in `GLOSSARY.md` and `docs/`.
 
 ## Read the design
 
@@ -90,9 +94,12 @@ port, 9100 by default, and announces itself with Zeroconf as `_oscjson._tcp`
 and `_osc._udp` under the name "Refrata on <hostname>", so a hub such as
 Chataigne finds it and reconnects to it whatever Installation is open.
 
-The OSC tree has one leaf per Controller at `/controller/<id>` and one per
-Macro at `/macro/<id>`. Paths carry ids, so a rename never breaks a mapping;
-the name is the leaf's description.
+The OSC tree has one leaf per Controller at `/controller/<id>`, one per
+Macro at `/macro/<id>`, one per Scene at `/scene/<id>/play`, the grand
+master at `/installation/master`, and every Layer's `opacity`, `enabled`
+and Look Layer rows under `/layer/<id>/…` (a row's `…/<attribute>/value`
+and `…/<attribute>/alpha`). Paths carry ids, so a rename never breaks a
+mapping; the name is the leaf's description.
 
 ## Working from a shell
 

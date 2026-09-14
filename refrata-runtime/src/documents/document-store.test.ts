@@ -150,7 +150,12 @@ describe("DocumentStore", () => {
         .filter((table) => table !== "operational")
         .map((table) => [table]),
     );
-    expect(patches[0]?.value).toEqual({ id: documentId, name: "Living" });
+    expect(patches[0]?.value).toEqual({
+      id: documentId,
+      name: "Living",
+      activeScene: null,
+      master: 1,
+    });
     expect(await listAutosaves(filePath)).toEqual([]);
     expect(
       store.session(documentId)!.execute("history.undo", {}, "test").ok,

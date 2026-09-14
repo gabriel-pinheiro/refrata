@@ -1,5 +1,12 @@
 import type { DocumentView } from "@refrata/client";
-import { allFixtures, type Fixture, type Table } from "@refrata/core";
+import {
+  allFixtures,
+  elementsOf,
+  placeShape,
+  type Fixture,
+  type StoredFixtureType,
+  type Table,
+} from "@refrata/core";
 import {
   useEffect,
   useRef,
@@ -11,7 +18,7 @@ import {
 import { PanelHeader } from "@/components/panel-header";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
-import { useSelection } from "@/selection/selection";
+import { pickModeOf, useSelection, type PickMode } from "@/selection/selection";
 
 import {
   DEFAULT_CAMERA,
@@ -22,21 +29,30 @@ import {
   type Camera,
 } from "./camera";
 import { FixtureShape } from "./fixture-shape";
+import { elementsInRect, normalizeRect, type Rect } from "./marquee";
+import { useOutlined } from "./outlined";
 
 /**
  * The schematic front view of the rig: every placed Element as a flat shape
  * lit by its resolved colour times dimmer, on a dark canvas with the floor
- * line. Click selects a Fixture, a click inside a selected Fixture selects
- * the Element under the cursor, drag moves the Fixture (one undo step),
- * wheel zooms around the pointer, dragging the background pans. Zoom and
- * pan are per session and never saved.
+ * line. Click picks a Fixture, a click inside a picked Fixture picks the
+ * Element under the cursor; shift extends the pick and ctrl toggles it; a
+ * drag on empty canvas is a marquee picking everything inside; a drag on a
+ * shape moves the Fixture (one undo step); the middle button or Alt with
+ * the left one pans; the wheel zooms around the pointer. Picked Elements
+ * are outlined, and so are the Targets of the selected Layer or the members
+ * of the selected Set. Zoom and pan are per session and never saved.
  */
 export function RigView({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
-  const { selection, select } = useSelection();
+  const { selection, select, picked, pick } = useSelection();
   const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
+  const types =
+    useDocumentPath<Table<StoredFixtureType>>(view, ["fixtureTypes"]) ?? {};
+  const outlined = useOutlined(view, selection);
   const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
   const [size, setSize] = useState({ width: 1, height: 1 });
+  const [marquee, setMarquee] = useState<Rect | undefined>(undefined);
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | undefined>(undefined);
   const place = useLatestWins(
@@ -73,7 +89,7 @@ export function RigView({ view }: { readonly view: DocumentView }) {
   };
 
   const onPointerDown = (event: PointerEvent<SVGSVGElement>): void => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 && event.button !== 1) return;
     const { px, py } = pointer(event);
     const target = (event.target as SVGElement).closest<SVGElement>(
       "[data-fixture]",
@@ -81,8 +97,14 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     const fixtureId = target?.dataset.fixture;
     const elementKey = target?.dataset.element;
     event.currentTarget.setPointerCapture(event.pointerId);
-    if (fixtureId === undefined) {
+    const mode = pickModeOf(event);
+    if (event.button === 1 || event.altKey) {
       gesture.current = { kind: "pan", px, py };
+      return;
+    }
+    if (fixtureId === undefined) {
+      const at = toStage(camera, size, px, py);
+      gesture.current = { kind: "marquee", start: at, mode, moved: false };
       return;
     }
     const fixture = fixtures[fixtureId];
@@ -92,6 +114,7 @@ export function RigView({ view }: { readonly view: DocumentView }) {
       kind: "drag",
       fixtureId,
       elementKey: elementKey ?? "root",
+      mode,
       startPx: px,
       startPy: py,
       offsetX: fixture.position.x - at.x,
@@ -107,6 +130,24 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     if (current.kind === "pan") {
       setCamera((previous) => pan(previous, px - current.px, py - current.py));
       gesture.current = { ...current, px, py };
+      return;
+    }
+    if (current.kind === "marquee") {
+      const at = toStage(camera, size, px, py);
+      const rect: Rect = {
+        x1: current.start.x,
+        y1: current.start.y,
+        x2: at.x,
+        y2: at.y,
+      };
+      if (
+        !current.moved &&
+        Math.abs(rect.x2 - rect.x1) * camera.scale < 4 &&
+        Math.abs(rect.y2 - rect.y1) * camera.scale < 4
+      )
+        return;
+      current.moved = true;
+      setMarquee(rect);
       return;
     }
     if (
@@ -126,22 +167,55 @@ export function RigView({ view }: { readonly view: DocumentView }) {
   const onPointerUp = (): void => {
     const current = gesture.current;
     gesture.current = undefined;
-    if (current === undefined || current.kind === "pan" || current.moved)
+    if (current === undefined || current.kind === "pan") return;
+    if (current.kind === "marquee") {
+      const rect = marquee;
+      setMarquee(undefined);
+      if (!current.moved || rect === undefined) {
+        // A click on empty canvas: clear, unless extending.
+        if (current.mode === "replace") select(undefined);
+        return;
+      }
+      const refs = elementsInRect(
+        allFixtures(fixtures).map((fixture) => {
+          const mode = types[fixture.typeKey]?.type.modes[fixture.modeKey];
+          return {
+            id: fixture.id,
+            position: fixture.position,
+            shapes:
+              mode === undefined
+                ? []
+                : placeShape(mode.shape, elementsOf(mode)),
+          };
+        }),
+        normalizeRect(rect),
+      );
+      pick(refs, current.mode);
+      const first = refs[0];
+      if (first !== undefined) selectRef(first);
+      else if (current.mode === "replace") select(undefined);
       return;
-    // A click: the Fixture, or an Element of the Fixture already selected.
-    const selectedFixture =
-      selection?.kind === "fixture"
-        ? selection.id
-        : selection?.kind === "element"
-          ? selection.id.slice(0, selection.id.lastIndexOf("/"))
-          : undefined;
-    if (selectedFixture === current.fixtureId && current.elementKey !== "root")
-      select({
-        kind: "element",
-        id: `${current.fixtureId}/${current.elementKey}`,
-      });
-    else select({ kind: "fixture", id: current.fixtureId });
+    }
+    if (current.moved) return;
+    // A click: the Fixture, or an Element of the Fixture already picked.
+    const pickedFixture = pickedFixtureOf(picked);
+    const ref =
+      pickedFixture === current.fixtureId && current.elementKey !== "root"
+        ? `${current.fixtureId}/${current.elementKey}`
+        : `${current.fixtureId}/root`;
+    pick([ref], current.mode);
+    selectRef(ref);
   };
+
+  function selectRef(ref: string): void {
+    const slash = ref.lastIndexOf("/");
+    const fixtureId = ref.slice(0, slash);
+    select(
+      ref.endsWith("/root")
+        ? { kind: "fixture", id: fixtureId }
+        : { kind: "element", id: ref },
+    );
+  }
 
   const onWheel = (event: WheelEvent<SVGSVGElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -158,14 +232,9 @@ export function RigView({ view }: { readonly view: DocumentView }) {
   };
 
   const placed = allFixtures(fixtures);
-  const selectedFixture =
-    selection?.kind === "fixture"
-      ? selection.id
-      : selection?.kind === "element"
-        ? selection.id.slice(0, selection.id.lastIndexOf("/"))
-        : undefined;
   const box = viewBox(camera, size);
   const extent = Math.max(size.width, size.height) / camera.scale;
+  const shown = marquee === undefined ? undefined : normalizeRect(marquee);
   return (
     <main className="flex h-full min-h-0 flex-col bg-background">
       <PanelHeader>Rig View</PanelHeader>
@@ -178,10 +247,6 @@ export function RigView({ view }: { readonly view: DocumentView }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onWheel={onWheel}
-        onClick={(event) => {
-          if ((event.target as SVGElement).closest("[data-fixture]") === null)
-            select(undefined);
-        }}
       >
         {/* Stage y runs up; the viewBox is written in flipped y, so flip once here. */}
         <g transform="scale(1,-1)">
@@ -207,15 +272,21 @@ export function RigView({ view }: { readonly view: DocumentView }) {
               view={view}
               fixture={fixture}
               scale={camera.scale}
-              selected={selectedFixture === fixture.id}
-              selectedElement={
-                selection?.kind === "element" &&
-                selection.id.startsWith(`${fixture.id}/`)
-                  ? selection.id.slice(fixture.id.length + 1)
-                  : undefined
-              }
+              picked={keysOf(picked, fixture.id)}
+              outlined={keysOf(outlined, fixture.id)}
             />
           ))}
+          {shown !== undefined && (
+            <rect
+              x={shown.x1}
+              y={shown.y1}
+              width={shown.x2 - shown.x1}
+              height={shown.y2 - shown.y1}
+              className="fill-selection/10 stroke-selection"
+              strokeWidth={1 / camera.scale}
+              strokeDasharray={`${String(4 / camera.scale)} ${String(3 / camera.scale)}`}
+            />
+          )}
         </g>
       </svg>
       {placed.length === 0 && (
@@ -230,9 +301,16 @@ export function RigView({ view }: { readonly view: DocumentView }) {
 type Gesture =
   | { readonly kind: "pan"; readonly px: number; readonly py: number }
   | {
+      readonly kind: "marquee";
+      readonly start: { readonly x: number; readonly y: number };
+      readonly mode: PickMode;
+      moved: boolean;
+    }
+  | {
       readonly kind: "drag";
       readonly fixtureId: string;
       readonly elementKey: string;
+      readonly mode: PickMode;
       readonly startPx: number;
       readonly startPy: number;
       readonly offsetX: number;
@@ -243,4 +321,18 @@ type Gesture =
 /** Positions are kept to centimetres so a drag does not fill the file with float noise. */
 function round(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/** The Fixture a single pick belongs to, so a second click inside it picks an Element. */
+function pickedFixtureOf(picked: readonly string[]): string | undefined {
+  const only = picked.length === 1 ? picked[0] : undefined;
+  return only === undefined ? undefined : only.slice(0, only.lastIndexOf("/"));
+}
+
+/** The Element keys of `refs` that belong to `fixtureId`. */
+function keysOf(refs: readonly string[], fixtureId: string): readonly string[] {
+  const prefix = `${fixtureId}/`;
+  return refs
+    .filter((ref) => ref.startsWith(prefix))
+    .map((ref) => ref.slice(prefix.length));
 }

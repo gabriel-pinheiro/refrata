@@ -1,19 +1,37 @@
 import type { DocumentView } from "@refrata/client";
-import type { Installation } from "@refrata/core";
+import {
+  resolveAddress,
+  type Installation,
+  type Scene,
+  type Table,
+} from "@refrata/core";
 
+import { AddressRow } from "@/inspector/fields/address-row";
 import { InspectorHeading } from "@/inspector/fields/inspector-heading";
+import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { NameField } from "@/inspector/fields/name-field";
+import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand, useDocumentPath } from "@/lib/client";
 
-/** Settings of the Installation itself, shown when its root row is selected. */
+/** Settings of the Installation itself: its name, the grand Master (a Controller can take it), and what is playing. */
 export function InstallationInspector({
   view,
 }: {
   readonly view: DocumentView;
 }) {
   const command = useCommand(view);
+  const rowLinks = useRowLinks(view);
   const installation = useDocumentPath<Installation>(view, ["installation"]);
+  const scenes = useDocumentPath<Table<Scene>>(view, ["scenes"]) ?? {};
   if (installation === undefined) return null;
+  const master = resolveAddress(
+    { ...view.get(), installation } as Parameters<typeof resolveAddress>[0],
+    "installation/master",
+  );
+  const active =
+    installation.activeScene === null
+      ? undefined
+      : scenes[installation.activeScene];
 
   return (
     <>
@@ -25,6 +43,24 @@ export function InstallationInspector({
           onCommit={(name) => void command("installation.rename", { name })}
         />
       </div>
+      <InspectorSection storageKey="playback" label="Playback">
+        {master !== undefined && (
+          <AddressRow
+            resolved={master}
+            value={installation.master}
+            description="Scales every dimmer after Resolve"
+            onEdit={(value) =>
+              command("address.edit", { address: master.address, value })
+            }
+            links={rowLinks(master, "Master")}
+          />
+        )}
+        <p className="text-[0.6875rem]/relaxed text-muted-foreground">
+          {active === undefined
+            ? "No Scene is playing: every fixture rests at its Defaults."
+            : `Playing “${active.name}”.`}
+        </p>
+      </InspectorSection>
     </>
   );
 }

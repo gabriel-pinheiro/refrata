@@ -46,8 +46,18 @@ export interface Element {
   >;
 }
 
-/** The Elements of a Mode, depth first from the root in tree order. */
+const derived = new WeakMap<Mode, readonly Element[]>();
+
+/** The Elements of a Mode, depth first from the root in tree order; derived once per Mode object, since Modes never change in place. */
 export function elementsOf(mode: Mode): readonly Element[] {
+  const cached = derived.get(mode);
+  if (cached !== undefined) return cached;
+  const result = deriveElements(mode);
+  derived.set(mode, result);
+  return result;
+}
+
+function deriveElements(mode: Mode): readonly Element[] {
   const result: Element[] = [];
   const visit = (
     key: string,

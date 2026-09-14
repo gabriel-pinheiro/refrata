@@ -14,6 +14,9 @@ export type OutputId = Id<"output">;
 export type FixtureId = Id<"fixture">;
 /** A Fixture Type copied into the Installation is keyed by its library key, such as `generic/rgb-3ch`. */
 export type FixtureTypeId = Id<"fixtureType">;
+export type SceneId = Id<"scene">;
+export type LayerId = Id<"layer">;
+export type FixtureSetId = Id<"fixtureSet">;
 export type SessionId = Id<"session">;
 export type DocumentId = Id<"document">;
 
