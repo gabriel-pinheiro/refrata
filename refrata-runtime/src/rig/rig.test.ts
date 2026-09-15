@@ -1,5 +1,5 @@
 import { createBuiltInRegistry, type ParameterValues } from "@refrata/core";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,7 @@ import { fakeSerialFactory, FTDI_PORT } from "../output/fake-serial.ts";
 import { OutputManager } from "../output/output-manager.ts";
 import { HighlightTimeout } from "./highlight-timeout.ts";
 import { TesterTimeout } from "./tester-timeout.ts";
+import { FixtureTypeDriftTracker } from "./fixture-type-drift.ts";
 import { FixtureLibrary } from "./library.ts";
 import { OutputLoop } from "./output-loop.ts";
 
@@ -184,5 +185,63 @@ describe("TesterTimeout", () => {
     timeout.sweep(since + 2_000);
     expect(session.document.operational.tester).toBeNull();
     timeout.close();
+  });
+});
+
+describe("Fixture Type drift", () => {
+  it("marks a held type stale when the library changes, current again after a reload", async () => {
+    const { documentId } = await stageStrobe();
+    const tracker = new FixtureTypeDriftTracker(store, library);
+    const seen: unknown[] = [];
+    tracker.onChange((state) => seen.push(state));
+    tracker.start();
+    expect(tracker.state()).toEqual({ "showtech/st-960": "current" });
+    const edited = structuredClone(library.libraryType("showtech/st-960")!);
+    (edited as { notes?: string }).notes = "Edited while probing";
+    library.add(edited);
+    expect(tracker.state()).toEqual({ "showtech/st-960": "stale" });
+    expect(
+      library.list(store.session(documentId)!.document).at(-1)?.stale,
+    ).toBe(true);
+    const session = store.session(documentId)!;
+    const reloaded = session.execute(
+      "fixture.reload",
+      { types: [edited] },
+      "test",
+    );
+    if (!reloaded.ok) throw new Error(reloaded.error);
+    expect(tracker.state()).toEqual({ "showtech/st-960": "current" });
+    // Starting publishes the first state, then the library edit, then the reload.
+    expect(seen).toEqual([
+      { "showtech/st-960": "current" },
+      { "showtech/st-960": "stale" },
+      { "showtech/st-960": "current" },
+    ]);
+    tracker.close();
+  });
+
+  it("reads the folder again when a file under it changes", async () => {
+    const folder = path.join(dir, "library");
+    await mkdir(folder, { recursive: true });
+    const source = await readFile(
+      path.join(libraryDir, "generic/rgb-3ch.json"),
+      "utf8",
+    );
+    const file = path.join(folder, "rgb.json");
+    await writeFile(file, source);
+    const watched = new FixtureLibrary(() => undefined);
+    await watched.load(folder);
+    watched.watch(folder);
+    const changed = new Promise<void>((resolve) =>
+      watched.onChange(() => resolve()),
+    );
+    const json = JSON.parse(source) as { model: string };
+    json.model = "RGB 3ch (edited)";
+    await writeFile(file, JSON.stringify(json));
+    await changed;
+    expect(watched.libraryType("generic/rgb-3ch")?.model).toBe(
+      "RGB 3ch (edited)",
+    );
+    watched.close();
   });
 });

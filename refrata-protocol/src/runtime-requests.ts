@@ -41,8 +41,14 @@ export const RuntimeRequestSchemas = {
   "files.list": z.object({}).strict(),
   /** The Fixture Types the runtime knows: bundled files and anything the open Installation holds. */
   "library.list": z.object({}).strict(),
-  /** One Fixture Type by key, the whole file, for a `fixture.create` payload. */
-  "library.get": z.object({ key: z.string().min(1) }).strict(),
+  /**
+   * One Fixture Type by key, the whole file, for a `fixture.create` or
+   * `fixture.reload` payload. Falls back to the open Installation's copy
+   * unless `libraryOnly`, which a reload asks for.
+   */
+  "library.get": z
+    .object({ key: z.string().min(1), libraryOnly: z.boolean().optional() })
+    .strict(),
   /** Keeps the DMX Tester's range held: the runtime releases it when nobody touches it for a while. */
   "tester.touch": z.object({ documentId: z.string().min(1) }).strict(),
   /** The DMX Frame a Universe is sending right now, 512 bytes. */
@@ -82,6 +88,8 @@ export const LibraryEntrySchema = z
     modes: z.array(LibraryModeSchema),
     /** Where it came from: a bundled file, or the open Installation. */
     source: z.enum(["library", "installation"]),
+    /** True when the open Installation holds a different copy, so `fixture.reload` would change it. */
+    stale: z.boolean().optional(),
   })
   .strict();
 export type LibraryEntry = z.infer<typeof LibraryEntrySchema>;

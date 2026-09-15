@@ -114,7 +114,13 @@ and describes it. It is the Difracta Catalog's counterpart.
 
 A Fixture Type used by an Installation is copied into the Installation, so a file opens the same
 on another machine and a later library update never silently changes a rig.
-The copy is dropped when the last Fixture using it goes. Fixture Types have no
+The copy is dropped when the last Fixture using it goes. The Runtime watches
+the library folder and says, per held type, whether its copy is the same as
+the library file, differs, or is no longer in the library; a reload (one
+type from its Fixture, or every one that differs from the Installation) is
+an undoable command that takes the library's file, refused when a Fixture's
+Mode is gone or its Footprint would overlap, and dropping what pointed at
+Element keys the new Mode lacks. Fixture Types have no
 navigator section; the Add Fixture picker lists the library. Types are JSON
 files, validated with Zod, carrying a `formatVersion` from day one, loaded from
 a `refrata-library/` folder at startup.

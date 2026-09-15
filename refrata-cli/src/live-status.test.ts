@@ -7,6 +7,7 @@ const base: LiveState = {
   osc: { port: 9100, listeners: 2 },
   outputs: {},
   dmx: { rateHz: 40, fps: 40 },
+  fixtureTypes: {},
 };
 
 describe("liveStatus", () => {

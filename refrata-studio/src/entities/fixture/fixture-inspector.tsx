@@ -19,6 +19,7 @@ import { SelectField } from "@/inspector/fields/select-field";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useSelection } from "@/selection/selection";
 
+import { FixtureTypeReload } from "./fixture-type-reload";
 import { ParameterRows } from "./parameter-rows";
 
 /**
@@ -93,6 +94,11 @@ function PatchedFixtureBody({
             ? `${fixture.typeKey} (missing)`
             : `${type.manufacturer} ${type.model}`}
         </p>
+        <FixtureTypeReload
+          view={view}
+          typeKey={fixture.typeKey}
+          model={type?.model ?? fixture.typeKey}
+        />
         <SelectField
           label="Mode"
           value={fixture.modeKey}

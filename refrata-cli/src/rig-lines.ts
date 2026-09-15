@@ -68,6 +68,6 @@ export function formatLibrary(entries: readonly LibraryEntry[]): string[] {
         .map((mode) => `${mode.key} (${String(mode.footprint)}ch)`)
         .join(
           ", ",
-        )}${entry.source === "installation" ? "  [from the Installation]" : ""}`,
+        )}${entry.source === "installation" ? "  [from the Installation]" : ""}${entry.stale === true ? "  [the Installation's copy differs: fixtures reload]" : ""}`,
   );
 }

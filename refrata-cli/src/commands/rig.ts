@@ -122,6 +122,59 @@ export function registerRig(program: Command, cli: Cli): void {
       }),
     );
 
+  fixtures
+    .command("reload [type]")
+    .description(
+      "Reload a Fixture Type the Installation holds from the library (a type key, or a Fixture's name for its type), or every held type when none is given. Its Fixtures take the new definition as one undo step; refused when a Mode is gone or a Footprint would overlap.",
+    )
+    .action((type: string | undefined) =>
+      cli.withDocument(async (client, summary) => {
+        const { document } = await cli.replica(client, summary.id);
+        const held = Object.keys(document.fixtureTypes);
+        let keys: readonly string[] = held;
+        if (type !== undefined) {
+          if (held.includes(type)) keys = [type];
+          else {
+            const fixture =
+              document.fixtures[resolveId(document, "fixtures", type)];
+            if (fixture?.kind !== "fixture")
+              throw new Error(`“${type}” is a Group, not a Fixture.`);
+            keys = [fixture.typeKey];
+          }
+        }
+        const types: FixtureType[] = [];
+        const skipped: string[] = [];
+        for (const key of keys) {
+          try {
+            const reply = await client.request<{ type: FixtureType }>(
+              "library.get",
+              { key, libraryOnly: true },
+            );
+            types.push(reply.type);
+          } catch {
+            skipped.push(key);
+          }
+        }
+        if (types.length === 0)
+          throw new Error(
+            keys.length === 0
+              ? "The Installation holds no Fixture Types yet."
+              : `The library has no ${keys.map((key) => `“${key}”`).join(", ")}.`,
+          );
+        const result = await client.command<CommandResult>(
+          summary.id,
+          "fixture.reload",
+          { types },
+        );
+        cli.print({ ...result, skipped }, () =>
+          [
+            formatCommandResult(result, "fixture.reload"),
+            ...skipped.map((key) => `  not in the library: ${key}`),
+          ].join("\n"),
+        );
+      }),
+    );
+
   program
     .command("highlight <element>")
     .description(

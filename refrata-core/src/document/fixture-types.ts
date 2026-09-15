@@ -47,3 +47,33 @@ export function releaseFixtureType(
     ? []
     : [{ op: "remove", path: ["fixtureTypes", typeKey] }];
 }
+
+/** How an Installation's copy of a Fixture Type stands against the library: the same, different, or gone from it. */
+export type FixtureTypeDrift = "current" | "stale" | "missing";
+
+/** JSON with object keys sorted, so two parses of one file compare equal whatever their key order. */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_key, entry: unknown) =>
+    typeof entry === "object" && entry !== null && !Array.isArray(entry)
+      ? Object.fromEntries(
+          Object.entries(entry as Record<string, unknown>).sort(([a], [b]) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        )
+      : entry,
+  );
+}
+
+/** Whether two Fixture Types say exactly the same thing. */
+export function sameFixtureType(a: FixtureType, b: FixtureType): boolean {
+  return canonical(a) === canonical(b);
+}
+
+/** The drift of a stored copy against the library's version of it, undefined when the library lacks the key. */
+export function fixtureTypeDrift(
+  stored: FixtureType,
+  library: FixtureType | undefined,
+): FixtureTypeDrift {
+  if (library === undefined) return "missing";
+  return sameFixtureType(stored, library) ? "current" : "stale";
+}

@@ -5,6 +5,7 @@ export * from "./document/controllers.ts";
 export * from "./document/document.ts";
 export * from "./document/rig.ts";
 export * from "./document/fixtures.ts";
+export * from "./document/fixture-types.ts";
 export * from "./document/composition.ts";
 export * from "./document/layers.ts";
 export * from "./document/look-rows.ts";

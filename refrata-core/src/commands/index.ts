@@ -10,6 +10,7 @@ import { controllerRemove } from "./controller.remove.ts";
 import { controllerRename } from "./controller.rename.ts";
 import { controllerUngroup } from "./controller.ungroup.ts";
 import { entityMove } from "./entity.move.ts";
+import { fixtureReload } from "./fixture.reload.ts";
 import { fixtureCreate } from "./fixture.create.ts";
 import { fixtureMove } from "./fixture.move.ts";
 import { fixturePatch } from "./fixture.patch.ts";
@@ -83,6 +84,7 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   fixturePatch,
   fixturePlace,
   fixtureRemove,
+  fixtureReload,
   setCreate,
   setRename,
   setMove,

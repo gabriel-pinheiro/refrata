@@ -223,12 +223,14 @@ describe("live protocol", () => {
       osc: { port: null, listeners: 0 },
       outputs: {},
       dmx: { rateHz: 40, fps: 0 },
+      fixtureTypes: {},
     });
     expect(studioView.valueAt(["live", "osc", "port"])).toBeNull();
     expect(cliView.liveState.get()).toEqual({
       osc: { port: null, listeners: 0 },
       outputs: {},
       dmx: { rateHz: 0, fps: 0 },
+      fixtureTypes: {},
     });
     studio.close();
     cli.close();

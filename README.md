@@ -23,7 +23,8 @@ as a cut, Layer Addresses linkable to Controllers, the OSC tree carrying
 Scenes, Master and Layer leaves, one ordered selection across the Rig View
 and the navigator with Targets outlined and a picker to fill Layers and
 Sets, a DMX Tester holding raw channels over the show to probe a device
-before it has a Fixture Type, and the CLI's `scenes`, `play`, `layers`,
+before it has a Fixture Type, a watched library with a reload of the
+Installation's Fixture Type copies from it, and the CLI's `scenes`, `play`, `layers`,
 `look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig (Universes, one
 Enttec-compatible USB Output kind with hardware still to be verified,
 Fixture Types from `refrata-library/`, Patch, Highlight, Encoding at 40 Hz,

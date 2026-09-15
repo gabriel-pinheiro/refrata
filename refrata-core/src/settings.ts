@@ -65,6 +65,10 @@ export const settings = {
     /** A held highlight is released by the runtime after this, in case the client vanished. */
     timeoutMs: 30_000,
   },
+  library: {
+    /** Library file changes are gathered this long before the library is read again, since an editor's save is several events. */
+    watchDebounceMs: 250,
+  },
   tester: {
     /** The most channels one DMX Tester range holds: any single fixture fits, the tab stays a row of faders. */
     maxChannels: 64,

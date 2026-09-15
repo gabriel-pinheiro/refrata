@@ -21,6 +21,9 @@ Working from a shell
   Rig        fixtures add <typeKey> <modeKey> [--name] [--universe]
              [--address] [--unpatched]  copies the type in and patches at
              the next free address.  patch <fixture> <universe> <address>.
+             fixtures reload [type|fixture]  takes the library's current
+             file for a held type, or every held type, as one undo step;
+             "library" marks copies that differ.
              highlight <fixture>[/<element>] [--on|--off]  lights it at its
              Highlight values (${String(settings.cli.highlightHoldMs / 1000)} s unless held). Elements are
              <fixtureId>/<key>, listed by "fixtures".

@@ -8,11 +8,16 @@ the shape of the file and the reasons for it.
 
 ## Where files live
 
-`refrata-library/<manufacturer>/<model>.json`, loaded by the Runtime at startup
-and listed by `refrata library`. A file is identified by its `key`
-(`generic/rgb-3ch`, `showtech/st-960`). When a Fixture uses a type, the type is
-copied into the Installation under that key and dropped again when the last
-Fixture using it goes, so an Installation opens the same on another machine.
+`refrata-library/<manufacturer>/<model>.json`, loaded by the Runtime at startup,
+read again whenever a file under the folder changes, and listed by `refrata
+library`. A file is identified by its `key` (`generic/rgb-3ch`,
+`showtech/st-960`). When a Fixture uses a type, the type is copied into the
+Installation under that key and dropped again when the last Fixture using it
+goes, so an Installation opens the same on another machine. Editing a library
+file never changes an Installation by itself: Studio and `refrata library`
+say which copies differ, and a reload (`refrata fixtures reload`, or the
+buttons on a Fixture and on the Installation) takes the new file as one undo
+step.
 
 ## The shape
 

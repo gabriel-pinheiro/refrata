@@ -13,7 +13,9 @@ import { NameField } from "@/inspector/fields/name-field";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand, useDocumentPath } from "@/lib/client";
 
-/** Settings of the Installation itself: its name, the grand Master (a Controller can take it), and what is playing. */
+import { FixtureTypesSection } from "./fixture-types-section";
+
+/** Settings of the Installation itself: its name, the grand Master (a Controller can take it), what is playing, and its Fixture Types against the library. */
 export function InstallationInspector({
   view,
 }: {
@@ -61,6 +63,7 @@ export function InstallationInspector({
             : `Playing “${active.name}”.`}
         </p>
       </InspectorSection>
+      <FixtureTypesSection view={view} />
     </>
   );
 }
