@@ -8,6 +8,7 @@ import { registerRead } from "./commands/read.ts";
 import { registerRig } from "./commands/rig.ts";
 import { registerRun } from "./commands/run.ts";
 import { registerStatus } from "./commands/status.ts";
+import { registerTester } from "./commands/tester.ts";
 import { registerTree } from "./commands/tree.ts";
 import { DEFAULT_URL } from "./connection.ts";
 import { SHELL_GUIDE } from "./help.ts";
@@ -40,6 +41,7 @@ const program = new Command("refrata")
 const cli = new Cli(program);
 registerStatus(program, cli);
 registerRig(program, cli);
+registerTester(program, cli);
 registerComposition(program, cli);
 registerTree(program, cli);
 registerRead(program, cli);

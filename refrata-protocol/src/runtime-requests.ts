@@ -43,6 +43,8 @@ export const RuntimeRequestSchemas = {
   "library.list": z.object({}).strict(),
   /** One Fixture Type by key, the whole file, for a `fixture.create` payload. */
   "library.get": z.object({ key: z.string().min(1) }).strict(),
+  /** Keeps the DMX Tester's range held: the runtime releases it when nobody touches it for a while. */
+  "tester.touch": z.object({ documentId: z.string().min(1) }).strict(),
   /** The DMX Frame a Universe is sending right now, 512 bytes. */
   "dmx.frame": z
     .object({ documentId: z.string().min(1), universeId: z.string().min(1) })

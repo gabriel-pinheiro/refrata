@@ -48,6 +48,8 @@ export const settings = {
     connectTimeoutMs: 3_000,
     /** How long `refrata highlight` holds an Element lit before releasing it. */
     highlightHoldMs: 2_000,
+    /** How long `refrata tester` holds its channels before releasing them, unless told otherwise. */
+    testerHoldMs: 5_000,
   },
   output: {
     /** Resolve and DMX Frame rate; every frame goes to every Output. */
@@ -62,6 +64,14 @@ export const settings = {
   highlight: {
     /** A held highlight is released by the runtime after this, in case the client vanished. */
     timeoutMs: 30_000,
+  },
+  tester: {
+    /** The most channels one DMX Tester range holds: any single fixture fits, the tab stays a row of faders. */
+    maxChannels: 64,
+    /** The runtime releases the range when no client has touched it for this long. */
+    timeoutMs: 15_000,
+    /** How often a client holding the range touches it. */
+    keepaliveMs: 5_000,
   },
   inspector: {
     /** A Look row's control wraps under its label when it would be narrower than this, in pixels. */

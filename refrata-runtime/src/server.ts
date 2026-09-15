@@ -14,6 +14,7 @@ import {
   type SerialPortFactory,
 } from "./output/serial-link.ts";
 import { HighlightTimeout } from "./rig/highlight-timeout.ts";
+import { TesterTimeout } from "./rig/tester-timeout.ts";
 import { FixtureLibrary } from "./rig/library.ts";
 import { OutputLoop } from "./rig/output-loop.ts";
 
@@ -72,6 +73,7 @@ export async function buildRuntime(
   });
   const loop = new OutputLoop({ store, outputs });
   const highlightTimeout = new HighlightTimeout(store);
+  const testerTimeout = new TesterTimeout(store);
   const live = new LiveServer({
     store,
     runtimeName: "Refrata Runtime",
@@ -81,6 +83,7 @@ export async function buildRuntime(
     library,
     loop,
     outputs,
+    tester: testerTimeout,
   });
 
   await app.register(fastifyWebsocket);
@@ -124,6 +127,7 @@ export async function buildRuntime(
       });
       loop.start();
       highlightTimeout.start();
+      testerTimeout.start();
       if (osc !== undefined) {
         try {
           await osc.start();
@@ -136,6 +140,7 @@ export async function buildRuntime(
     async close() {
       live.close();
       highlightTimeout.close();
+      testerTimeout.close();
       await loop.close();
       await osc?.close();
       await store.flush();

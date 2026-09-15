@@ -22,8 +22,9 @@ fan-down and the Target rule, Master and Blackout after Resolve, Scene play
 as a cut, Layer Addresses linkable to Controllers, the OSC tree carrying
 Scenes, Master and Layer leaves, one ordered selection across the Rig View
 and the navigator with Targets outlined and a picker to fill Layers and
-Sets, and the CLI's `scenes`, `play`, `layers`, `look`,
-`sets`, `master` and `blackout`. Slice 1's Rig (Universes, one
+Sets, a DMX Tester holding raw channels over the show to probe a device
+before it has a Fixture Type, and the CLI's `scenes`, `play`, `layers`,
+`look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig (Universes, one
 Enttec-compatible USB Output kind with hardware still to be verified,
 Fixture Types from `refrata-library/`, Patch, Highlight, Encoding at 40 Hz,
 the Resolved Stream) is unchanged underneath. Not yet: Transitions, Layer

@@ -24,6 +24,11 @@ Working from a shell
              highlight <fixture>[/<element>] [--on|--off]  lights it at its
              Highlight values (${String(settings.cli.highlightHoldMs / 1000)} s unless held). Elements are
              <fixtureId>/<key>, listed by "fixtures".
+             tester <universe> <address> <byte...>  holds raw channels at
+             those bytes for ${String(settings.cli.testerHoldMs / 1000)} s (--hold <s>; 0 keeps them until the
+             runtime's ${String(settings.tester.timeoutMs / 1000)} s timeout) to learn what a device does before
+             it has a Fixture Type; tester release lets go. Never saved;
+             Blackout wins.
 
   Compose    scenes add <name>  a Scene; the first one starts playing.
              layers add <scene> <name> [--target <t>]...  a Look Layer at

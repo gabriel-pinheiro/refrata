@@ -1,5 +1,5 @@
 import type { DocumentView } from "@refrata/client";
-import type { Layer, Scene, Table } from "@refrata/core";
+import type { Layer, Scene, Table, Tester } from "@refrata/core";
 import type { LiveState } from "@refrata/protocol";
 
 import { useDocumentCommands } from "@/documents/document-commands";
@@ -7,7 +7,7 @@ import { useClient, useDocumentPath, useSignal } from "@/lib/client";
 import { cn } from "@/lib/utils";
 import { useSelectionIfAny } from "@/selection/selection";
 
-/** Bottom strip: runtime connection, save state, which Scene is edited versus playing, Master, the OSC door and blackout at a glance. */
+/** Bottom strip: runtime connection, save state, which Scene is edited versus playing, Master, the OSC door, the DMX Tester's hold and blackout at a glance. */
 export function StatusStrip() {
   const client = useClient();
   const phase = useSignal(client.phase);
@@ -93,6 +93,13 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
   const blackout =
     useDocumentPath<boolean>(view, ["operational", "blackout"]) ?? false;
   const master = useDocumentPath<number>(view, ["installation", "master"]) ?? 1;
+  const tester = useDocumentPath<Tester | null>(view, [
+    "operational",
+    "tester",
+  ]);
+  const universes =
+    useDocumentPath<Table<{ id: string; name: string }>>(view, ["universes"]) ??
+    {};
   const statuses = Object.values(outputs);
   const delivering = statuses.filter(
     (status) => status.state === "delivering",
@@ -130,6 +137,16 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
       {master < 1 && (
         <span className="text-amber-400 tabular-nums" title="Grand master">
           Master {String(Math.round(master * 100))}%
+        </span>
+      )}
+      {tester != null && (
+        <span
+          className="rounded-sm bg-amber-400 px-1.5 font-semibold text-black"
+          title="The DMX Tester is forcing these channels over the show; release it from its tab"
+        >
+          DMX Tester holding {String(tester.values.length)}{" "}
+          {tester.values.length === 1 ? "channel" : "channels"} on{" "}
+          {universes[tester.universeId]?.name ?? tester.universeId}
         </span>
       )}
       {blackout && (

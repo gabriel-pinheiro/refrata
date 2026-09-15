@@ -258,7 +258,7 @@ describe("DocumentStore", () => {
     const round = parseDocumentFile(
       serializeDocument({
         ...emptyDocument("N"),
-        operational: { blackout: true, highlight: {} },
+        operational: { blackout: true, highlight: {}, tester: null },
       }),
     );
     expect(round.ok && round.document.operational.blackout).toBe(false);

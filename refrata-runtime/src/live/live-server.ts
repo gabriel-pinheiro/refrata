@@ -64,6 +64,8 @@ export interface LiveServerOptions {
   readonly library: FixtureLibrary;
   readonly loop: OutputLoop;
   readonly outputs: OutputManager;
+  /** Told when a holder of the DMX Tester's range checks in. */
+  readonly tester?: { touch(): void } | undefined;
 }
 
 /**
@@ -515,6 +517,25 @@ export class LiveServer {
               ? { ok: false, error: `No Fixture Type is called “${key}”.` }
               : { ok: true, result: { type } },
           );
+          break;
+        }
+        case "tester.touch": {
+          const { documentId } = payload as { documentId: string };
+          const documentSession = store.session(documentId);
+          if (documentSession === undefined) {
+            reply({
+              ok: false,
+              error: `Document “${documentId}” is not open.`,
+            });
+            break;
+          }
+          this.#options.tester?.touch();
+          reply({
+            ok: true,
+            result: {
+              held: documentSession.document.operational.tester !== null,
+            },
+          });
           break;
         }
         case "dmx.frame": {

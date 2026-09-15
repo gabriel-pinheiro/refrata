@@ -60,6 +60,8 @@ import { setMove } from "./set.move.ts";
 import { setRemove } from "./set.remove.ts";
 import { setRename } from "./set.rename.ts";
 import { setUngroup } from "./set.ungroup.ts";
+import { testerHold } from "./tester.hold.ts";
+import { testerRelease, testerSet, testerZero } from "./tester.set.ts";
 import { universeCreate } from "./universe.create.ts";
 import { universeRemove } from "./universe.remove.ts";
 import { universeRename } from "./universe.rename.ts";
@@ -115,6 +117,10 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   linkCreate,
   linkUpdate,
   linkRemove,
+  testerHold,
+  testerSet,
+  testerZero,
+  testerRelease,
   macroCreate,
   macroRename,
   macroMove,

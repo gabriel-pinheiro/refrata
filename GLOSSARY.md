@@ -703,6 +703,22 @@ stack left them, so releasing it restores the look at once. Not saved. It is
 an Address, so a hub's button reaches it through a Macro; it is not linkable
 to a Controller.
 
+### DMX Tester
+
+A probe for a device that has no Fixture Type yet: up to 64 raw channels of
+one Universe held at bytes set by hand, written onto the encoded frame after
+Resolve, Master and Highlight, so they win over the show; Blackout still
+zeroes them. Every channel starts at 0 when the range is held, so probes
+never mix with show output, and a channel can be released alone to show the
+frame underneath. The range is held by whoever set it and released by the
+Runtime when nobody touches it for a while, so a closed tab, a closed Studio
+or a crashed client never leaves channels forced. Never saved, not an
+Address, never undone. In Studio it is the centre column's second tab, each
+fader named after the Fixture patched over its channel, and a pill in the
+status strip says it is holding; the CLI has `tester`.
+
+**Elsewhere:** QLC+ Simple Desk, grandMA3 DMX Tester.
+
 ### Master
 
 The Installation's grand master: one number from 0 to 1 that scales every `dimmer`

@@ -10,8 +10,10 @@ import { readStored, writeStored } from "@/lib/storage";
 import { Navigator } from "@/navigator/navigator";
 import { ExpansionProvider } from "@/navigator/expansion";
 import { RigStream } from "@/rig-view/rig-stream";
-import { RigView } from "@/rig-view/rig-view";
 import { SelectionKeys } from "@/selection/selection-keys";
+import { TesterKeepalive } from "@/tester/tester-keepalive";
+
+import { Center } from "./center";
 
 const LAYOUT_KEY = "refrata.workspace.layout";
 
@@ -21,16 +23,18 @@ const isLayout = (candidate: unknown): candidate is Record<string, number> =>
   Object.values(candidate).every((value) => typeof value === "number");
 
 /**
- * Navigator, the Rig View and inspector as three resizable columns. Column
- * sizes are remembered per browser; which rows are open resets with the
- * document, as the selection (provided above, per document) does. The
- * Resolved Stream follows every Fixture while the workspace is open.
+ * Navigator, the centre tabs (Rig View, DMX Tester) and inspector as three
+ * resizable columns. Column sizes are remembered per browser; which rows
+ * are open resets with the document, as the selection (provided above, per
+ * document) does. The Resolved Stream follows every Fixture while the
+ * workspace is open, and the DMX Tester's range is kept alive from here.
  */
 export function Workspace({ view }: { readonly view: DocumentView }) {
   return (
     <ExpansionProvider key={view.documentId}>
       <SelectionKeys />
       <RigStream view={view} />
+      <TesterKeepalive view={view} />
       <Columns view={view} />
     </ExpansionProvider>
   );
@@ -49,7 +53,7 @@ function Columns({ view }: { readonly view: DocumentView }) {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="center" minSize={320}>
-        <RigView view={view} />
+        <Center view={view} />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel id="inspector" defaultSize={288} minSize={256}>

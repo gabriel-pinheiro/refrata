@@ -10,6 +10,7 @@ import { ResolvedStream } from "../live/resolved-streams.ts";
 import { fakeSerialFactory, FTDI_PORT } from "../output/fake-serial.ts";
 import { OutputManager } from "../output/output-manager.ts";
 import { HighlightTimeout } from "./highlight-timeout.ts";
+import { TesterTimeout } from "./tester-timeout.ts";
 import { FixtureLibrary } from "./library.ts";
 import { OutputLoop } from "./output-loop.ts";
 
@@ -159,6 +160,29 @@ describe("HighlightTimeout", () => {
     expect(session.document.operational.highlight["strobe/root"]).toBe(true);
     timeout.sweep(since + 1_500);
     expect(session.document.operational.highlight["strobe/root"]).toBe(false);
+    timeout.close();
+  });
+});
+
+describe("TesterTimeout", () => {
+  it("releases the range when nobody touches it, and a touch keeps it", async () => {
+    const { documentId, universeId } = await stageStrobe();
+    const timeout = new TesterTimeout(store, 1_000);
+    timeout.start();
+    const session = store.session(documentId)!;
+    session.execute(
+      "tester.hold",
+      { universeId, address: 1, count: 3 },
+      "test",
+    );
+    const since = Date.now();
+    timeout.sweep(since + 800);
+    expect(session.document.operational.tester).not.toBeNull();
+    timeout.touch(since + 900);
+    timeout.sweep(since + 1_500);
+    expect(session.document.operational.tester).not.toBeNull();
+    timeout.sweep(since + 2_000);
+    expect(session.document.operational.tester).toBeNull();
     timeout.close();
   });
 });

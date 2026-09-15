@@ -193,11 +193,30 @@ export const MacroSchema = z.discriminatedUnion("kind", [
 export type Macro = Entity<typeof MacroSchema, MacroId>;
 export type RunnableMacro = Extract<Macro, { kind: "macro" }>;
 
+/**
+ * The DMX Tester: raw bytes held over one range of one Universe, written
+ * onto the encoded frame after everything but Blackout, to learn what a
+ * device's channels do before its Fixture Type exists. `values` has one
+ * entry per channel from `address` up; null means that channel is released
+ * and shows the frame underneath. Held by a client and dropped by the
+ * runtime when nobody touches it for `settings.tester.timeoutMs`.
+ */
+export const TesterSchema = z
+  .object({
+    universeId: z.string().min(1),
+    /** First channel of the range, 1 to 512. */
+    address: z.number().int().min(1).max(512),
+    values: z.array(z.number().int().min(0).max(255).nullable()).min(1),
+  })
+  .strict();
+export type Tester = z.infer<typeof TesterSchema>;
+
 export const OperationalSchema = z
   .object({
     blackout: z.boolean(),
     /** Held highlights by Element reference (`<fixtureId>/<key>`); true while held. */
     highlight: z.record(z.string(), z.boolean()),
+    tester: TesterSchema.nullable(),
   })
   .strict();
 export type Operational = z.infer<typeof OperationalSchema>;
@@ -301,6 +320,7 @@ export function siblingsOf<TEntity extends { readonly id: string }>(
 export const defaultOperational: Operational = {
   blackout: false,
   highlight: {},
+  tester: null,
 };
 
 /** The name of the Universe every new Installation starts with. */
