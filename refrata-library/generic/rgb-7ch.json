@@ -1,0 +1,40 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "generic/rgb-7ch",
+  "manufacturer": "Generic",
+  "model": "RGB 7ch",
+  "notes": "Channels 1 to 3 are unused, 4 is the master dimmer, 5 to 7 are red, green and blue.",
+  "modes": {
+    "7ch": {
+      "name": "7ch",
+      "channels": [
+        { "key": "unused-1", "element": "root" },
+        { "key": "unused-2", "element": "root" },
+        { "key": "unused-3", "element": "root" },
+        { "key": "dimmer", "element": "root" },
+        { "key": "red", "element": "root" },
+        { "key": "green", "element": "root" },
+        { "key": "blue", "element": "root" }
+      ],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "RGB",
+          "parameters": {
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": { "scale": "dimmer" }
+            },
+            "color": {
+              "default": [0, 0, 0, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": { "color": ["red", "green", "blue"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/showtech/st-960.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 import { listAddresses, resolveAddress } from "../address/address.ts";
 import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
@@ -47,7 +47,7 @@ function stage(): Document {
   }).document;
   document = run(document, "fixture.create", {
     id: "strobe",
-    typeKey: "showtech/st-960",
+    typeKey: "generic/atomic-like-panel",
     modeKey: "32ch",
     fixtureType: strobeJson,
     name: "Strobe",
@@ -111,8 +111,8 @@ describe("Fixtures", () => {
   it("copy the type in, patch at the next free address and place to the right", () => {
     const document = stage();
     expect(Object.keys(document.fixtureTypes).sort()).toEqual([
+      "generic/atomic-like-panel",
       "generic/rgb-3ch",
-      "showtech/st-960",
     ]);
     expect(fixture(document, "par").patch).toEqual({
       universeId: universeId(document),
@@ -205,7 +205,9 @@ describe("Fixtures", () => {
     const removal = run(document, "fixture.remove", { fixtureId: "g" });
     expect(removal.document.fixtures.par).toBeUndefined();
     expect(removal.document.fixtureTypes["generic/rgb-3ch"]).toBeUndefined();
-    expect(removal.document.fixtureTypes["showtech/st-960"]).toBeDefined();
+    expect(
+      removal.document.fixtureTypes["generic/atomic-like-panel"],
+    ).toBeDefined();
     expect(applyPatches(removal.document, removal.inverse)).toEqual(document);
     const ungrouped = run(document, "fixture.ungroup", {
       fixtureId: "g",

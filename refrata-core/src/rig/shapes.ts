@@ -76,16 +76,16 @@ export function placeShape(
       return result;
     }
     case "strobe-backlight": {
-      // As the real fixture: half the panels above, the sections in one
-      // line across the middle, the other half of the panels below.
+      // As the real fixture: the first half of the panels below, the
+      // sections in one line across the middle, the other half above.
       const sections = tagged(elements, "section")
         .slice(0, shape.sections)
         .map((element) => element.key);
       const panels = tagged(elements, "panel")
         .slice(0, shape.panels)
         .map((element) => element.key);
-      const above = panels.slice(0, Math.ceil(panels.length / 2));
-      const below = panels.slice(above.length);
+      const below = panels.slice(0, Math.ceil(panels.length / 2));
+      const above = panels.slice(below.length);
       const width = Math.max(above.length, below.length, 1) * size;
       const sectionWidth = width / Math.max(1, sections.length);
       const sectionHeight = size / 2;

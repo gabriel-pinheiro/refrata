@@ -11,9 +11,9 @@ the shape of the file and the reasons for it.
 `refrata-library/<manufacturer>/<model>.json`, loaded by the Runtime at startup,
 read again whenever a file under the folder changes, and listed by `refrata
 library`. A file is identified by its `key` (`generic/rgb-3ch`,
-`showtech/st-960`). When a Fixture uses a type, the type is copied into the
-Installation under that key and dropped again when the last Fixture using it
-goes, so an Installation opens the same on another machine. Editing a library
+`generic/atomic-like-panel`). When a Fixture uses a type, the type is copied
+into the Installation under that key and dropped again when the last Fixture
+using it goes, so an Installation opens the same on another machine. Editing a library
 file never changes an Installation by itself: Studio and `refrata library`
 say which copies differ, and a reload (`refrata fixtures reload`, or the
 buttons on a Fixture and on the Installation) takes the new file as one undo
@@ -102,8 +102,8 @@ that needs them.
 
 ## A multi-Element excerpt
 
-The ST-960 strobe's `32ch` Mode, from the LL960S chart until verified on the
-unit: channels 1 to 24 are red, green and blue per RGB panel 1 to 8, channels
+The Atomic-like Panel's `32ch` Mode, from the LL960S chart until verified on
+the unit: channels 1 to 24 are red, green and blue per RGB panel 1 to 8, channels
 25 to 32 are white sections 1 to 8. No master dimmer and no strobe channel, so
 the Mode has no `strobe` Parameter and strobing is a Visual's job.
 
@@ -120,7 +120,10 @@ the Mode has no `strobe` Parameter and strobing is a Visual's job.
     ],
     "shape": { "template": "strobe-backlight", "sections": 8, "panels": 8 },
     "elements": {
-      "root": { "name": "ST-960", "children": ["backlight", "strobe"] },
+      "root": {
+        "name": "Atomic-like Panel",
+        "children": ["backlight", "strobe"]
+      },
       "backlight": { "name": "Backlight", "children": ["panel-1"] },
       "strobe": { "name": "Strobe", "children": ["section-1"] },
       "panel-1": {

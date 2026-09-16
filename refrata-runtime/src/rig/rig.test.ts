@@ -48,9 +48,9 @@ async function stageStrobe(): Promise<{
     "fixture.create",
     {
       id: "strobe",
-      typeKey: "showtech/st-960",
+      typeKey: "generic/atomic-like-panel",
       modeKey: "32ch",
-      fixtureType: library.get("showtech/st-960"),
+      fixtureType: library.get("generic/atomic-like-panel"),
     },
     "test",
   );
@@ -63,12 +63,13 @@ describe("FixtureLibrary", () => {
   it("lists the bundled types with their Modes and footprints", () => {
     const entries = library.list();
     expect(entries.map((entry) => entry.key)).toEqual([
+      "generic/atomic-like-panel",
       "generic/dimmer-1ch",
       "generic/rgb-3ch",
+      "generic/rgb-7ch",
       "generic/rgbw-4ch",
-      "showtech/st-960",
     ]);
-    expect(entries.at(-1)?.modes).toEqual([
+    expect(entries.at(0)?.modes).toEqual([
       { key: "3ch", name: "3ch", footprint: 3 },
       { key: "32ch", name: "32ch", footprint: 32 },
     ]);
@@ -195,14 +196,16 @@ describe("Fixture Type drift", () => {
     const seen: unknown[] = [];
     tracker.onChange((state) => seen.push(state));
     tracker.start();
-    expect(tracker.state()).toEqual({ "showtech/st-960": "current" });
-    const edited = structuredClone(library.libraryType("showtech/st-960")!);
+    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "current" });
+    const edited = structuredClone(
+      library.libraryType("generic/atomic-like-panel")!,
+    );
     (edited as { notes?: string }).notes = "Edited while probing";
     library.add(edited);
-    expect(tracker.state()).toEqual({ "showtech/st-960": "stale" });
-    expect(
-      library.list(store.session(documentId)!.document).at(-1)?.stale,
-    ).toBe(true);
+    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "stale" });
+    expect(library.list(store.session(documentId)!.document).at(0)?.stale).toBe(
+      true,
+    );
     const session = store.session(documentId)!;
     const reloaded = session.execute(
       "fixture.reload",
@@ -210,12 +213,12 @@ describe("Fixture Type drift", () => {
       "test",
     );
     if (!reloaded.ok) throw new Error(reloaded.error);
-    expect(tracker.state()).toEqual({ "showtech/st-960": "current" });
+    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "current" });
     // Starting publishes the first state, then the library edit, then the reload.
     expect(seen).toEqual([
-      { "showtech/st-960": "current" },
-      { "showtech/st-960": "stale" },
-      { "showtech/st-960": "current" },
+      { "generic/atomic-like-panel": "current" },
+      { "generic/atomic-like-panel": "stale" },
+      { "generic/atomic-like-panel": "current" },
     ]);
     tracker.close();
   });

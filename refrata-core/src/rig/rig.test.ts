@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import dimmerJson from "../../../refrata-library/generic/dimmer-1ch.json" with { type: "json" };
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import rgbwJson from "../../../refrata-library/generic/rgbw-4ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/showtech/st-960.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 
 import {
   elementsOf,
@@ -169,8 +169,8 @@ describe("Shapes", () => {
       placed.find((shape) => shape.key === key)?.y ?? Number.NaN;
     expect(y("panel-1")).toBeCloseTo(y("panel-4"));
     expect(y("panel-5")).toBeCloseTo(y("panel-8"));
-    expect(y("panel-1")).toBeGreaterThan(y("section-1"));
-    expect(y("section-1")).toBeGreaterThan(y("panel-5"));
+    expect(y("panel-5")).toBeGreaterThan(y("section-1"));
+    expect(y("section-1")).toBeGreaterThan(y("panel-1"));
     expect(y("section-1")).toBeCloseTo(y("section-8"));
     expect(shapeWidth(placed)).toBeCloseTo(1);
     expect(placeShape(rgb.shape, elementsOf(rgb))).toHaveLength(1);

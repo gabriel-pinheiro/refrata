@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/showtech/st-960.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
 import {
@@ -87,7 +87,7 @@ function stage(): Document {
       "fixture.create",
       {
         id: "strobe",
-        typeKey: "showtech/st-960",
+        typeKey: "generic/atomic-like-panel",
         modeKey: "32ch",
         fixtureType: strobeJson,
         name: "Strobe",

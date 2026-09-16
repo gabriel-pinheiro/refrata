@@ -1,9 +1,9 @@
 {
   "kind": "refrata-fixture-type",
   "formatVersion": 1,
-  "key": "showtech/st-960",
-  "manufacturer": "ShowTech",
-  "model": "ST-960",
+  "key": "generic/atomic-like-panel",
+  "manufacturer": "Generic",
+  "model": "Atomic-like Panel",
   "notes": "960-LED strobe and wash panel: 864 RGB 5050 LEDs in eight backlight panels and 96 white 5050 LEDs in eight strobe sections. Modes 3ch, 9ch, 24ch and 32ch on the unit; 9ch and 24ch wait for the paper manual.",
   "modes": {
     "3ch": {
@@ -27,7 +27,7 @@
       },
       "elements": {
         "root": {
-          "name": "ST-960",
+          "name": "Atomic-like Panel",
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -187,7 +187,7 @@
       },
       "elements": {
         "root": {
-          "name": "ST-960",
+          "name": "Atomic-like Panel",
           "children": ["backlight", "strobe"]
         },
         "backlight": {

@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 import rgbJson from "../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../refrata-library/showtech/st-960.json" with { type: "json" };
+import strobeJson from "../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 import { formatFixtures, formatLibrary } from "./rig-lines.ts";
 
 const registry = createBuiltInRegistry();
@@ -32,7 +32,7 @@ function stage(): Document {
       {
         id: "fx_s",
         name: "Strobe",
-        typeKey: "showtech/st-960",
+        typeKey: "generic/atomic-like-panel",
         modeKey: "32ch",
         fixtureType: strobeJson,
         unpatched: true,
@@ -52,7 +52,7 @@ describe("Rig lines", () => {
     // A create lands first, so the Strobe precedes the Group it was not put in.
     const lines = formatFixtures(stage());
     expect(lines[0]).toBe(
-      "Fixture “Strobe”  fx_s  showtech/st-960  unpatched (32ch, 32 channels)",
+      "Fixture “Strobe”  fx_s  generic/atomic-like-panel  unpatched (32ch, 32 channels)",
     );
     expect(lines[1]).toBe("  Backlight  fx_s/backlight");
     expect(lines[2]).toBe("    Panel 1  fx_s/panel-1  dimmer, color");

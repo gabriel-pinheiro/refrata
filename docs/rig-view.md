@@ -38,12 +38,12 @@ Position, and a 2D view that stored pixels would have to be migrated.
 
 A Mode names a Shape Template and the Tags it binds. Templates in v1:
 
-| Template                             | Places                                                               |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| `single`                             | the root Element as one rectangle                                    |
-| `bar(n)`                             | the n Elements with the given Tag, in a row, tree order              |
-| `grid(cols, rows)`                   | the Elements with the given Tag, row-major                           |
-| `strobe-backlight(sections, panels)` | the `section`-tagged Elements in a row above the `panel`-tagged ones |
+| Template                             | Places                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `single`                             | the root Element as one rectangle                                                                             |
+| `bar(n)`                             | the n Elements with the given Tag, in a row, tree order                                                       |
+| `grid(cols, rows)`                   | the Elements with the given Tag, row-major                                                                    |
+| `strobe-backlight(sections, panels)` | the `section`-tagged Elements in a row, the first half of the `panel`-tagged ones below it and the rest above |
 
 Elements a template does not place are not drawn; a root whose children are
 all placed draws nothing of its own. Shapes are schematic, not to scale: a
