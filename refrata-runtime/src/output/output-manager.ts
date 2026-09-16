@@ -1,4 +1,4 @@
-import type { Output, Table } from "@refrata/core";
+import { settings, type Output, type Table } from "@refrata/core";
 import type { OutputStatus } from "@refrata/protocol";
 
 import { DRIVERS } from "./drivers.ts";
@@ -20,11 +20,30 @@ interface OpenOutput {
   lastAttemptAt: number;
 }
 
+/** The send, or a rejection once it has taken longer than `ms`. */
+function withTimeout(send: Promise<void>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new Error(
+          `The widget took longer than ${String(ms)} ms to take a frame.`,
+        ),
+      );
+    }, ms);
+  });
+  return Promise.race([send, timeout]).finally(() => {
+    clearTimeout(timer);
+  });
+}
+
 export interface OutputManagerOptions {
   readonly factory: () => Promise<SerialPortFactory>;
   readonly log: (message: string) => void;
   /** How long to wait before looking for a missing widget again. */
   readonly retryMs?: number;
+  /** How long a frame's send may take before it counts as failed. */
+  readonly sendTimeoutMs?: number;
   readonly now?: () => number;
 }
 
@@ -93,7 +112,7 @@ export class OutputManager {
 
   async #ensureOpen(entry: OpenOutput): Promise<void> {
     if (entry.link !== undefined) return;
-    const retryMs = this.#options.retryMs ?? 2_000;
+    const retryMs = this.#options.retryMs ?? settings.output.deviceRetryMs;
     if (this.#now() - entry.lastAttemptAt < retryMs) return;
     entry.lastAttemptAt = this.#now();
     try {
@@ -116,8 +135,7 @@ export class OutputManager {
         DRIVERS[entry.output.kind].options,
       );
       link.onClose((error) => {
-        entry.link = undefined;
-        this.#setStatus(entry, {
+        this.#lose(entry, link, {
           state: "device-missing",
           path: null,
           fps: 0,
@@ -147,13 +165,15 @@ export class OutputManager {
         continue;
       }
       entry.busy = true;
-      DRIVERS[entry.output.kind]
-        .send(link, frame)
+      withTimeout(
+        DRIVERS[entry.output.kind].send(link, frame),
+        this.#options.sendTimeoutMs ?? settings.output.sendTimeoutMs,
+      )
         .then(() => {
           entry.sent += 1;
         })
         .catch((error: unknown) => {
-          this.#setStatus(entry, {
+          this.#lose(entry, link, {
             state: "error",
             path: link.path,
             fps: 0,
@@ -166,6 +186,20 @@ export class OutputManager {
         });
     }
     this.#sample();
+  }
+
+  /**
+   * Forgets a link that closed or failed a send, so the next frame looks for
+   * the widget again. A failed send must count: an unplugged Open DMX widget
+   * fails its break without the port ever reporting a close, and a link kept
+   * open would hold the dead device node forever. A link already replaced or
+   * forgotten is left alone, so its late close cannot clobber the status.
+   */
+  #lose(entry: OpenOutput, link: SerialLink, status: OutputStatus): void {
+    if (entry.link !== link) return;
+    entry.link = undefined;
+    void link.close();
+    this.#setStatus(entry, status);
   }
 
   /** Once a second, turns sent counts into fps on every status. */

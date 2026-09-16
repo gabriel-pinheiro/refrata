@@ -15,6 +15,10 @@ export interface FakeLink extends SerialLink {
   readonly log: (string | Uint8Array)[];
   /** Pretend the widget was unplugged. */
   vanish(error?: Error): void;
+  /** Pretend the widget was unplugged without the port noticing: every later write and break rejects, and no close is reported. */
+  fail(error: Error): void;
+  /** Pretend the widget stopped answering: every later write and break never settles. */
+  hang(): void;
   readonly closed: boolean;
 }
 
@@ -34,6 +38,9 @@ export function fakeSerialFactory(ports: SerialPortInfo[]): FakeSerial {
       open(path, options) {
         const closeListeners: ((error: Error | undefined) => void)[] = [];
         let closed = false;
+        let failure: Error | undefined;
+        let hung = false;
+        const never = new Promise<void>(() => undefined);
         const link: FakeLink = {
           path,
           options,
@@ -42,10 +49,14 @@ export function fakeSerialFactory(ports: SerialPortInfo[]): FakeSerial {
             return closed;
           },
           write(bytes) {
+            if (failure !== undefined) return Promise.reject(failure);
+            if (hung) return never;
             link.log.push(Uint8Array.from(bytes));
             return Promise.resolve();
           },
           setBreak(on) {
+            if (failure !== undefined) return Promise.reject(failure);
+            if (hung) return never;
             link.log.push(on ? "break on" : "break off");
             return Promise.resolve();
           },
@@ -59,6 +70,12 @@ export function fakeSerialFactory(ports: SerialPortInfo[]): FakeSerial {
           vanish(error) {
             closed = true;
             for (const listener of closeListeners) listener(error);
+          },
+          fail(error) {
+            failure = error;
+          },
+          hang() {
+            hung = true;
           },
         };
         links.push(link);

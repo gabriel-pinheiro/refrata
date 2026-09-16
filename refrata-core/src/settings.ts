@@ -56,6 +56,10 @@ export const settings = {
     rateHz: 40,
     /** How long the break line is held before a frame on an Open DMX widget. */
     openDmxBreakMs: 1,
+    /** How long to wait before looking again for a widget that is missing or failed. */
+    deviceRetryMs: 2_000,
+    /** A frame's send that has neither landed nor failed after this counts as failed, so a hung widget is let go and looked for again. */
+    sendTimeoutMs: 1_000,
   },
   stream: {
     /** Resolved Stream coalescing rate toward Studio; never above `output.rateHz`. */
