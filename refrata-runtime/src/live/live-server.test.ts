@@ -21,8 +21,9 @@ import type { WebSocket } from "ws";
 import { z } from "zod";
 
 import { DocumentStore } from "../documents/document-store.ts";
+import { createDrivers } from "../output/drivers.ts";
 import { OutputManager } from "../output/output-manager.ts";
-import { fakeSerialFactory } from "../output/fake-serial.ts";
+import { fakeSerialFactory } from "../output/serial/fake-serial.ts";
 import { FixtureLibrary } from "../rig/library.ts";
 import { OutputLoop } from "../rig/output-loop.ts";
 import { buildRuntime, type Runtime } from "../server.ts";
@@ -34,7 +35,9 @@ function liveServer(
   log: (message: string) => void,
 ): LiveServer {
   const outputs = new OutputManager({
-    factory: () => Promise.resolve(fakeSerialFactory([]).factory),
+    drivers: createDrivers({
+      serial: () => Promise.resolve(fakeSerialFactory([]).factory),
+    }),
     log,
   });
   return new LiveServer({

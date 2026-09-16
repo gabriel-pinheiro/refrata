@@ -7,8 +7,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { DocumentStore } from "../documents/document-store.ts";
 import { ResolvedStream } from "../live/resolved-streams.ts";
-import { fakeSerialFactory, FTDI_PORT } from "../output/fake-serial.ts";
+import { createDrivers } from "../output/drivers.ts";
 import { OutputManager } from "../output/output-manager.ts";
+import { fakeSerialFactory, FTDI_PORT } from "../output/serial/fake-serial.ts";
 import { HighlightTimeout } from "./highlight-timeout.ts";
 import { TesterTimeout } from "./tester-timeout.ts";
 import { FixtureTypeDriftTracker } from "./fixture-type-drift.ts";
@@ -82,7 +83,7 @@ describe("OutputLoop", () => {
     const { documentId, universeId } = await stageStrobe();
     const fake = fakeSerialFactory([FTDI_PORT]);
     const outputs = new OutputManager({
-      factory: () => Promise.resolve(fake.factory),
+      drivers: createDrivers({ serial: () => Promise.resolve(fake.factory) }),
       log: () => undefined,
       retryMs: 0,
     });

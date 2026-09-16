@@ -22,9 +22,9 @@ export type OutputState = (typeof OUTPUT_STATES)[number];
 export const OutputStatusSchema = z
   .object({
     state: z.enum(OUTPUT_STATES),
-    /** The serial path actually opened, or null. */
+    /** Where the Output is delivering, or null: the serial path or USB port location opened. */
     path: z.string().nullable(),
-    /** Frames actually sent per second, measured over the last second. */
+    /** Frames delivered per second over the last second; a frame a device already holds counts without being sent again. */
     fps: z.number(),
     /** What went wrong, for `error` and `device-missing`. */
     message: z.string().optional(),

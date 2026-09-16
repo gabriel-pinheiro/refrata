@@ -8,11 +8,8 @@ import type { RuntimeConfig } from "./config.ts";
 import { DocumentStore } from "./documents/document-store.ts";
 import { LiveServer } from "./live/live-server.ts";
 import { OscServer } from "./osc/osc-server.ts";
+import { createDrivers, type OutputDrivers } from "./output/drivers.ts";
 import { OutputManager } from "./output/output-manager.ts";
-import {
-  nodeSerialFactory,
-  type SerialPortFactory,
-} from "./output/serial-link.ts";
 import { FixtureTypeDriftTracker } from "./rig/fixture-type-drift.ts";
 import { HighlightTimeout } from "./rig/highlight-timeout.ts";
 import { TesterTimeout } from "./rig/tester-timeout.ts";
@@ -32,8 +29,8 @@ export interface Runtime {
 
 export interface RuntimeOptions {
   readonly logger?: boolean;
-  /** Serial ports to open Outputs on; the real `serialport` module unless a test supplies a fake. */
-  readonly serialFactory?: () => Promise<SerialPortFactory>;
+  /** The Output drivers; the real serial and USB modules unless a test supplies fakes. */
+  readonly outputDrivers?: OutputDrivers;
 }
 
 async function existingDir(
@@ -69,7 +66,7 @@ export async function buildRuntime(
   const library = new FixtureLibrary(log);
   await library.load(config.libraryDir);
   const outputs = new OutputManager({
-    factory: options.serialFactory ?? nodeSerialFactory,
+    drivers: options.outputDrivers ?? createDrivers(),
     log,
   });
   const loop = new OutputLoop({ store, outputs });

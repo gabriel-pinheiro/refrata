@@ -113,7 +113,10 @@ rig's LAN, and both references save it with the show. Serial device paths are
 machine-specific and will bite when a file moves, so a serial Output names its
 widget by FTDI serial number, or `any` for the first widget found, and Output
 Status reports the path it actually opened and says "device missing" loudly
-rather than pretending.
+rather than pretending. A uDMX has no serial path and its clones share one
+serial number, so a uDMX Output names its device by serial number or, when
+that is ambiguous, by USB port location (`3-4`); a serial number several
+connected devices carry is an error naming their locations.
 
 The first build ships one kind: an Enttec-compatible USB widget over a serial
 port. Both real Enttec widgets and every generic clone enumerate as the same
@@ -123,6 +126,27 @@ bytes at 250 kbaud (Open DMX and its clones). The kind is named after the
 family the widget in hand turns out to be, `enttec-usb-pro` or
 `enttec-open-dmx`, and the other family is added when a second device shows
 up. Art-Net and sACN keep the design above and wait.
+
+The second transport is plain USB: `anyma-udmx`, the Anyma uDMX and its
+clones (vendor and product id `16c0:05dc`, shared by many hobby devices, so
+the product name `uDMX` identifies it). It has no serial port; the host sets a
+range of slots with a vendor control transfer (`cmd_SetChannelRange`, request
+2: value is the slot count, index the first slot) and the device's firmware
+keeps streaming DMX from what it holds. It is a low-speed device doing USB in
+firmware, so a whole 512-slot frame takes about 35 ms to transfer and the
+device occasionally drops off the bus under traffic (measured on one unit: one
+drop per few hundred to few thousand frames, with or without a DMX cable
+attached). The Runtime therefore sends it only the range that changed since
+the last frame it took, and nothing when nothing changed; a reopened device is
+sent its whole frame, since a reset uDMX holds zeros. On Linux the user needs
+a udev rule granting access to the device, as QLC+ and OLA also require.
+
+In the Runtime each transport family is a folder under `output/` (`serial/`,
+`usb/`, later `network/`) whose drivers open a link that takes frames; the
+Output Manager owns status, retries and the send timeout for every kind and
+knows nothing of what carries the frames. The Output file shape stays one
+`device` string for now; it becomes a union keyed on `kind` when sACN brings
+its own settings.
 
 ### Fixture Type and Mode
 
@@ -490,6 +514,7 @@ Each has a recommendation; the choice changes what gets written next.
    permitted overlap.
 6. **Where machine-specific Output settings live.** Decided: in the Installation,
    like both references; a serial Output names its widget by FTDI serial
-   number or `any`, and Output Status makes a missing device obvious.
+   number or `any`, a uDMX Output by serial number or USB port location, and
+   Output Status makes a missing device obvious.
 7. **The name of the project's file and document.** Decided: Installation,
    Difracta's word, over Show, Production, Project or Rig.

@@ -79,7 +79,7 @@ export function OutputInspector({
           }}
         />
         <NameField
-          label="Device (serial number, path, or any)"
+          label="Device (serial number, path, USB port, or any)"
           value={output.device}
           onCommit={(device) => update({ device })}
         />

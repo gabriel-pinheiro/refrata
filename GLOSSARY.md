@@ -80,11 +80,13 @@ Universe; a Universe may have several Outputs (a network node and a USB backup
 at once) or none. The Runtime opens one socket or device per distinct target
 and shares it between the Outputs that use it.
 
-The first build ships one kind only: an Enttec-compatible USB widget over a
-serial port, named `enttec-open-dmx` or `enttec-usb-pro` once the widget in
-hand is identified. Art-Net and sACN are designed and deferred. A serial Output
-names its widget by FTDI serial number, or `any` for the first widget found;
-Output Status reports the device path actually opened.
+The kinds shipped so far are USB widgets: Enttec-compatible widgets over a
+serial port (`enttec-open-dmx`, `enttec-usb-pro`) and the Anyma uDMX and its
+clones over plain USB (`anyma-udmx`). Art-Net and sACN are designed and
+deferred. A serial Output names its widget by FTDI serial number or path, a
+uDMX Output by serial number or USB port location (`3-4`), since uDMX clones
+share one serial number; either may say `any` for the first widget of its kind
+found. Output Status reports where it actually opened.
 
 Output settings belong to the Installation, because they describe the rig's network.
 Whether an Output is actually delivering is live state (Output Status), not
@@ -100,7 +102,8 @@ the DMX Protocols configuration plus the console's own "DMX ports".
 ### Output Status
 
 Live state per Output: delivering, device missing, no route to host, and the
-frames per second actually sent. Reported by the Runtime to Studio the way
+frames per second actually delivered (a device that holds its slots, like the
+uDMX, is sent only what changed, and a frame it already holds counts). Reported by the Runtime to Studio the way
 Difracta reports Output Telemetry. Never saved.
 
 ## 2. Library

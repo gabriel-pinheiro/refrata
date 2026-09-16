@@ -35,19 +35,25 @@ export const UniverseSchema = z
   .strict();
 export type Universe = Entity<typeof UniverseSchema, UniverseId>;
 
-export const OUTPUT_KINDS = ["enttec-open-dmx", "enttec-usb-pro"] as const;
+export const OUTPUT_KINDS = [
+  "enttec-open-dmx",
+  "enttec-usb-pro",
+  "anyma-udmx",
+] as const;
 export type OutputKind = (typeof OUTPUT_KINDS)[number];
 export const OUTPUT_LABELS: Record<OutputKind, string> = {
   "enttec-open-dmx": "Enttec Open DMX USB",
   "enttec-usb-pro": "Enttec DMX USB Pro",
+  "anyma-udmx": "Anyma uDMX",
 };
 
-/** Any widget: the first serial DMX widget found. */
+/** Any device: the first one of the Output's kind found. */
 export const ANY_DEVICE = "any";
 
 /**
- * One delivery of one Universe to the world through a serial widget. The
- * widget is named by its serial number, or `any` for the first one found;
+ * One delivery of one Universe to the world through a USB widget. A serial
+ * widget is named by its serial number or path, a uDMX by its serial number
+ * or USB port location, and either by `any` for the first one found;
  * whether it is delivering is live state, never here.
  */
 export const OutputSchema = z

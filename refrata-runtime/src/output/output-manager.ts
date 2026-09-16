@@ -1,22 +1,18 @@
 import { settings, type Output, type Table } from "@refrata/core";
 import type { OutputStatus } from "@refrata/protocol";
 
-import { DRIVERS } from "./drivers.ts";
-import {
-  pickPort,
-  type SerialLink,
-  type SerialPortFactory,
-} from "./serial-link.ts";
+import type { OutputDrivers } from "./drivers.ts";
+import { DeviceMissingError, type OutputLink } from "./output-driver.ts";
 
 interface OpenOutput {
   readonly output: Output;
-  link: SerialLink | undefined;
+  link: OutputLink | undefined;
   status: OutputStatus;
-  /** Frames sent since the last fps sample. */
+  /** Frames delivered since the last fps sample. */
   sent: number;
   /** A send in flight; the next frame waits so writes never interleave. */
   busy: boolean;
-  /** When the last open attempt was made, so a missing widget is retried but not hammered. */
+  /** When the last open attempt was made, so a missing device is retried but not hammered. */
   lastAttemptAt: number;
 }
 
@@ -27,7 +23,7 @@ function withTimeout(send: Promise<void>, ms: number): Promise<void> {
     timer = setTimeout(() => {
       reject(
         new Error(
-          `The widget took longer than ${String(ms)} ms to take a frame.`,
+          `The device took longer than ${String(ms)} ms to take a frame.`,
         ),
       );
     }, ms);
@@ -38,9 +34,9 @@ function withTimeout(send: Promise<void>, ms: number): Promise<void> {
 }
 
 export interface OutputManagerOptions {
-  readonly factory: () => Promise<SerialPortFactory>;
+  readonly drivers: OutputDrivers;
   readonly log: (message: string) => void;
-  /** How long to wait before looking for a missing widget again. */
+  /** How long to wait before looking for a missing device again. */
   readonly retryMs?: number;
   /** How long a frame's send may take before it counts as failed. */
   readonly sendTimeoutMs?: number;
@@ -48,16 +44,16 @@ export interface OutputManagerOptions {
 }
 
 /**
- * Keeps one open serial link per Output in the document, sends each
- * Universe's frame through the Outputs that carry it, and reports every
- * Output's status as live state. A widget that is missing or that vanishes
- * is retried without stopping the loop.
+ * Keeps one open link per Output in the document through its kind's
+ * driver, sends each Universe's frame through the Outputs that carry it,
+ * and reports every Output's status as live state. A device that is
+ * missing, vanishes, fails or hangs is retried without stopping the loop.
+ * Nothing here knows what carries the frames.
  */
 export class OutputManager {
   readonly #open = new Map<string, OpenOutput>();
   readonly #options: OutputManagerOptions;
   readonly #listeners = new Set<() => void>();
-  #factory: SerialPortFactory | undefined;
   #lastSampleAt: number;
 
   constructor(options: OutputManagerOptions) {
@@ -116,45 +112,39 @@ export class OutputManager {
     if (this.#now() - entry.lastAttemptAt < retryMs) return;
     entry.lastAttemptAt = this.#now();
     try {
-      this.#factory ??= await this.#options.factory();
-      const port = pickPort(await this.#factory.list(), entry.output.device);
-      if (port === undefined) {
-        this.#setStatus(entry, {
-          state: "device-missing",
-          path: null,
-          fps: 0,
-          message:
-            entry.output.device === "any"
-              ? "No serial DMX widget found."
-              : `No widget with serial number ${entry.output.device}.`,
-        });
+      const link = await this.#options.drivers[entry.output.kind].open(
+        entry.output.device,
+      );
+      if (this.#open.get(entry.output.id) !== entry) {
+        await link.close();
         return;
       }
-      const link = await this.#factory.open(
-        port.path,
-        DRIVERS[entry.output.kind].options,
-      );
       link.onClose((error) => {
         this.#lose(entry, link, {
           state: "device-missing",
           path: null,
           fps: 0,
-          message: error?.message ?? "The widget went away.",
+          message: error?.message ?? "The device went away.",
         });
       });
       entry.link = link;
-      this.#setStatus(entry, { state: "delivering", path: port.path, fps: 0 });
-    } catch (error) {
       this.#setStatus(entry, {
-        state: "error",
+        state: "delivering",
+        path: link.location,
+        fps: 0,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.#setStatus(entry, {
+        state: error instanceof DeviceMissingError ? "device-missing" : "error",
         path: null,
         fps: 0,
-        message: error instanceof Error ? error.message : String(error),
+        message,
       });
     }
   }
 
-  /** Sends each Universe's frame through its Outputs; a slow widget skips frames rather than queueing them. */
+  /** Sends each Universe's frame through its Outputs; a slow device skips frames rather than queueing them. */
   send(frames: ReadonlyMap<string, Uint8Array>): void {
     for (const entry of this.#open.values()) {
       const frame = frames.get(entry.output.universeId);
@@ -166,7 +156,7 @@ export class OutputManager {
       }
       entry.busy = true;
       withTimeout(
-        DRIVERS[entry.output.kind].send(link, frame),
+        link.send(frame),
         this.#options.sendTimeoutMs ?? settings.output.sendTimeoutMs,
       )
         .then(() => {
@@ -175,7 +165,7 @@ export class OutputManager {
         .catch((error: unknown) => {
           this.#lose(entry, link, {
             state: "error",
-            path: link.path,
+            path: link.location,
             fps: 0,
             message: error instanceof Error ? error.message : String(error),
           });
@@ -195,7 +185,7 @@ export class OutputManager {
    * open would hold the dead device node forever. A link already replaced or
    * forgotten is left alone, so its late close cannot clobber the status.
    */
-  #lose(entry: OpenOutput, link: SerialLink, status: OutputStatus): void {
+  #lose(entry: OpenOutput, link: OutputLink, status: OutputStatus): void {
     if (entry.link !== link) return;
     entry.link = undefined;
     void link.close();

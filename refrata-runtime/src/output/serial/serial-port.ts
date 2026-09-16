@@ -1,7 +1,7 @@
 /**
- * The slice of a serial port an Output driver needs, so drivers are tested
- * against a fake and the real `serialport` module is loaded only when a
- * widget is opened.
+ * The slice of a serial port a serial Output driver needs, so drivers are
+ * tested against a fake and the real `serialport` module is loaded only when
+ * a widget is opened.
  */
 export interface SerialPortInfo {
   readonly path: string;

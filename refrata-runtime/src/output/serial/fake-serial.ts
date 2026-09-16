@@ -3,7 +3,7 @@ import type {
   SerialOptions,
   SerialPortFactory,
   SerialPortInfo,
-} from "./serial-link.ts";
+} from "./serial-port.ts";
 
 /**
  * A serial port factory for tests: the ports it lists are given, and every
