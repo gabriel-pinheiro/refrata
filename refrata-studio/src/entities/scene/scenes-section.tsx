@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import { orderedEntries, type Scene, type Table } from "@refrata/core";
+import {
+  generateId,
+  orderedEntries,
+  type Scene,
+  type Table,
+} from "@refrata/core";
 import { Clapperboard, Copy, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -25,10 +30,6 @@ import {
   useSelection,
 } from "@/selection/selection";
 
-function generateSceneId(): string {
-  return `scene_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
-
 /**
  * Navigator section listing the Scenes, each opening to its Layer stack. The
  * active Scene carries a green dot; Play cuts the Outputs to a Scene without
@@ -50,7 +51,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
     void command("address.trigger", { address: `scene/${sceneId}/play` });
 
   function create(name: string): void {
-    const id = generateSceneId();
+    const id = generateId("scene");
     void command("scene.create", { id, name }).then(() => {
       select({ kind: "scene", id });
     });

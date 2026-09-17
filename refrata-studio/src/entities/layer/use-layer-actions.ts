@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import { LAYER_KINDS, LAYER_LABELS, type LayerKind } from "@refrata/core";
+import {
+  generateId,
+  LAYER_KINDS,
+  LAYER_LABELS,
+  type LayerKind,
+} from "@refrata/core";
 
 import { useCommand, useSignal } from "@/lib/client";
 import { useExpansion } from "@/navigator/expansion";
@@ -8,10 +13,6 @@ import { selectedTargets } from "@/selection/selected-targets";
 import { useSelection } from "@/selection/selection";
 
 import { layerIcons } from "./layer-icons";
-
-function generateLayerId(): string {
-  return `layer_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
 
 /**
  * Creating Layers from a Scene row or a Group row: one entry per kind for
@@ -33,7 +34,7 @@ export function useLayerActions(view: DocumentView) {
     sceneId: string,
     parentId: string | null,
   ): void {
-    const id = generateLayerId();
+    const id = generateId("layer");
     void command("layer.create", {
       id,
       kind,

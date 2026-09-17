@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import { childSets, type FixtureSet, type Table } from "@refrata/core";
+import {
+  generateId,
+  childSets,
+  type FixtureSet,
+  type Table,
+} from "@refrata/core";
 import { useState } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
@@ -11,10 +16,6 @@ import { useSelection } from "@/selection/selection";
 
 import { setIcons } from "./set-icons";
 import { SetRows } from "./set-rows";
-
-function generateSetId(): string {
-  return `fixtureSet_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
 
 /**
  * Navigator section listing the Fixture Sets as a tree of Groups. A Set is
@@ -40,7 +41,7 @@ export function SetsSection({ view }: { readonly view: DocumentView }) {
       initial: `${noun} ${String(siblings.length + 1)}`,
       submitLabel: "Create",
       onSubmit: (name) => {
-        const id = generateSetId();
+        const id = generateId("fixtureSet");
         void command("set.create", { id, kind, parentId, name }).then(() => {
           if (parentId !== null) setExpanded("set", parentId, true);
           select({ kind: "set", id });

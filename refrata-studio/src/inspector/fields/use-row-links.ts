@@ -1,5 +1,6 @@
 import type { DocumentView } from "@refrata/client";
 import {
+  generateId,
   effectiveValue,
   flattenControllers,
   linkable,
@@ -53,7 +54,7 @@ export function useRowLinks(
           addresses: [resolved.address],
         }),
       onCreate: (kind) => {
-        const controllerId = `controller_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
+        const controllerId = generateId("controller");
         void command("controller.create", {
           id: controllerId,
           kind,

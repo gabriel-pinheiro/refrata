@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import { childFixtures, type Fixture, type Table } from "@refrata/core";
+import {
+  generateId,
+  childFixtures,
+  type Fixture,
+  type Table,
+} from "@refrata/core";
 import { useState } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
@@ -12,10 +17,6 @@ import { useSelection } from "@/selection/selection";
 import { AddFixtureDialog } from "./add-fixture-dialog";
 import { fixtureIcons } from "./fixture-icons";
 import { FixtureRows } from "./fixture-rows";
-
-function generateGroupId(): string {
-  return `fixture_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
 
 /**
  * Navigator section listing the Fixtures as a tree of Groups, each Fixture
@@ -43,7 +44,7 @@ export function FixturesSection({ view }: { readonly view: DocumentView }) {
       initial: `Group ${String(siblings.length + 1)}`,
       submitLabel: "Create",
       onSubmit: (name) => {
-        const id = generateGroupId();
+        const id = generateId("fixture");
         void command("fixture.create", {
           id,
           kind: "group",

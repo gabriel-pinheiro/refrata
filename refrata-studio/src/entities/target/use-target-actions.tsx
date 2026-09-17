@@ -1,5 +1,6 @@
 import type { DocumentView } from "@refrata/client";
 import {
+  generateId,
   allSets,
   childSets,
   flattenStack,
@@ -15,10 +16,6 @@ import { NameDialog, type NameRequest } from "@/components/name-dialog";
 import { useCommand, useSignal } from "@/lib/client";
 import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
-
-function generateSetId(): string {
-  return `fixtureSet_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
 
 /** The Look Layers of one Scene, topmost first, as a menu group. */
 export interface LayerChoices {
@@ -95,7 +92,7 @@ export function useTargetActions(view: DocumentView) {
       initial: `Set ${String(siblings.length + 1)}`,
       submitLabel: "Create",
       onSubmit: (name) => {
-        const id = generateSetId();
+        const id = generateId("fixtureSet");
         void command("set.create", {
           id,
           kind: "set",

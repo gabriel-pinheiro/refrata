@@ -1,5 +1,6 @@
 import type { DocumentView } from "@refrata/client";
 import {
+  generateId,
   OUTPUT_KINDS,
   OUTPUT_LABELS,
   orderedEntries,
@@ -36,10 +37,6 @@ import {
 } from "@/selection/selection";
 
 import { outputIcons, universeIcon } from "./universe-icons";
-
-function generateId(kind: "universe" | "output"): string {
-  return `${kind}_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
 
 /**
  * Navigator section listing the Universes, each opening to its Outputs with

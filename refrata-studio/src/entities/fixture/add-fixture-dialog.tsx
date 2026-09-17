@@ -1,4 +1,5 @@
 import type { DocumentView } from "@refrata/client";
+import { generateId } from "@refrata/core";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,6 @@ import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
 
 import { fetchFixtureType, useLibrary } from "./use-library";
-
-function generateFixtureId(): string {
-  return `fixture_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
-}
 
 /**
  * Picks a Fixture Type and Mode from the library and names the Fixture. The
@@ -56,7 +53,7 @@ export function AddFixtureDialog({
     setBusy(true);
     try {
       const fixtureType = await fetchFixtureType(client, chosen.key);
-      const id = generateFixtureId();
+      const id = generateId("fixture");
       await command("fixture.create", {
         id,
         parentId,
