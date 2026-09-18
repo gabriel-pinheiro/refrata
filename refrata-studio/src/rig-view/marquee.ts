@@ -43,6 +43,47 @@ export function shapeCentre(
   };
 }
 
+/**
+ * The stage rectangle around every placed shape, corners rotated with their
+ * Fixture; a Fixture with no shapes counts as its Position. Undefined for an
+ * empty rig.
+ */
+export function rigBounds(
+  fixtures: readonly PlacedFixture[],
+): Rect | undefined {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const fixture of fixtures) {
+    if (fixture.shapes.length === 0) {
+      xs.push(fixture.position.x);
+      ys.push(fixture.position.y);
+    }
+    for (const shape of fixture.shapes) {
+      for (const [dx, dy] of [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ] as const) {
+        const corner = shapeCentre(fixture.position, {
+          ...shape,
+          x: shape.x + (dx * shape.width) / 2,
+          y: shape.y + (dy * shape.height) / 2,
+        });
+        xs.push(corner.x);
+        ys.push(corner.y);
+      }
+    }
+  }
+  if (xs.length === 0) return undefined;
+  return {
+    x1: Math.min(...xs),
+    y1: Math.min(...ys),
+    x2: Math.max(...xs),
+    y2: Math.max(...ys),
+  };
+}
+
 /** The Element refs inside `rect`, Fixture by Fixture in the order given, shapes in tree order. */
 export function elementsInRect(
   fixtures: readonly PlacedFixture[],

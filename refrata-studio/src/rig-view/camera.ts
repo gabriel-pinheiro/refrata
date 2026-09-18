@@ -13,6 +13,7 @@ export interface Camera {
 export const DEFAULT_CAMERA: Camera = { x: 0, y: 0.75, scale: 120 };
 export const MIN_SCALE = 10;
 export const MAX_SCALE = 2_000;
+export const FIT_MAX_SCALE = 200;
 
 export interface CanvasSize {
   readonly width: number;
@@ -70,6 +71,41 @@ export function zoomAt(
   return {
     x: zoomed.x + before.x - after.x,
     y: zoomed.y + before.y - after.y,
+    scale,
+  };
+}
+
+/**
+ * The camera that frames a stage rectangle (metres, `y` up) in the canvas,
+ * leaving `margin` pixels clear on every side, centred and at the largest
+ * scale that fits, no closer than `FIT_MAX_SCALE` and no further than
+ * `MIN_SCALE`.
+ */
+export function fit(
+  bounds: {
+    readonly x1: number;
+    readonly y1: number;
+    readonly x2: number;
+    readonly y2: number;
+  },
+  size: CanvasSize,
+  margin: number,
+): Camera {
+  const width = Math.max(1, size.width - 2 * margin);
+  const height = Math.max(1, size.height - 2 * margin);
+  const scale = Math.min(
+    FIT_MAX_SCALE,
+    Math.max(
+      MIN_SCALE,
+      Math.min(
+        width / Math.max(1e-6, bounds.x2 - bounds.x1),
+        height / Math.max(1e-6, bounds.y2 - bounds.y1),
+      ),
+    ),
+  );
+  return {
+    x: (bounds.x1 + bounds.x2) / 2,
+    y: (bounds.y1 + bounds.y2) / 2,
     scale,
   };
 }

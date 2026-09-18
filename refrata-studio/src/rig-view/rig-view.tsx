@@ -28,14 +28,22 @@ import {
 
 import {
   DEFAULT_CAMERA,
+  fit,
   pan,
   toStage,
   viewBox,
   zoomAt,
   type Camera,
+  type CanvasSize,
 } from "./camera";
 import { FixtureShape } from "./fixture-shape";
-import { elementsInRect, normalizeRect, type Rect } from "./marquee";
+import {
+  elementsInRect,
+  normalizeRect,
+  rigBounds,
+  type PlacedFixture,
+  type Rect,
+} from "./marquee";
 import { useOutlined } from "./outlined";
 
 /**
@@ -48,18 +56,35 @@ import { useOutlined } from "./outlined";
  * button or Alt with the left one pans; the wheel zooms around the pointer.
  * Selected Fixtures and Elements are outlined, and so are the Targets of
  * the selected Layers and the members of the selected Sets. Zoom and pan
- * are per session and never saved.
+ * are per session and never saved; the view opens framing the whole rig.
  */
 export function RigView({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
   const picked = pickedRefs(selected);
-  const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
-  const types =
-    useDocumentPath<Table<StoredFixtureType>>(view, ["fixtureTypes"]) ?? {};
+  const loadedFixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]);
+  const loadedTypes = useDocumentPath<Table<StoredFixtureType>>(view, [
+    "fixtureTypes",
+  ]);
+  const fixtures = loadedFixtures ?? {};
+  const types = loadedTypes ?? {};
   const outlined = useOutlined(view, selected);
   const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
-  const [size, setSize] = useState({ width: 1, height: 1 });
+  const [measured, setSize] = useState<CanvasSize | undefined>(undefined);
+  const size = measured ?? UNMEASURED;
+  const [framed, setFramed] = useState(false);
+  if (
+    !framed &&
+    measured !== undefined &&
+    loadedFixtures !== undefined &&
+    loadedTypes !== undefined
+  ) {
+    // Frame the whole rig once, when the canvas is measured and the rig loaded;
+    // React allows adjusting state during render.
+    setFramed(true);
+    const bounds = rigBounds(placedFixtures(loadedFixtures, loadedTypes));
+    if (bounds !== undefined) setCamera(fit(bounds, measured, FIT_MARGIN));
+  }
   const [marquee, setMarquee] = useState<Rect | undefined>(undefined);
   const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | undefined>(undefined);
@@ -185,17 +210,7 @@ export function RigView({ view }: { readonly view: DocumentView }) {
         return;
       }
       const refs = elementsInRect(
-        allFixtures(fixtures).map((fixture) => {
-          const mode = types[fixture.typeKey]?.type.modes[fixture.modeKey];
-          return {
-            id: fixture.id,
-            position: fixture.position,
-            shapes:
-              mode === undefined
-                ? []
-                : placeShape(mode.shape, elementsOf(mode)),
-          };
-        }),
+        placedFixtures(fixtures, types),
         normalizeRect(rect),
       );
       select(refs.map(itemOf), current.mode);
@@ -295,6 +310,27 @@ export function RigView({ view }: { readonly view: DocumentView }) {
       )}
     </main>
   );
+}
+
+const UNMEASURED: CanvasSize = { width: 1, height: 1 };
+
+/** Pixels kept clear around the rig when the view frames it. */
+const FIT_MARGIN = 48;
+
+/** Every Fixture with its placed shapes, in stage-relative metres. */
+function placedFixtures(
+  fixtures: Table<Fixture>,
+  types: Table<StoredFixtureType>,
+): PlacedFixture[] {
+  return allFixtures(fixtures).map((fixture) => {
+    const mode = types[fixture.typeKey]?.type.modes[fixture.modeKey];
+    return {
+      id: fixture.id,
+      position: fixture.position,
+      shapes:
+        mode === undefined ? [] : placeShape(mode.shape, elementsOf(mode)),
+    };
+  });
 }
 
 type Gesture =

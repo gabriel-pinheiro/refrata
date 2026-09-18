@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { elementsInRect, shapeCentre } from "./marquee";
+import { elementsInRect, rigBounds, shapeCentre } from "./marquee";
 
 const shapes = [
   { key: "a", x: -0.5, y: 0.25, width: 0.4, height: 0.4 },
@@ -38,5 +38,18 @@ describe("marquee", () => {
         y2: 0.6,
       }),
     ).toEqual(["f/b"]);
+  });
+
+  it("bounds the whole rig, rotated corners included", () => {
+    expect(rigBounds([])).toBeUndefined();
+    const bounds = rigBounds([
+      { id: "f1", position: at(0), shapes },
+      { id: "f2", position: at(3, 90), shapes },
+      { id: "f3", position: at(-4), shapes: [] },
+    ]);
+    expect(bounds?.x1).toBeCloseTo(-4);
+    expect(bounds?.y1).toBeCloseTo(-0.7);
+    expect(bounds?.x2).toBeCloseTo(2.95);
+    expect(bounds?.y2).toBeCloseTo(0.7);
   });
 });

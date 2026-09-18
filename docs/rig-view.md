@@ -88,7 +88,8 @@ can also pick from the whole rig with its own "Add" dialog. Drag on a shape
 moves the Fixture. When a Layer or a Fixture Set
 is selected the view outlines its Targets or members, so what a Layer
 reaches is visible without reading the inspector. Zoom and pan are per Studio
-session and never saved. Hover shows the name.
+session and never saved; the view opens framing the whole rig with a small
+margin. Hover shows the name.
 
 ## Not in v1, on purpose
 

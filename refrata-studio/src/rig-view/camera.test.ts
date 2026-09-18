@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_CAMERA,
+  fit,
   pan,
   toCanvas,
   toStage,
@@ -37,5 +38,14 @@ describe("camera", () => {
 
   it("writes a viewBox in metres with y flipped", () => {
     expect(viewBox({ x: 0, y: 0, scale: 100 }, size)).toBe("-4 -3 8 6");
+  });
+
+  it("fits a stage rectangle inside the margin, centred", () => {
+    const camera = fit({ x1: -2, y1: 0, x2: 6, y2: 2 }, size, 20);
+    expect(camera.x).toBe(2);
+    expect(camera.y).toBe(1);
+    expect(camera.scale).toBe(95);
+    const close = fit({ x1: 1, y1: 1, x2: 1.5, y2: 1.5 }, size, 20);
+    expect(close).toEqual({ x: 1.25, y: 1.25, scale: 200 });
   });
 });
