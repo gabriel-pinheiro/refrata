@@ -7,6 +7,7 @@ import {
   toCanvas,
   toStage,
   viewBox,
+  wheel,
   zoomAt,
 } from "./camera";
 
@@ -47,5 +48,46 @@ describe("camera", () => {
     expect(camera.scale).toBe(95);
     const close = fit({ x1: 1, y1: 1, x2: 1.5, y2: 1.5 }, size, 20);
     expect(close).toEqual({ x: 1.25, y: 1.25, scale: 200 });
+  });
+
+  it("scrolls to pan both ways and zooms with ctrl", () => {
+    const at = {
+      px: 520,
+      py: 300,
+      deltaMode: 0,
+      ctrlKey: false,
+      shiftKey: false,
+    };
+    const scrolled = wheel(DEFAULT_CAMERA, size, {
+      ...at,
+      deltaX: 120,
+      deltaY: 60,
+    });
+    expect(scrolled.x).toBeCloseTo(1);
+    expect(scrolled.y).toBeCloseTo(0.25);
+    expect(scrolled.scale).toBe(120);
+    const sideways = wheel(DEFAULT_CAMERA, size, {
+      ...at,
+      deltaX: 0,
+      deltaY: 120,
+      shiftKey: true,
+    });
+    expect(sideways.x).toBeCloseTo(1);
+    expect(sideways.y).toBeCloseTo(0.75);
+    const lines = wheel(DEFAULT_CAMERA, size, {
+      ...at,
+      deltaX: 0,
+      deltaY: 3,
+      deltaMode: 1,
+    });
+    expect(lines.y).toBeCloseTo(0.35);
+    const zoomed = wheel(DEFAULT_CAMERA, size, {
+      ...at,
+      deltaX: 0,
+      deltaY: -100,
+      ctrlKey: true,
+    });
+    expect(zoomed.scale).toBeCloseTo(120 * Math.exp(0.2));
+    expect(toStage(zoomed, size, 520, 300).x).toBeCloseTo(1);
   });
 });

@@ -75,6 +75,48 @@ export function zoomAt(
   };
 }
 
+/** The parts of a wheel event the camera reads; `deltaMode` 1 is lines, 2 pages. */
+export interface WheelInput {
+  readonly px: number;
+  readonly py: number;
+  readonly deltaX: number;
+  readonly deltaY: number;
+  readonly deltaMode: number;
+  readonly ctrlKey: boolean;
+  readonly shiftKey: boolean;
+}
+
+/** Pixels per wheel step when a delta is in lines or pages. */
+const LINE_PIXELS = 16;
+/** The largest wheel delta one zoom event honours, so a mouse notch is a step and not a jump. */
+const ZOOM_DELTA_LIMIT = 20;
+
+/**
+ * A wheel or trackpad scroll: with ctrl (which a trackpad pinch also sets)
+ * it zooms around the pointer, else it pans both ways like scrolling a
+ * page. Shift turns a plain mouse wheel sideways.
+ */
+export function wheel(
+  camera: Camera,
+  size: CanvasSize,
+  input: WheelInput,
+): Camera {
+  const unit =
+    input.deltaMode === 1
+      ? LINE_PIXELS
+      : input.deltaMode === 2
+        ? size.height
+        : 1;
+  const dx = input.deltaX * unit;
+  const dy = input.deltaY * unit;
+  if (input.ctrlKey) {
+    const delta = Math.max(-ZOOM_DELTA_LIMIT, Math.min(ZOOM_DELTA_LIMIT, dy));
+    return zoomAt(camera, size, input.px, input.py, Math.exp(-delta * 0.01));
+  }
+  if (input.shiftKey && dx === 0) return pan(camera, -dy, 0);
+  return pan(camera, -dx, -dy);
+}
+
 /**
  * The camera that frames a stage rectangle (metres, `y` up) in the canvas,
  * leaving `margin` pixels clear on every side, centred and at the largest

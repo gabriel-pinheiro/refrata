@@ -7,13 +7,7 @@ import {
   type StoredFixtureType,
   type Table,
 } from "@refrata/core";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent,
-  type WheelEvent,
-} from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 
 import { PanelHeader } from "@/components/panel-header";
 import { useCommand, useDocumentPath } from "@/lib/client";
@@ -32,7 +26,7 @@ import {
   pan,
   toStage,
   viewBox,
-  zoomAt,
+  wheel,
   type Camera,
   type CanvasSize,
 } from "./camera";
@@ -53,7 +47,8 @@ import { useOutlined } from "./outlined";
  * the Element under the cursor; shift extends the selection and ctrl
  * toggles it; a drag on empty canvas is a marquee selecting every Fixture
  * inside; a drag on a shape moves the Fixture (one undo step); the middle
- * button or Alt with the left one pans; the wheel zooms around the pointer.
+ * button or Alt with the left one pans, and so does scrolling, both ways on
+ * a trackpad; ctrl with the wheel, or a pinch, zooms around the pointer.
  * Selected Fixtures and Elements are outlined, and so are the Targets of
  * the selected Layers and the members of the selected Sets. Zoom and pan
  * are per session and never saved; the view opens framing the whole rig.
@@ -113,6 +108,29 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  // A native listener, since React's wheel listener is passive and cannot
+  // stop ctrl+wheel or a pinch from zooming the whole page.
+  useEffect(() => {
+    const element = svgRef.current;
+    if (element === null) return;
+    const onWheel = (event: globalThis.WheelEvent): void => {
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const input = {
+        px: event.clientX - rect.left,
+        py: event.clientY - rect.top,
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+        deltaMode: event.deltaMode,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+      };
+      setCamera((previous) => wheel(previous, size, input));
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, [size]);
 
   const pointer = (
     event: PointerEvent<SVGSVGElement>,
@@ -231,20 +249,6 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     );
   };
 
-  const onWheel = (event: WheelEvent<SVGSVGElement>): void => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const factor = Math.exp(-event.deltaY * 0.0015);
-    setCamera((previous) =>
-      zoomAt(
-        previous,
-        size,
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-        factor,
-      ),
-    );
-  };
-
   const placed = allFixtures(fixtures);
   const box = viewBox(camera, size);
   const extent = Math.max(size.width, size.height) / camera.scale;
@@ -260,7 +264,6 @@ export function RigView({ view }: { readonly view: DocumentView }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onWheel={onWheel}
       >
         {/* Stage y runs up; the viewBox is written in flipped y, so flip once here. */}
         <g transform="scale(1,-1)">
