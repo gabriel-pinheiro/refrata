@@ -114,6 +114,8 @@ export function LinkMenu({
  * The effective value, read-only, and a chip with the Controller's name and
  * value that opens it. A number shows as its readout alone: the chip needs
  * the room a slider would take, and the value is not draggable here anyway.
+ * The chip wraps under the value rather than squeezing when the row is
+ * narrow, and truncates its name only once it has a line to itself.
  */
 export function LinkedControl({
   resolved,
@@ -126,7 +128,7 @@ export function LinkedControl({
   if (controller === undefined || controller.kind === "group") return null;
   const range = resolved.range ?? { min: 0, max: 1 };
   return (
-    <>
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1">
       {resolved.type === "number" && (
         <span
           aria-label={resolved.label}
@@ -144,7 +146,7 @@ export function LinkedControl({
         />
       )}
       {resolved.type === "color" && (
-        <>
+        <span className="flex shrink-0 items-center gap-1.5">
           <span
             aria-label={`${resolved.label} color`}
             className="size-5 shrink-0 rounded-sm border border-input"
@@ -155,12 +157,12 @@ export function LinkedControl({
               ? colorToHex(effective).toUpperCase()
               : ""}
           </span>
-        </>
+        </span>
       )}
       <Button
         variant="outline"
         size="xs"
-        className="max-w-full min-w-0 shrink border-selection/60 text-foreground"
+        className="max-w-full min-w-0 shrink overflow-hidden border-selection/60 text-foreground"
         title={`Controlled by ${controller.name}. Change it on the Controller.`}
         onClick={() => links.onOpen(controller.id)}
       >
@@ -177,7 +179,7 @@ export function LinkedControl({
           />
         )}
       </Button>
-    </>
+    </div>
   );
 }
 

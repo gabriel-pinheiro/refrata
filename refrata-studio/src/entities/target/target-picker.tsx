@@ -68,6 +68,19 @@ function collect(
 ): PickerCandidate[] {
   const word = members ? "member" : "targeted";
   const result: PickerCandidate[] = [];
+  if (!members)
+    for (const set of allSets(document.fixtureSets)) {
+      const ref = setRef(set.id);
+      result.push({
+        key: ref,
+        group: "Fixture Sets",
+        owner: "",
+        label: set.name,
+        detail: `${String(set.members.length)} ${set.members.length === 1 ? "member" : "members"}`,
+        haystack: `set ${set.name}`.toLowerCase(),
+        taken: taken.has(ref) ? word : undefined,
+      });
+    }
   for (const fixture of allFixtures(document.fixtures)) {
     const elements = fixtureElements(document, fixture);
     for (const element of elements) {
@@ -85,18 +98,5 @@ function collect(
       });
     }
   }
-  if (!members)
-    for (const set of allSets(document.fixtureSets)) {
-      const ref = setRef(set.id);
-      result.push({
-        key: ref,
-        group: "Fixture Sets",
-        owner: "",
-        label: set.name,
-        detail: `${String(set.members.length)} ${set.members.length === 1 ? "member" : "members"}`,
-        haystack: `set ${set.name}`.toLowerCase(),
-        taken: taken.has(ref) ? word : undefined,
-      });
-    }
   return result;
 }

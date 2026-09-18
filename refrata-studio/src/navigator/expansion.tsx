@@ -10,7 +10,10 @@ import {
 import type { EntityKind } from "@/entities";
 
 /** Rows that start open; every other row starts closed. */
-const OPEN_BY_DEFAULT: Partial<Record<EntityKind, boolean>> = { scene: true };
+const OPEN_BY_DEFAULT: Partial<Record<EntityKind, boolean>> = {
+  scene: true,
+  universe: true,
+};
 
 interface ExpansionState {
   readonly isExpanded: (kind: EntityKind, id: string) => boolean;

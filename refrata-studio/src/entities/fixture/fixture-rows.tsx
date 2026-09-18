@@ -1,5 +1,11 @@
 import type { DocumentView } from "@refrata/client";
-import { childFixtures, type Fixture, type Table } from "@refrata/core";
+import {
+  childFixtures,
+  fixtureElements,
+  type Fixture,
+  type StoredFixtureType,
+  type Table,
+} from "@refrata/core";
 import { Trash2, Ungroup } from "lucide-react";
 
 import {
@@ -44,6 +50,8 @@ export function FixtureRows({
   const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
   const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
+  const fixtureTypes =
+    useDocumentPath<Table<StoredFixtureType>>(view, ["fixtureTypes"]) ?? {};
   const rows = childFixtures(fixtures, parentId);
   const moveInto = (fixtureId: string, target: Fixture): void =>
     void command("fixture.move", {
@@ -70,7 +78,10 @@ export function FixtureRows({
     >
       {rows.map((fixture) => {
         const group = fixture.kind === "group";
-        const expanded = isExpanded("fixture", fixture.id);
+        // A Fixture that is one Element has nothing to open to.
+        const collapsible =
+          group || fixtureElements({ fixtureTypes }, fixture).length !== 1;
+        const expanded = collapsible && isExpanded("fixture", fixture.id);
         return (
           <SortableItem
             key={fixture.id}
@@ -89,7 +100,11 @@ export function FixtureRows({
                   depth={depth}
                   selected={isSelected(selected, "fixture", fixture.id)}
                   expanded={expanded}
-                  onToggle={(next) => setExpanded("fixture", fixture.id, next)}
+                  onToggle={
+                    collapsible
+                      ? (next) => setExpanded("fixture", fixture.id, next)
+                      : undefined
+                  }
                   onSelect={(event) =>
                     select(
                       { kind: "fixture", id: fixture.id },

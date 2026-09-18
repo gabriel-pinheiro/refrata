@@ -156,15 +156,7 @@ export function LayerRows({
                       </RowAction>
                     )
                   }
-                >
-                  {layer.kind === "look" && (
-                    <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
-                      {layer.targets.length === 0
-                        ? "no Target"
-                        : `${String(layer.targets.length)} ${layer.targets.length === 1 ? "Target" : "Targets"}`}
-                    </span>
-                  )}
-                </NavigatorRow>
+                />
               </ContextMenuTrigger>
               <ContextMenuContent>
                 {group && (
