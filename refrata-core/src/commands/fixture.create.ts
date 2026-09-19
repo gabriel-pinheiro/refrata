@@ -122,6 +122,7 @@ export const fixtureCreate = defineCommand({
         shapeWidth(placeShape(mode.shape, elementsOf(mode))),
       ),
       tags: [],
+      elementTags: {},
     };
     const patches: Patch[] = [
       ...typePatches,

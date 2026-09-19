@@ -121,13 +121,14 @@ when absent, plus the Layer's own "All Targets" rows keyed by Attribute that
 every Target takes unless its own row overrides them. A row on a Fixture Set
 Target fans to every member, so a member that joins the Set later inherits
 the row; a member that needs its own value is added as a Target of its own
-and wins by the Target rule. The inspector shows the "All Targets" rows,
+after the Set ("Override" on the member) and wins by the Target rule. The inspector shows the "All Targets" rows,
 then one block per Target with a Control checkbox per Parameter, each block
 saying when a row overrides or comes from All Targets. The alpha is stored
 and blended but has no Address or control yet, so it reads as 1. The
-per-Element table inside a Set Target, the mover case that justified the Look
-Layer in the first place, is deferred until a rig needs it; the storage is
-shaped so it is an addition, not a migration.
+per-Element table inside a Set Target was declined for good in the slice 3
+grill: the mover case that justified the Look Layer in the first place is one
+Target per Element, and a table keyed by member would go stale under a rule
+Set whose members come and go.
 
 And it is where Presets will attach: a row can reference a Preset instead of
 holding its own value, so ten Look Layers pointing at `Centre Stage` all move
@@ -141,7 +142,8 @@ released at once. Master is a number: every `dimmer` scaled after Resolve.
 Both are Installation-level Addresses, so a hub's button and fader reach them without
 a Layer. The review's worry, "how to control all dimmer Attributes, or all
 colour Attributes, easily", has one answer for everything else: a Look Layer
-or a Filter Layer targeting the built-in Set `All`. A "tint everything" is a
-Look Layer on `All` with a `color` row at low alpha; a "dim the floor" is a
+or a Filter Layer targeting a Set of every Fixture (a rule Set whose one Rule
+has no Tags; there is no built-in one). A "tint everything" is a Look Layer
+on that `All` with a `color` row at low alpha; a "dim the floor" is a
 Master Filter on `Floor`. Only the two that must survive any stack, Blackout
 and Master, are built in.

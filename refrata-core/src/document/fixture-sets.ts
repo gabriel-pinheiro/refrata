@@ -4,7 +4,10 @@ import {
   type FixtureSet,
   type MemberSet,
 } from "./composition.ts";
+import { ancestorsOf, parseElementRef } from "../rig/elements.ts";
+import { fixtureElements } from "./fixtures.ts";
 import type { Patch } from "./patch.ts";
+import { matchRule } from "./tags.ts";
 import { childrenOf, descendantsOf, flattenTree } from "./tree.ts";
 
 export { FIXTURE_SET_LABELS };
@@ -29,6 +32,68 @@ export const descendantSets = (
 export function allSets(sets: Table<FixtureSet>): readonly MemberSet[] {
   return flattenTree(sets).filter(
     (row): row is MemberSet => row.kind === "set",
+  );
+}
+
+/** Whether a Set is written by rule; otherwise it is a list. */
+export function isRuleSet(
+  set: MemberSet,
+): set is MemberSet & { readonly rules: readonly (readonly string[])[] } {
+  return set.rules !== undefined;
+}
+
+type RuleSource = Pick<Document, "fixtures" | "fixtureTypes">;
+
+const derived = new WeakMap<
+  MemberSet,
+  { readonly source: RuleSource; readonly members: readonly string[] }
+>();
+
+/**
+ * The ordered Element refs a Set stands for. A list Set's are stored. A rule
+ * Set's are the union of its Rules, Rule by Rule with the first occurrence
+ * kept, less every member that has an ancestor among the members. Derived
+ * once per Set and Rig, since Resolve asks at the Output rate.
+ */
+export function setMembers(
+  document: RuleSource,
+  set: MemberSet,
+): readonly string[] {
+  if (!isRuleSet(set)) return set.members;
+  const cached = derived.get(set);
+  if (
+    cached?.source.fixtures === document.fixtures &&
+    cached.source.fixtureTypes === document.fixtureTypes
+  )
+    return cached.members;
+  const union = [
+    ...new Set(set.rules.flatMap((rule) => matchRule(document, rule))),
+  ];
+  const present = new Set(union);
+  const members = union.filter((ref) => !hasAncestorIn(document, ref, present));
+  derived.set(set, {
+    source: {
+      fixtures: document.fixtures,
+      fixtureTypes: document.fixtureTypes,
+    },
+    members,
+  });
+  return members;
+}
+
+function hasAncestorIn(
+  document: RuleSource,
+  ref: string,
+  present: ReadonlySet<string>,
+): boolean {
+  const parsed = parseElementRef(ref);
+  if (parsed === undefined) return false;
+  const fixture = document.fixtures[parsed.fixtureId];
+  if (fixture?.kind !== "fixture") return false;
+  return ancestorsOf(fixtureElements(document, fixture), parsed.key).some(
+    (ancestor) =>
+      ancestor.key !== parsed.key &&
+      present.has(`${parsed.fixtureId}/${ancestor.key}`),
   );
 }
 

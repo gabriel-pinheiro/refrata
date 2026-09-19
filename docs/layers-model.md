@@ -148,9 +148,12 @@ without anyone reopening the Layer. That inheritance is why the Set-level row
 is real storage and not a convenience over per-Element values: with only
 per-Element rows, a par added to `Wash Left` would stay released until
 someone noticed. To override one member, the Element is added as its own
-Target and wins by the Target rule. A value per Element inside one Set (a
-mover's focus position, a hand-painted pixel look) is deferred as a table on
-the Set Target; today it is one Target per Element. And Look Layers want
+Target after the Set and wins by the Target rule ("Override" on the member
+in the Set Target's block does exactly that). A table of values per Element
+inside one Set Target (a mover's focus position, a hand-painted pixel look)
+was declined for good in the slice 3 grill: it would be a second way to say
+the same thing, and with a rule Set it would keep rows for members that have
+left; that case is one Target per Element. And Look Layers want
 **Presets**: a stored, named bundle of Attribute values (`Warm
 White`, `Stage Centre`) that many Look Layers reference, so that fixing the
 preset fixes every Layer. grandMA3 lives on this; it is the second most

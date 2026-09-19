@@ -1,5 +1,12 @@
 import type { DocumentView } from "@refrata/client";
-import { childSets, type FixtureSet, type Table } from "@refrata/core";
+import {
+  childSets,
+  isRuleSet,
+  setMembers,
+  type FixtureSet,
+  type MemberSet,
+  type Table,
+} from "@refrata/core";
 import { Trash2, Ungroup } from "lucide-react";
 
 import {
@@ -9,7 +16,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useCommand, useDocumentPath } from "@/lib/client";
+import { useCommand, useDocumentPath, useSignal } from "@/lib/client";
 import { useExpansion } from "@/navigator/expansion";
 import {
   NavigatorEmptyRow,
@@ -24,7 +31,7 @@ import {
   useSelection,
 } from "@/selection/selection";
 
-import { setIcons } from "./set-icons";
+import { ruleSetIcon, setIcons } from "./set-icons";
 
 /** The Sets under the root or one Group as rows; a selected Set has its members outlined in the Rig View. */
 export function SetRows({
@@ -78,7 +85,11 @@ export function SetRows({
             <ContextMenu>
               <ContextMenuTrigger>
                 <NavigatorRow
-                  icon={setIcons[set.kind]}
+                  icon={
+                    set.kind === "set" && isRuleSet(set)
+                      ? ruleSetIcon
+                      : setIcons[set.kind]
+                  }
                   label={set.name}
                   depth={depth}
                   selected={isSelected(selected, "set", set.id)}
@@ -93,11 +104,7 @@ export function SetRows({
                   }
                   createItems={group ? createItems(set.id) : undefined}
                 >
-                  {set.kind === "set" && (
-                    <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
-                      {String(set.members.length)}
-                    </span>
-                  )}
+                  {set.kind === "set" && <MemberCount view={view} set={set} />}
                 </NavigatorRow>
               </ContextMenuTrigger>
               <ContextMenuContent>
@@ -140,4 +147,36 @@ export function SetRows({
       })}
     </SortableList>
   );
+}
+
+/** How many members a Set has now; a Set by rule follows the Rig, so only it reads the whole document. */
+function MemberCount({
+  view,
+  set,
+}: {
+  readonly view: DocumentView;
+  readonly set: MemberSet;
+}) {
+  return (
+    <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
+      {isRuleSet(set) ? (
+        <RuleMemberCount view={view} set={set} />
+      ) : (
+        String(set.members.length)
+      )}
+    </span>
+  );
+}
+
+function RuleMemberCount({
+  view,
+  set,
+}: {
+  readonly view: DocumentView;
+  readonly set: MemberSet;
+}) {
+  const document = useSignal(view.document);
+  return document === undefined
+    ? null
+    : String(setMembers(document, set).length);
 }

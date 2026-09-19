@@ -128,7 +128,7 @@ the Mode has no `strobe` Parameter and strobing is a Visual's job.
       "strobe": { "name": "Strobe", "children": ["section-1"] },
       "panel-1": {
         "name": "Panel 1",
-        "tags": ["panel", "odd"],
+        "tags": ["panel", "odd", "bottom"],
         "parameters": {
           "dimmer": {
             "default": 0,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isRuleSet } from "../document/fixture-sets.ts";
 
 /** Places a member after another (or first): the order effects will spread along. */
 export const setMembersMove = defineCommand({
@@ -21,6 +22,10 @@ export const setMembersMove = defineCommand({
     const set = document.fixtureSets[payload.setId];
     if (set?.kind !== "set")
       return rejected(`“${payload.setId}” is not a Fixture Set.`);
+    if (isRuleSet(set))
+      return rejected(
+        `${set.name} is a Set by rule; its members come from its Rules.`,
+      );
     if (!set.members.includes(payload.ref))
       return rejected(`“${payload.ref}” is not a member of ${set.name}.`);
     if (payload.after === payload.ref)

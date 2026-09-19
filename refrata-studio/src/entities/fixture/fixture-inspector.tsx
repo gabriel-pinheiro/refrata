@@ -2,6 +2,7 @@ import type { DocumentView } from "@refrata/client";
 import {
   elementRef,
   elementsOf,
+  fixtureRootRef,
   orderedEntries,
   type Fixture,
   type StoredFixtureType,
@@ -16,6 +17,7 @@ import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { NameField } from "@/inspector/fields/name-field";
 import { NumberField } from "@/inspector/fields/number-field";
 import { SelectField } from "@/inspector/fields/select-field";
+import { TagsField } from "@/inspector/fields/tags-field";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useSelection } from "@/selection/selection";
 
@@ -23,7 +25,7 @@ import { FixtureTypeReload } from "./fixture-type-reload";
 import { ParameterRows } from "./parameter-rows";
 
 /**
- * A Fixture's name, Mode, Patch and Position, the root Element's
+ * A Fixture's name, Mode, Tags, Patch and Position, the root Element's
  * Parameters with their resolved values, and what it can be used for as a
  * Target. A Group shows only its name.
  */
@@ -116,6 +118,9 @@ function PatchedFixtureBody({
               });
           }}
         />
+      </InspectorSection>
+      <InspectorSection storageKey="tags" label="Tags">
+        <TagsField view={view} refs={[fixtureRootRef(fixture.id)]} />
       </InspectorSection>
       <InspectorSection storageKey="patch" label="Patch">
         <SelectField

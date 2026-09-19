@@ -209,8 +209,10 @@ definition, so `<fixtureId>/pixel-3` is as stable as any id and survives a
 Mode change between `16ch` and `Pixel 68ch` with no rebuild command. Stored
 rows would have cost a 32-pixel bar 33 rows, forced every Fixture command to
 keep child rows in step, and let a hand-edited file drift from its Mode.
-Nothing a person owns lives on an Element: Tags are added to Fixtures, and
-the tree gives the rest.
+The first rule was that nothing a person owns lives on an Element. The slice
+3 grill made one exception: a person may tag any Element, and those Tags are
+stored on the Fixture keyed by Element key, so there is still no Element row,
+and a Mode change that drops the key drops its Tags like any other reference.
 
 ### Attribute and Parameter
 
@@ -289,13 +291,35 @@ The position taken:
   for "the bottom panels of every Atomic on the truss". So instead of Sets
   per Fixture, a Mode declares **Tags** on its Elements (`odd`, `bottom`,
   `row-1`, and every Element key such as `aura`), imported from OFL pixel
-  groups and GDTF geometry names, people add Tags to Fixtures in the Rig
-  (`truss-left`), Tags inherit down the tree, and a Fixture Set can be written
-  **by rule**: all Elements carrying all of the given Tags, resolved live.
-  Tags compose across fixtures; per-fixture derived Sets would not.
+  groups and GDTF geometry names, people add Tags to Fixtures and to single
+  Elements in the Rig (`truss-left`), and a Fixture Set can be written **by
+  rule**: an ordered list of Rules, each a list of Tags that must all be met,
+  resolved live. Tags compose across fixtures; per-fixture derived Sets would
+  not.
 
 Tags and Sets by rule are in v1: they are what makes the library's own
 groupings reach a whole rig without clicking.
+
+How a Rule matches was settled in the slice 3 grill. Copying a Tag onto every
+descendant was the first idea and fails on the plainest case: a Strobe tagged
+`truss-left` would put its root, `backlight`, `strobe`, eight Panels and
+eight Sections in the Set `truss-left`, nineteen members where a person
+expects one, and a spread Chase would step through all of them. No
+inheritance at all fails the other way: `panel` + `truss-left` matches
+nothing, because no Panel carries `truss-left`, and neither does `odd` plus
+the Fixture Type's key, which sits on the root. So Tags stay where they were
+put and count downward only during the match: walking down from each root,
+the first Element at which every Tag of the Rule has been met, on it or
+above it, is the member, and nothing below it is added. A Rule with no Tags
+is met at every root and reads "every Fixture"; there is no built-in `All`.
+The union of several Rules is ordered Rule by Rule, within a Rule by the
+Fixtures' navigator order and then tree order, and a member whose ancestor
+is also a member is dropped. "Not" was declined; a Set is by rule or by
+list, never both, and "Convert to list" is the way out for the one exception
+or a hand order. Tags are plain text, not entities; autocomplete, a "matches
+nothing" mark on a Rule's Tag and a rename that rewrites every Fixture and
+Rule stand in for the entity. Folders carry no Tags: dragging a Fixture
+between folders must not change what a Layer lights.
 
 ### Installation, Rig, Patch, Selection
 
@@ -314,22 +338,25 @@ shortcuts that wrap the everyday ones. Navigator gestures keep the verbs
 Controllers use (`move`, `ungroup`), so a Fixture's stage Position needs its
 own verb, `place`.
 
-| Command           | Does                                                                                                 |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `universe.create` | adds a Universe; a new Installation already has `Universe 1`                                         |
-| `universe.rename` |                                                                                                      |
-| `universe.remove` | refused while a Fixture is patched into it                                                           |
-| `output.create`   | adds an Output for one Universe: kind and device                                                     |
-| `output.update`   | changes kind or device                                                                               |
-| `output.remove`   |                                                                                                      |
-| `fixture.create`  | adds a Fixture from a library type and Mode, copies the type in, patches it at the next free address |
-| `fixture.rename`  |                                                                                                      |
-| `fixture.move`    | navigator move between Groups                                                                        |
-| `fixture.ungroup` |                                                                                                      |
-| `fixture.remove`  | drops the Fixture Type copy when no Fixture uses it any more                                         |
-| `fixture.update`  | changes type, Mode or Tags; refused when the new Footprint would collide                             |
-| `fixture.patch`   | sets Universe and address, or unpatches; refused on overlap                                          |
-| `fixture.place`   | sets Position; a drag coalesces into one undo step                                                   |
+| Command               | Does                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `universe.create`     | adds a Universe; a new Installation already has `Universe 1`                                          |
+| `universe.rename`     |                                                                                                       |
+| `universe.remove`     | refused while a Fixture is patched into it                                                            |
+| `output.create`       | adds an Output for one Universe: kind and device                                                      |
+| `output.update`       | changes kind or device                                                                                |
+| `output.remove`       |                                                                                                       |
+| `fixture.create`      | adds a Fixture from a library type and Mode, copies the type in, patches it at the next free address  |
+| `fixture.rename`      |                                                                                                       |
+| `fixture.move`        | navigator move between Groups                                                                         |
+| `fixture.ungroup`     |                                                                                                       |
+| `fixture.remove`      | drops the Fixture Type copy when no Fixture uses it any more                                          |
+| `fixture.update`      | changes type or Mode; refused when the new Footprint would collide; Tags have their own commands      |
+| `fixture.patch`       | sets Universe and address, or unpatches; refused on overlap                                           |
+| `fixture.place`       | sets Position; a drag coalesces into one undo step                                                    |
+| `fixture.tags.add`    | adds a person's Tags to any mix of Fixtures and Elements, one undo step                               |
+| `fixture.tags.remove` | removes them; declared Tags are locked                                                                |
+| `tag.rename`          | renames a person's Tag on every Fixture and Element and in every Rule; onto an existing Tag it merges |
 
 Highlight is not a command: it is a write to the boolean Address
 `element/<fixtureId>/<key>/highlight` through `address.set`.
@@ -338,6 +365,8 @@ CLI: `refrata library` lists types and Modes; `refrata fixtures` prints the
 Fixtures with their Element trees; `refrata fixtures add <type> <mode>
 [--universe] [--address] [--name]`; `refrata patch <fixture> <universe>
 <address>`; `refrata highlight <fixture-or-element> [--on|--off]`;
+`refrata tags`, `refrata tag <fixture-or-element> <tag>...` and `refrata
+untag`;
 `refrata dmx <universe>` prints the DMX Frame with runs grouped. Names resolve
 to ids the way Controller names do.
 
@@ -452,7 +481,9 @@ ST-960 (root)          no Parameters of its own
 - `Full Strobe` as a Fixture Set with the sixteen leaves is possible but
   redundant; the root already implies its subtree.
 - `Backlight Odd Panels` across twenty of these is a Fixture Set by rule:
-  Tags `odd` plus the Fixture Type's key, eighty Elements without a click.
+  one Rule with the Tags `panel`, `odd` and the Fixture Type's key, eighty
+  Elements without a click. The type's key sits on the root and `panel` and
+  `odd` on the Panel, so the Rule is met at each odd Panel.
 - Each Panel's `dimmer` is virtual: it multiplies that Panel's three colour
   bytes, so "dimmer 50 %" on the root fans to eight Panels and eight Sections
   and means the same on both.
@@ -508,7 +539,8 @@ Each has a recommendation; the choice changes what gets written next.
    an Encoding setting on the Mode. Revisit if programmers ask for "white
    only" looks that a colour cannot express.
 4. **Tags versus per-Fixture derived Sets** for library-provided subsets.
-   Decided: Tags plus Sets by rule, in v1.
+   Decided: Tags plus Sets by rule, in v1; the matching rule, several Rules
+   per Set and person Tags on Elements were settled in the slice 3 grill.
 5. **Overlapping Patch.** Decided: refused, naming the colliding Fixture; a
    Mode change that would collide is refused too; a new Fixture takes the next
    free address; Multipatch is a later explicit feature rather than a

@@ -218,7 +218,7 @@
         },
         "panel-1": {
           "name": "Panel 1",
-          "tags": ["panel", "odd"],
+          "tags": ["panel", "odd", "bottom"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -238,7 +238,7 @@
         },
         "panel-2": {
           "name": "Panel 2",
-          "tags": ["panel", "even"],
+          "tags": ["panel", "even", "bottom"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -258,7 +258,7 @@
         },
         "panel-3": {
           "name": "Panel 3",
-          "tags": ["panel", "odd"],
+          "tags": ["panel", "odd", "bottom"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -278,7 +278,7 @@
         },
         "panel-4": {
           "name": "Panel 4",
-          "tags": ["panel", "even"],
+          "tags": ["panel", "even", "bottom"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -298,7 +298,7 @@
         },
         "panel-5": {
           "name": "Panel 5",
-          "tags": ["panel", "odd"],
+          "tags": ["panel", "odd", "top"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -318,7 +318,7 @@
         },
         "panel-6": {
           "name": "Panel 6",
-          "tags": ["panel", "even"],
+          "tags": ["panel", "even", "top"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -338,7 +338,7 @@
         },
         "panel-7": {
           "name": "Panel 7",
-          "tags": ["panel", "odd"],
+          "tags": ["panel", "odd", "top"],
           "parameters": {
             "dimmer": {
               "default": 0,
@@ -358,7 +358,7 @@
         },
         "panel-8": {
           "name": "Panel 8",
-          "tags": ["panel", "even"],
+          "tags": ["panel", "even", "top"],
           "parameters": {
             "dimmer": {
               "default": 0,

@@ -228,8 +228,8 @@ describe("Fixtures", () => {
       y: 0,
       rz: 90,
     });
-    document = run(document, "fixture.update", {
-      fixtureId: "par",
+    document = run(document, "fixture.tags.add", {
+      refs: ["par/root"],
       tags: ["truss-left", "truss-left"],
     }).document;
     expect(fixture(document, "par").tags).toEqual(["truss-left"]);

@@ -3,7 +3,10 @@ import {
   allFixtures,
   allSets,
   elementRef,
+  elementTags,
   fixtureElements,
+  personTags,
+  setMembers,
   setRef,
   type Document,
 } from "@refrata/core";
@@ -18,7 +21,8 @@ import { useSignal } from "@/lib/client";
 /**
  * Picks Elements (and, for a Layer, Fixture Sets) out of the whole rig:
  * every Fixture with its Elements under it, searched by Fixture name,
- * Element name and Tags, so "panel" lists every panel. What is already a
+ * Element name and Tags (its own and the Fixture's), so "panel" lists every
+ * panel and "truss-left" everything hung there. What is already a
  * Target or a member shows ticked and disabled; the children of a targeted
  * root stay available, since adding one is how a Target overrides its
  * root's rows.
@@ -61,6 +65,9 @@ export function TargetPicker({
   );
 }
 
+const memberCount = (count: number): string =>
+  `${String(count)} ${count === 1 ? "member" : "members"}`;
+
 function collect(
   document: Document,
   members: boolean,
@@ -76,7 +83,7 @@ function collect(
         group: "Fixture Sets",
         owner: "",
         label: set.name,
-        detail: `${String(set.members.length)} ${set.members.length === 1 ? "member" : "members"}`,
+        detail: memberCount(setMembers(document, set).length),
         haystack: `set ${set.name}`.toLowerCase(),
         taken: taken.has(ref) ? word : undefined,
       });
@@ -86,14 +93,16 @@ function collect(
     for (const element of elements) {
       const ref = elementRef(fixture.id, element.key);
       const root = element.parentKey === null;
+      const tags = elementTags(fixture, element);
       result.push({
         key: ref,
         group: "Fixtures",
         owner: root ? "" : fixture.name,
         label: root ? fixture.name : element.name,
-        detail: root ? undefined : element.tags.join(" "),
-        haystack:
-          `${fixture.name} ${element.name} ${element.tags.join(" ")}`.toLowerCase(),
+        detail: root ? undefined : tags.join(" "),
+        haystack: `${fixture.name} ${element.name} ${tags.join(" ")} ${
+          root ? "" : personTags(fixture, "root").join(" ")
+        }`.toLowerCase(),
         taken: taken.has(ref) ? word : undefined,
       });
     }

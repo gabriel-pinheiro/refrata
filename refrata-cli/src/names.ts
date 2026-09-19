@@ -159,6 +159,14 @@ export function resolveTargetRef(document: Document, text: string): string {
   );
 }
 
+/** The Element ref `text` names: a Fixture (its root) or `<fixture>/<key>`; a Fixture Set is refused. */
+export function resolveElementRef(document: Document, text: string): string {
+  const ref = resolveTargetRef(document, text);
+  if (parseSetRef(ref) !== undefined)
+    throw new Error(`“${text}” is a Fixture Set; this takes Elements.`);
+  return ref;
+}
+
 /**
  * An Address with its entity segment turned into an id:
  * `controller/Energy/value` → `controller/controller_…/value`. In a Look
@@ -206,13 +214,20 @@ export function resolvePathNames(document: Document, path: string): string {
   return id === undefined ? path : [table, id, ...segments.slice(2)].join("/");
 }
 
+/** Commands whose `ref`, `target`, `after`, `refs` and `targets` are Targets or Element refs, not siblings. */
+const REF_COMMANDS = /^(layer\.(targets|row)|set\.members|fixture\.tags)\./;
+const REF_KEYS = new Set(["ref", "target", "after", "refs", "targets"]);
+
 /**
  * A command payload with every entity reference turned into an id: the
  * `…Id` keys; `parentId` and `after` for the table the command name says
  * (or the payload's own `table`, as `entity.move` has); `address` and
- * `addresses`; lists such as `controllerIds`; and objects inside arrays
- * (Macro actions) the same way.
+ * `addresses`; lists such as `controllerIds`; objects inside arrays (Macro
+ * actions) the same way; and, in the commands that take Targets or Element
+ * refs (`layer.targets.*`, `layer.row.*`, `set.members.*`, `fixture.tags.*`),
+ * `ref`, `target`, `after`, `refs` and `targets` written as `look` takes a Target.
  */
+
 export function resolvePayloadNames(
   document: Document,
   command: string,
@@ -228,11 +243,24 @@ export function resolvePayloadNames(
       ? record.table
       : undefined;
   const siblings = PREFIX_TABLES[prefix] ?? own;
+  const refs = REF_COMMANDS.test(command);
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
-    resolved[key] = resolveField(document, prefix, siblings, key, value);
+    resolved[key] =
+      refs && REF_KEYS.has(key)
+        ? resolveRefs(document, value)
+        : resolveField(document, prefix, siblings, key, value);
   }
   return resolved;
+}
+
+/** One Target text or a list of them, each as `look` reads it; anything else as it came. */
+function resolveRefs(document: Document, value: unknown): unknown {
+  if (typeof value === "string") return resolveRowRef(document, value);
+  if (!Array.isArray(value)) return value;
+  return (value as unknown[]).map((item) =>
+    typeof item === "string" ? resolveRowRef(document, item) : item,
+  );
 }
 
 /**

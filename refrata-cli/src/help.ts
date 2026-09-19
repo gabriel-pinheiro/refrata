@@ -12,7 +12,7 @@ Working from a shell
              REFRATA_URL sets the default. REFRATA_ACTOR names the owner of
              this shell's undo history (default: user@host).
 
-  Read       health, library, fixtures, sets, scenes, layers <scene>,
+  Read       health, library, fixtures, tags, sets, scenes, layers <scene>,
              controllers, macros, osc, get [path|Address], addresses,
              commands, describe <command> (its payload fields; --json for
              the schema), dmx <universe> (the 512 bytes going out, runs
@@ -33,6 +33,16 @@ Working from a shell
              it has a Fixture Type; tester release lets go. Never saved;
              Blackout wins.
 
+  Tags       tag <fixture>[/<key>] <tag...>  adds a person's Tags to a
+             Fixture (its root Element) or to one Element; untag removes
+             them; tags lists every Tag with its count; tags rename <old>
+             <new> rewrites Fixtures, Elements and Rules in one undo step.
+             Tags are lowercase with dashes ("Truss Left" is written
+             truss-left). Declared Tags are locked: an Element's key, its
+             Mode's Tags (panel, odd, bottom) and, on a root, the Fixture
+             Type key. "fixtures" prints them per Element, a person's
+             after a +.
+
   Compose    scenes add <name>  a Scene; the first one starts playing.
              layers add <scene> <name> [--target <t>]...  a Look Layer at
              the top of the Scene's stack. A Target <t> is a Fixture (its
@@ -42,6 +52,18 @@ Working from a shell
              is the All Targets row every Target takes unless it has its
              own. look <layer> release <target> <attribute> lets it go.
              sets add <name> <ref>...  a Fixture Set of Elements, in order.
+             sets add <name> --rule panel,odd --rule wall  a Set by rule,
+             resolved live: a Rule is all of its Tags, and its member is
+             the first Element down each Fixture's tree where every Tag
+             has been met on it or above it (truss-left alone gives tagged
+             roots; panel,truss-left their Panels; --rule "" every
+             Fixture). The Set is its Rules' union, Rule by Rule, in
+             navigator order within a Rule; a member under another member
+             is dropped. sets rules <set> add|set|move|remove edits Rules
+             by number; sets convert <set> freezes it into a list.
+             layers spread <layer> <target> on|off  spreads a Target (a Set
+             into its members, an Element into its children); "layers"
+             prints the expansion. A Look Layer ignores it.
              play <scene> cuts the Outputs to it; master <0..1> scales every
              dimmer; blackout on|off forces them to 0. play and blackout are
              show control (never undone); the rest is authoring.
@@ -82,6 +104,9 @@ Working from a shell
              layers add Verse Base --target Par
              look Base set Par dimmer 0.4
              look Base set Par color '[0,1,0,1]'
+             tag Par wall
+             sets add Wall --rule wall
+             layers add Verse Wash --target set:Wall
              play Verse
              dmx "Universe 1"
              run controller.create '{"kind":"number","name":"Fader",

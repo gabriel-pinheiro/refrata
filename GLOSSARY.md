@@ -203,8 +203,9 @@ Fixture's copied-in Fixture Type and referenced everywhere as
 `<fixtureId>/<key>`, so a Fixture Set or a Look Layer row can point at
 `Panel 3 of Atomic 2` without a row for it. A key is unique within its Mode,
 so the reference is as stable as an id: changing a Fixture's Mode keeps every
-reference whose key survives and drops the rest. Nothing a person owns lives on
-an Element; Tags are added to Fixtures.
+reference whose key survives and drops the rest. The one thing a person owns
+on an Element is its Tags, stored on the Fixture keyed by Element key, and
+dropped with the key like any other reference.
 
 Do not call an Element a Fixture, a Head, a Cell or a Sub-fixture; do not call a
 non-root Element a Pixel unless it is one.
@@ -434,16 +435,36 @@ separate address ranges are deferred.
 
 ### Tag
 
-A label on an Element. A Mode declares Tags on the Elements it creates (`aura`,
-`beam`, `panel`, `bottom`, `odd`, `row-1`), imported from Open Fixture Library
-pixel groups and GDTF geometry names; every Element's own key is a Tag, and a
-Fixture's root carries its Fixture Type's key as a Tag (`atomic-3000-led`). A
-person adds Tags to Fixtures in the Rig (`truss-left`, `floor`, `warm`). A Tag
-on an Element is inherited by every descendant, so a Fixture tagged
-`truss-left` makes its Panels match `truss-left`.
+A plain-text label on an Element. A Mode declares Tags on the Elements it
+creates (`aura`, `beam`, `panel`, `bottom`, `odd`, `row-1`), imported from Open
+Fixture Library pixel groups and GDTF geometry names; every Element's own key
+is a Tag, and a Fixture's root carries its Fixture Type's key as a Tag
+(`atomic-3000-led`). A person adds Tags in the Rig to a Fixture (`truss-left`,
+`floor`, `warm`) or to any Element of one (`hero` on one Panel); a Fixture's
+Tags are the Tags of its root Element. Navigator folders carry no Tags.
 
-Tags are how Fixture Sets are written by rule, and how a Mode's own
-groupings ("all bottom Panels") reach the whole rig without a Set per Fixture.
+Person Tags are stored on the Fixture, keyed by Element key, so removing the
+Fixture removes them and a Mode change that drops an Element key drops that
+Element's Tags with a removal warning. Declared Tags cannot be edited or
+suppressed; the inspector shows them as locked chips beside the person's own,
+so a Fixture hung upside down keeps the library's `bottom` and the person
+tags its Panels to say otherwise. A person's Tag takes the declared shape,
+lowercase with digits and hyphens, and is normalised as typed ("Truss Left"
+becomes `truss-left`), so `Wall` and `wall` are never two Tags. With several
+Fixtures and Elements selected, one Tags field adds to or removes from all of
+them in one undo step.
+
+A Tag is not an entity: there is no list of Tags to maintain, and a declared
+Tag and a person's Tag with the same text are the same Tag. Three guards stand
+in for the entity: Studio completes a Tag from every Tag present in the rig, a
+Tag in a Rule that no Element carries is marked "matches nothing", and
+renaming a Tag rewrites it on every Fixture and in every Rule as one undo
+step.
+
+Tags are not copied onto children. They count downward only while a Rule is
+being matched; see Fixture Set. Tags are how Fixture Sets are written by
+rule, and how a Mode's own groupings ("all bottom Panels") reach the whole rig
+without a Set per Fixture.
 
 **Elsewhere:** the Open Fixture Library "pixel group" inside one fixture;
 grandMA3 fixture "classes" and "layers" in the patch, which only organize.
@@ -452,25 +473,50 @@ grandMA3 fixture "classes" and "layers" in the patch, which only organize.
 
 A named, ordered collection of Elements, stored in the Installation for picking a
 selection in one gesture and for use as a Target: `Wash Left`, `Wash Checker
-A`, `All Aura Panels`, `Atomic Bottom Panels`. It is written one of two ways:
+A`, `All Aura Panels`, `Atomic Bottom Panels`. It is written one of two ways,
+never both:
 
 - by list: an explicit ordered list of Elements, from any Fixtures and any
   depth, so one Set may hold a whole Fixture next to one Panel of another;
-- by rule: every Element carrying all of the given Tags, resolved live, ordered
-  by Fixture order in the navigator then by tree order. `bottom` +
-  `atomic-3000-led` is every bottom Panel of every Atomic; adding
-  `truss-left` narrows it.
+- by rule: an ordered list of Rules, resolved live. A Rule is a list of Tags
+  and asks for all of them; the Set is the union of its Rules. There is no
+  "or" inside a Rule and no "not" anywhere: "or" is a second Rule.
+
+A Rule is matched walking down from each Fixture's root: the first Element at
+which every Tag of the Rule has been met, on it or above it, is the member,
+and nothing below it is added. So `truss-left` on a Fixture tagged
+`truss-left` gives that Fixture's root and none of its Panels; `panel` +
+`truss-left` is not met at the root, which has no `panel`, and is met at each
+Panel; `odd` + `atomic-3000-led` is every odd Panel and Section of every
+Atomic. A Rule with no Tags is met at every root: it reads "every Fixture",
+and a Set `All` is a Set a person makes with that one Rule. There is no
+built-in Set.
+
+Members come Rule by Rule, the first Rule's first, and an Element matched
+twice keeps its first place, so "left truss, then right truss" is the order of
+the Rules. Within one Rule members follow the Fixtures' order in the
+navigator, then tree order inside each Fixture. A member whose ancestor is
+also a member of the Set is dropped, whichever Rules brought them, so a Set
+never holds a Fixture and one of its own Panels through its Rules.
 
 Order is part of the Set and is what effects spread along. A Fixture Set only
 points; it stores no Parameter Values. Removing a Fixture removes it from every
 Set, and a Mode change that drops an Element key drops that member with a
-removal warning. An empty Set is allowed. The built-in Set `All` is the rule
-with no Tags. A grid arrangement for spatial effects is deferred; see
-docs/moving-heads-and-geometry.md.
+removal warning. An empty Set is allowed. A grid arrangement for spatial
+effects is deferred; see docs/moving-heads-and-geometry.md.
 
-Sets by list ship in slice 2; Sets by rule in slice 3. A rule Set persists its
-rule, so a Fixture added later with the right Tags joins the Set on its own
-and takes whatever a Look Layer says about that Set.
+A rule Set persists its Rules, so a Fixture added later with the right Tags
+joins the Set on its own and takes whatever a Look Layer says about that Set.
+"Convert to list" freezes the current members into a list Set, one way: from
+then on a newly tagged Fixture no longer joins, and the inspector says so. It
+is the way to take one member out of a rule or to order members by hand.
+
+In Studio a rule Set is a row of the Sets section with its own icon. Its
+inspector holds the Rules, one line of Tag chips each, with "Add Rule" and
+drag to reorder, then the live Members as a read-only list with a count, and
+"Convert to list". The Rig View outlines the members as it does for any Set.
+
+Sets by list ship in slice 2; Sets by rule in slice 3.
 
 Do not call a Fixture Set a Group: Group is the navigator folder, as in
 Difracta, and has no meaning in the Rig.
@@ -513,6 +559,12 @@ the Element's own Target beats a value fanned down from an ancestor Target,
 and among equals the later entry in the Target list wins. So a Layer with the
 Fixture root and its Panel 3 as Targets says "all green, Panel 3 white".
 
+A member of a Set Target and that same Element as a Target of its own are
+equals, so the later entry wins there too. The Set Target's block in the Look
+Layer inspector lists its live members, each with "Override", which adds that
+Element as a Target right after the Set and selects it; dragging it above the
+Set loses the override.
+
 Do not say "Fixture Target"; Target is the whole term, as in Difracta.
 
 ### Spread
@@ -520,8 +572,12 @@ Do not say "Fixture Target"; Target is the whole term, as in Difracta.
 A flag on one Target entry of a Layer. Off, a Fixture Set is one Target. On,
 the Set is replaced at resolve time by its ordered members, one Target each, so
 a Chase given `All Atomics` spread steps device by device and given `All Aura
-Panels` spread steps panel by panel. A spread Element expands to its children.
-Spread is one level deep; grids are deferred.
+Panels` spread steps panel by panel. A spread Element expands to its children
+in tree order, so one pixel bar chases along its pixels without a Set of its
+own, and a spread Strobe root is its `backlight` and its `strobe`, not the
+sixteen parts. Spread is one level deep; grids are deferred. A Look Layer ignores Spread,
+since every member takes the same row either way; it has no control in Studio
+until Visuals exist, and `refrata layers` prints each Target's expansion.
 
 ### Contribution
 
@@ -635,14 +691,16 @@ Beside them the Layer holds its "All Targets" rows, one per Attribute found
 across the Targets: every Target takes them unless it has its own row for
 that Attribute, which overrides. A Set Target's rows fan to its members, so a
 member added later inherits them without reopening the Layer; to override
-one member, that Element is added as a Target of its own and wins by the
-Target rule. Every row, All Targets included, is an Address
+one member, that Element is added as a Target of its own after the Set
+("Override" on the member) and wins by the Target rule. Every row, All Targets included, is an Address
 (`layer/<id>/row/<target|all>/<attribute>`), so a Controller can drive it
 through a Parameter Link and the row shows who drives it. It is the console's
 programmer frozen into a Layer, and the most common Layer in a show.
 
-A value per Element inside one Set Target (a mover's focus position is per
-Element by nature) is deferred: today that is one Target per Element.
+A table of values per Element inside one Set Target was declined for good: it
+would be a second way to say what a Target of its own already says, and with
+a rule Set it would keep rows for members that have left. A value that is per
+Element by nature (a mover's focus position) is one Target per Element.
 
 ### Slot
 
@@ -734,7 +792,7 @@ The Installation's grand master: one number from 0 to 1 that scales every `dimme
 after Resolve, before Encoding. Saved with the Installation and an Address,
 linkable to a Controller, since a grand master on a hub fader is the first
 thing a show asks for. Anything finer ("all colours", "the floor package") is
-a Look Layer or a Filter Layer targeting the Set `All` or a smaller one; no
+a Look Layer or a Filter Layer targeting a Set of every Fixture or a smaller one; no
 other global controls exist.
 
 ## 5. Rig View

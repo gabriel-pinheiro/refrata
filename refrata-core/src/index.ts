@@ -10,6 +10,7 @@ export * from "./document/composition.ts";
 export * from "./document/layers.ts";
 export * from "./document/look-rows.ts";
 export * from "./document/fixture-sets.ts";
+export * from "./document/tags.ts";
 export * from "./document/targets.ts";
 export * from "./document/macros.ts";
 export * from "./document/tree.ts";

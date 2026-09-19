@@ -5,22 +5,26 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { entities, type EntityKind } from "@/entities";
 import { TargetActionsSection } from "@/entities/target/target-actions";
+import { InspectorSection } from "@/inspector/fields/inspector-section";
+import { TagsField } from "@/inspector/fields/tags-field";
 import { useSignal } from "@/lib/client";
 
-import { selectedTargets } from "./selected-targets";
+import { selectedMembers, selectedTargets } from "./selected-targets";
 import { selectionKey, useSelection, type Selection } from "./selection";
 
 /**
  * What the inspector shows for several selected things: a count by kind,
- * the list in selection order with a cross to drop one, and, when every
- * item is a Fixture, an Element or a Set, what the selection can be used
- * for as Targets.
+ * the list in selection order with a cross to drop one, the Tags they share
+ * when every item is a Fixture or an Element, and, when every item is a
+ * Fixture, an Element or a Set, what the selection can be used for as
+ * Targets.
  */
 export function SelectionInspector({ view }: { readonly view: DocumentView }) {
   const { selected, select } = useSelection();
   const document = useSignal(view.document);
   if (document === undefined) return null;
   const refs = selectedTargets(document, selected);
+  const elements = selectedMembers(document, selected);
   return (
     <>
       <div className="grid gap-1 p-3">
@@ -51,6 +55,11 @@ export function SelectionInspector({ view }: { readonly view: DocumentView }) {
           </li>
         ))}
       </ol>
+      {elements !== undefined && (
+        <InspectorSection storageKey="tags" label="Tags">
+          <TagsField view={view} refs={elements} />
+        </InspectorSection>
+      )}
       {refs !== undefined && <TargetActionsSection view={view} refs={refs} />}
     </>
   );

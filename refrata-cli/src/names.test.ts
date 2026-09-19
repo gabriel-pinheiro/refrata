@@ -211,4 +211,32 @@ describe("resolvePayloadNames", () => {
       }),
     ).toThrow("matches 2 Controllers");
   });
+
+  it("reads Targets and Element refs by name where a command takes them", () => {
+    const document = stageLook();
+    expect(
+      resolvePayloadNames(document, "layer.targets.move", {
+        layerId: "Base",
+        target: "Strobe/panel-3",
+        after: "set:Wash",
+      }),
+    ).toEqual({
+      layerId: "base",
+      target: "strobe/panel-3",
+      after: "set:wash",
+    });
+    expect(
+      resolvePayloadNames(document, "fixture.tags.add", {
+        refs: ["Par", "Strobe/panel-1"],
+        tags: ["wall"],
+      }),
+    ).toEqual({ refs: ["par/root", "strobe/panel-1"], tags: ["wall"] });
+    // Elsewhere `after` is still a sibling of the command's table.
+    expect(
+      resolvePayloadNames(document, "layer.move", {
+        layerId: "Base",
+        after: null,
+      }),
+    ).toEqual({ layerId: "base", after: null });
+  });
 });

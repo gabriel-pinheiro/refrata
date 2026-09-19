@@ -2,12 +2,12 @@ import type { CommandResult } from "@refrata/protocol";
 import type { Command } from "commander";
 
 import type { Cli } from "../cli.ts";
-import { formatScenes, formatSets, formatStack } from "../composition-lines.ts";
+import { formatScenes, formatStack } from "../composition-lines.ts";
 import { parseValue } from "../connection.ts";
 import { resolveId, resolveRowRef, resolveTargetRef } from "../names.ts";
 import { formatCommandResult } from "../result.ts";
 
-/** Scenes, Layers, Looks, Sets, Master and Blackout: composing a show from the shell. */
+/** Scenes, Layers, Looks, Master and Blackout: composing a show from the shell. Sets are in `sets.ts`. */
 export function registerComposition(program: Command, cli: Cli): void {
   const scenes = program
     .command("scenes")
@@ -68,7 +68,7 @@ export function registerComposition(program: Command, cli: Cli): void {
   const layers = program
     .command("layers")
     .description(
-      "List a Scene's Layers topmost first (the default), or add one.",
+      "List a Scene's Layers topmost first (the default), add one, or spread a Target.",
     );
 
   layers
@@ -127,6 +127,31 @@ export function registerComposition(program: Command, cli: Cli): void {
         }),
     );
 
+  layers
+    .command("spread <layer> <target> <state>")
+    .description(
+      'Spread one Target on or off: on, a Set counts as its members and an Element as its children, one Target each. A Look Layer ignores it; "layers" prints what it expands to.',
+    )
+    .action((layer: string, target: string, state: string) =>
+      cli.withDocument(async (client, summary) => {
+        if (state !== "on" && state !== "off")
+          throw new Error("layers spread takes “on” or “off”.");
+        const { document } = await cli.replica(client, summary.id);
+        const result = await client.command<CommandResult>(
+          summary.id,
+          "layer.targets.spread",
+          {
+            layerId: resolveId(document, "layers", layer),
+            ref: resolveTargetRef(document, target),
+            spread: state === "on",
+          },
+        );
+        cli.print(result, () =>
+          formatCommandResult(result, "layer.targets.spread"),
+        );
+      }),
+    );
+
   program
     .command("look <layer> <action> <target> <attribute> [value]")
     .description(
@@ -167,49 +192,6 @@ export function registerComposition(program: Command, cli: Cli): void {
           );
           cli.print(result, () => formatCommandResult(result, "layer.row.set"));
         }),
-    );
-
-  const sets = program
-    .command("sets")
-    .description(
-      "List the Fixture Sets in their Groups (the default), or add one.",
-    );
-
-  sets
-    .command("list", { isDefault: true })
-    .description("List the Fixture Sets with their members in order.")
-    .action(() =>
-      cli.withDocument(async (client, summary) => {
-        const { document } = await cli.replica(client, summary.id);
-        cli.print(Object.values(document.fixtureSets), () =>
-          formatSets(document).join("\n"),
-        );
-      }),
-    );
-
-  sets
-    .command("add <name> [ref...]")
-    .description(
-      "Add a Fixture Set holding the Elements given, in order: a Fixture (its root) or <fixture>/<key>.",
-    )
-    .action((name: string, refs: string[]) =>
-      cli.withDocument(async (client, summary) => {
-        const { document } = await cli.replica(client, summary.id);
-        const members = refs.map((text) => {
-          const ref = resolveTargetRef(document, text);
-          if (ref.startsWith("set:"))
-            throw new Error(
-              `“${text}” is a Fixture Set; members are Elements.`,
-            );
-          return ref;
-        });
-        const result = await client.command<CommandResult>(
-          summary.id,
-          "set.create",
-          { name, members },
-        );
-        cli.print(result, () => formatCommandResult(result, "set.create"));
-      }),
     );
 
   program

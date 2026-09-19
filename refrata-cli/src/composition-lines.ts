@@ -3,9 +3,12 @@ import {
   attributeDefinition,
   BLEND_MODE_LABELS,
   childLayers,
+  expandTargets,
   isAttributeKey,
+  isRuleSet,
   layerEffectivelyEnabled,
   sceneLayers,
+  setMembers,
   targetLabel,
   type Document,
   type Layer,
@@ -14,12 +17,14 @@ import {
   type Scene,
 } from "@refrata/core";
 
+import { formatRule, unmatchedTags } from "./tag-lines.ts";
 import { formatTreeNodes, treeNodes } from "./tree-nodes.ts";
 
 /**
  * The composition as the CLI shows it: Scenes as one line each, a Scene's
- * stack topmost first with each Look Layer's Targets and rows under it, and
- * Sets in their Groups with their members named `Fixture › Element`.
+ * stack topmost first with each Look Layer's Targets and rows under it (a
+ * spread Target with what it expands to), and Sets in their Groups with
+ * their Rules and their members named `Fixture › Element`.
  */
 
 const percent = (value: number): string =>
@@ -85,7 +90,10 @@ function describeLayer(document: Document, layer: Layer): string {
   const off = layerEffectivelyEnabled(document.layers, layer) ? "" : "  [off]";
   if (layer.kind === "group") return `Group “${layer.name}”  ${layer.id}${off}`;
   const targets = layer.targets
-    .map((target) => targetLabel(document, target.ref))
+    .map(
+      (target) =>
+        `${targetLabel(document, target.ref)}${target.spread ? " (spread)" : ""}`,
+    )
     .join(", ");
   return `Look “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}  targets: ${targets === "" ? "none" : targets}${off}`;
 }
@@ -104,6 +112,14 @@ export function formatStack(document: Document, sceneId: string): string[] {
       const shared = describeRows(ALL_TARGETS_LABEL, layer.all);
       if (shared !== undefined) lines.push(`${indent}${shared}`);
       for (const target of layer.targets) {
+        if (target.spread) {
+          const expanded = expandTargets(document, [target])
+            .map((entry) => targetLabel(document, entry.ref))
+            .join(", ");
+          lines.push(
+            `${indent}${targetLabel(document, target.ref)} spreads to: ${expanded === "" ? "nothing" : expanded}`,
+          );
+        }
         const line = describeRows(
           targetLabel(document, target.ref),
           layer.rows[target.ref] ?? {},
@@ -116,15 +132,26 @@ export function formatStack(document: Document, sceneId: string): string[] {
   return lines;
 }
 
-/** Sets in their Groups, each with its members in order. */
+/** Sets in their Groups, each with its members in order; a Set by rule with its Rules first and the members they give now. */
 export function formatSets(document: Document): string[] {
   return formatTreeNodes(treeNodes(document.fixtureSets), (set) => {
     const head = `“${set.name}”  ${set.id}`;
     if (set.kind === "group") return `Group ${head}`;
-    const count = set.members.length;
-    const members = set.members
-      .map((ref) => targetLabel(document, ref))
-      .join(", ");
-    return `Set ${head}  ${String(count)} ${count === 1 ? "member" : "members"}${count === 0 ? "" : `: ${members}`}`;
+    const refs = setMembers(document, set);
+    const count = refs.length;
+    const members = refs.map((ref) => targetLabel(document, ref)).join(", ");
+    const tail = `${String(count)} ${count === 1 ? "member" : "members"}${count === 0 ? "" : `: ${members}`}`;
+    if (!isRuleSet(set)) return `Set ${head}  ${tail}`;
+    const unmatched = unmatchedTags(document, set.rules);
+    const rules =
+      set.rules.length === 0
+        ? "no Rules"
+        : set.rules
+            .map(
+              (rule, index) =>
+                `${String(index + 1)}. ${formatRule(rule, unmatched)}`,
+            )
+            .join("  ");
+    return `Set ${head}  by rule: ${rules}  ${tail}`;
   });
 }

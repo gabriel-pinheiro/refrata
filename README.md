@@ -13,23 +13,33 @@ a projection-mapping engine built the same way.
 
 ## Status
 
-Slice 2 of the build, "one Look": the composition exists end to end on top
-of the slice 1 Rig. Scenes as ordered stacks of Layers, Look Layers with
-rows per Target (an Element or a Fixture Set by list) under "All Targets"
-rows every Target takes unless its own overrides, Contributions (alpha
-stored, read as 1 for now), the five Blend Modes, Resolve bottom to top from Defaults with
-fan-down and the Target rule, Master and Blackout after Resolve, Scene play
-as a cut, Layer Addresses linkable to Controllers, the OSC tree carrying
-Scenes, Master and Layer leaves, one ordered selection across the Rig View
-and the navigator with Targets outlined and a picker to fill Layers and
-Sets, a DMX Tester holding raw channels over the show to probe a device
-before it has a Fixture Type, a watched library with a reload of the
-Installation's Fixture Type copies from it, and the CLI's `scenes`, `play`, `layers`,
-`look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig (Universes, one
-Enttec-compatible USB Output kind with hardware still to be verified,
-Fixture Types from `refrata-library/`, Patch, Highlight, Encoding at 40 Hz,
-the Resolved Stream) is unchanged underneath. Not yet: Transitions, Layer
-Fade, Visuals, Sets by rule. Slice 3, "parts and rules", is next to grill.
+Slice 3 of the build, "parts and rules", on top of slice 2's composition.
+Tags on Elements: declared by Modes, every Element key, the Fixture Type's
+key on the root, and a person's own on Fixtures and Elements, normalised as
+typed and renamed everywhere at once. Fixture Sets by rule: an ordered list
+of Rules, each all of its Tags, matched at the first Element down the tree
+where every Tag has been met, resolved live so a newly tagged Fixture joins
+and takes what a Look Layer says about the Set; "Convert to list" freezes
+one. "Override" on a Set Target's member adds that Element as a Target after
+the Set. Spread expansion of a Target (a Set to its members, an Element to
+its children) as Rig logic, shown by the CLI, with no Studio control until
+Visuals. The CLI gained `tags`, `tag`, `untag`, `sets add --rule`, `sets
+rules`, `sets convert` and `layers spread`.
+
+Slice 2, "one Look", underneath: Scenes as ordered stacks of Layers, Look
+Layers with rows per Target under "All Targets" rows every Target takes
+unless its own overrides, Contributions (alpha stored, read as 1 for now),
+the five Blend Modes, Resolve bottom to top from Defaults with fan-down and
+the Target rule, Master and Blackout after Resolve, Scene play as a cut,
+Layer Addresses linkable to Controllers, the OSC tree carrying Scenes,
+Master and Layer leaves, one ordered selection across the Rig View and the
+navigator with Targets outlined and a picker to fill Layers and Sets, a DMX
+Tester holding raw channels over the show, a watched library with a reload
+of the Installation's Fixture Type copies, and the CLI's `scenes`, `play`,
+`layers`, `look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig
+(Universes, Enttec-compatible and uDMX USB Outputs, Fixture Types from
+`refrata-library/`, Patch, Highlight, Encoding at 40 Hz, the Resolved
+Stream) is unchanged underneath. Not yet: Transitions, Layer Fade, Visuals.
 The design the rest is built against is in `GLOSSARY.md` and `docs/`.
 
 ## Read the design

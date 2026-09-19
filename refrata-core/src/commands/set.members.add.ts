@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isRuleSet } from "../document/fixture-sets.ts";
 import { memberProblem } from "../document/targets.ts";
 
 /** Appends Elements to a Set, or inserts them after one of its members; a member already there stays where it is. */
@@ -22,6 +23,10 @@ export const setMembersAdd = defineCommand({
     const set = document.fixtureSets[payload.setId];
     if (set?.kind !== "set")
       return rejected(`“${payload.setId}” is not a Fixture Set.`);
+    if (isRuleSet(set))
+      return rejected(
+        `${set.name} is a Set by rule; its members come from its Rules.`,
+      );
     const present = new Set(set.members);
     const added: string[] = [];
     for (const ref of new Set(payload.refs)) {

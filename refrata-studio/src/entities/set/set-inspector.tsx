@@ -1,5 +1,5 @@
 import type { DocumentView } from "@refrata/client";
-import { targetLabel, type FixtureSet } from "@refrata/core";
+import { isRuleSet, targetLabel, type FixtureSet } from "@refrata/core";
 import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -12,10 +12,13 @@ import { SortableItem, SortableList } from "@/navigator/sortable";
 import { TargetPicker } from "@/entities/target/target-picker";
 import { useSelection } from "@/selection/selection";
 
+import { RuleSetBody } from "./rule-set-body";
+
 /**
- * A Fixture Set's name and its members in order, each as `Fixture › Element`,
- * removable and draggable to reorder; "Add members" opens the picker over
- * the whole rig. A Group shows only its name.
+ * A Fixture Set's name and, for a Set by list, its members in order, each as
+ * `Fixture › Element`, removable and draggable to reorder; "Add members"
+ * opens the picker over the whole rig. A Set by rule shows its Rules
+ * instead. A Group shows only its name.
  */
 export function SetInspector({
   view,
@@ -44,7 +47,15 @@ export function SetInspector({
           onCommit={(name) => void command("set.rename", { setId: id, name })}
         />
       </div>
-      {set.kind === "set" && (
+      {set.kind === "set" && isRuleSet(set) && (
+        <RuleSetBody
+          view={view}
+          document={document}
+          set={set}
+          rules={set.rules}
+        />
+      )}
+      {set.kind === "set" && !isRuleSet(set) && (
         <InspectorSection
           storageKey="members"
           label="Members"

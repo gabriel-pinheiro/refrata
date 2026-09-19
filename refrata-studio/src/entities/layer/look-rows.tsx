@@ -28,6 +28,8 @@ import { useCommand } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
 import { cn } from "@/lib/utils";
 
+import { SetTargetMembers } from "./set-target-members";
+
 const FAMILY_LABELS: Record<AttributeFamily, string> = {
   intensity: "Intensity",
   color: "Color",
@@ -223,7 +225,7 @@ export function AllTargetsRows({
   );
 }
 
-/** One Target's block: its label as a collapsible header, then one line per Attribute it has. */
+/** One Target's block: its label as a collapsible header, a Set's members to override, then one line per Attribute it has. */
 export function TargetBlock({
   view,
   document,
@@ -260,6 +262,12 @@ export function TargetBlock({
       </button>
       {open && (
         <div className="grid gap-1.5 px-3 pt-0.5 pb-3">
+          <SetTargetMembers
+            view={view}
+            document={document}
+            layer={layer}
+            target={target}
+          />
           {attributes.length === 0 ? (
             <p className="text-[0.6875rem]/relaxed text-muted-foreground">
               Nothing here has a Parameter.

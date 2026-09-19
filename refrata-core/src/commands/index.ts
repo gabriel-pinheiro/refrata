@@ -17,6 +17,8 @@ import { fixturePatch } from "./fixture.patch.ts";
 import { fixturePlace } from "./fixture.place.ts";
 import { fixtureRemove } from "./fixture.remove.ts";
 import { fixtureRename } from "./fixture.rename.ts";
+import { fixtureTagsAdd } from "./fixture.tags.add.ts";
+import { fixtureTagsRemove } from "./fixture.tags.remove.ts";
 import { fixtureUngroup } from "./fixture.ungroup.ts";
 import { fixtureUpdate } from "./fixture.update.ts";
 import { installationRename } from "./installation.rename.ts";
@@ -30,6 +32,7 @@ import { layerRowSet } from "./layer.row.set.ts";
 import { layerTargetsAdd } from "./layer.targets.add.ts";
 import { layerTargetsMove } from "./layer.targets.move.ts";
 import { layerTargetsRemove } from "./layer.targets.remove.ts";
+import { layerTargetsSpread } from "./layer.targets.spread.ts";
 import { layerUngroup } from "./layer.ungroup.ts";
 import { layerUpdate } from "./layer.update.ts";
 import { linkCreate } from "./link.create.ts";
@@ -53,6 +56,7 @@ import { sceneDuplicate } from "./scene.duplicate.ts";
 import { sceneMove } from "./scene.move.ts";
 import { sceneRemove } from "./scene.remove.ts";
 import { sceneRename } from "./scene.rename.ts";
+import { setConvert } from "./set.convert.ts";
 import { setCreate } from "./set.create.ts";
 import { setMembersAdd } from "./set.members.add.ts";
 import { setMembersMove } from "./set.members.move.ts";
@@ -60,7 +64,12 @@ import { setMembersRemove } from "./set.members.remove.ts";
 import { setMove } from "./set.move.ts";
 import { setRemove } from "./set.remove.ts";
 import { setRename } from "./set.rename.ts";
+import { setRulesAdd } from "./set.rules.add.ts";
+import { setRulesMove } from "./set.rules.move.ts";
+import { setRulesRemove } from "./set.rules.remove.ts";
+import { setRulesUpdate } from "./set.rules.update.ts";
 import { setUngroup } from "./set.ungroup.ts";
+import { tagRename } from "./tag.rename.ts";
 import { testerHold } from "./tester.hold.ts";
 import { testerRelease, testerSet, testerZero } from "./tester.set.ts";
 import { universeCreate } from "./universe.create.ts";
@@ -80,6 +89,9 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   fixtureRename,
   fixtureMove,
   fixtureUngroup,
+  fixtureTagsAdd,
+  fixtureTagsRemove,
+  tagRename,
   fixtureUpdate,
   fixturePatch,
   fixturePlace,
@@ -93,6 +105,11 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   setMembersAdd,
   setMembersRemove,
   setMembersMove,
+  setRulesAdd,
+  setRulesUpdate,
+  setRulesRemove,
+  setRulesMove,
+  setConvert,
   sceneCreate,
   sceneRename,
   sceneMove,
@@ -106,6 +123,7 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   layerUpdate,
   layerTargetsAdd,
   layerTargetsRemove,
+  layerTargetsSpread,
   layerTargetsMove,
   layerRowSet,
   layerRowRelease,

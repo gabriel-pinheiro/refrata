@@ -4,6 +4,7 @@ import {
   allSets,
   childSets,
   flattenStack,
+  isRuleSet,
   isSetRef,
   orderedEntries,
   type LookLayer,
@@ -25,8 +26,8 @@ export interface LayerChoices {
 
 /**
  * What a selection of Fixtures, Elements and Sets can be used for: added to
- * a Look Layer as Targets, added to a Fixture Set as members (Sets cannot
- * be members), or made into a new Set. After adding, the Layer or Set is
+ * a Look Layer as Targets, added to a Fixture Set by list as members (Sets
+ * cannot be members, and a Set by rule takes none), or made into a new Set. After adding, the Layer or Set is
  * selected so the inspector shows the new Targets and the Rig View outlines
  * them. Render `dialog` wherever the hook is used; it names the new Set.
  */
@@ -47,7 +48,9 @@ export function useTargetActions(view: DocumentView) {
           ),
         }));
   const setChoices: readonly MemberSet[] =
-    document === undefined ? [] : allSets(document.fixtureSets);
+    document === undefined
+      ? []
+      : allSets(document.fixtureSets).filter((set) => !isRuleSet(set));
 
   function addToLayer(layer: LookLayer, refs: readonly string[]): void {
     const targets = refs.filter(

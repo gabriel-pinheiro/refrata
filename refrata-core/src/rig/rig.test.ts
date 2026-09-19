@@ -92,7 +92,7 @@ describe("Elements", () => {
     ]);
     expect(elements).toHaveLength(19);
     expect(elements.find((element) => element.key === "panel-3")?.tags).toEqual(
-      ["panel-3", "panel", "odd"],
+      ["panel-3", "panel", "odd", "bottom"],
     );
     expect(
       subtreeOf(elements, "strobe").map((element) => element.key),

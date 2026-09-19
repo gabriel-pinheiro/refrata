@@ -136,9 +136,23 @@ export const FIXTURE_SET_LABELS: Record<FixtureSetKind, string> = {
   group: "Group",
 };
 
+/** A Tag as a Rule names it: a person's or a declared Tag, or a Fixture Type key. */
+export const RuleTagSchema = z
+  .string()
+  .regex(
+    /^[a-z0-9][a-z0-9-]*(\/[a-z0-9][a-z0-9-]*)?$/,
+    "must be a Tag (lowercase letters, digits and dashes) or a Fixture Type key",
+  );
+
+/** Every Tag an Element must meet, on it or above it; none means every Fixture. */
+export const RuleSchema = z.array(RuleTagSchema);
+export type Rule = z.infer<typeof RuleSchema>;
+
 /**
- * A Fixture Set by list: an ordered list of Element references, from any
- * Fixtures at any depth. It only points; it stores no Parameter Values. A
+ * A Fixture Set is written one of two ways. By list: `members`, an ordered
+ * list of Element references from any Fixtures at any depth. By rule:
+ * `rules`, an ordered list of Rules resolved live against the Rig, with
+ * `members` left empty. It only points; it stores no Parameter Values. A
  * Group only arranges Sets in the navigator.
  */
 export const FixtureSetSchema = z.discriminatedUnion("kind", [
@@ -147,6 +161,7 @@ export const FixtureSetSchema = z.discriminatedUnion("kind", [
       ...FixtureSetBase,
       kind: z.literal("set"),
       members: z.array(z.string().min(1)),
+      rules: z.array(RuleSchema).optional(),
     })
     .strict(),
   z.object({ ...FixtureSetBase, kind: z.literal("group") }).strict(),

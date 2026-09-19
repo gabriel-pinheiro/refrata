@@ -1,5 +1,5 @@
 import type { DocumentView } from "@refrata/client";
-import { elementRef, targetElements } from "@refrata/core";
+import { elementRef, setMembers, targetElements } from "@refrata/core";
 import { useMemo } from "react";
 
 import { useSignal } from "@/lib/client";
@@ -26,7 +26,7 @@ export function useOutlined(
           refs.push(...layer.targets.map((target) => target.ref));
       } else if (item.kind === "set") {
         const set = document.fixtureSets[item.id];
-        if (set?.kind === "set") refs.push(...set.members);
+        if (set?.kind === "set") refs.push(...setMembers(document, set));
       }
     }
     const result: string[] = [];

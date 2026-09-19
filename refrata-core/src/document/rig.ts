@@ -97,6 +97,14 @@ export const PositionSchema = z
 export type Position = z.infer<typeof PositionSchema>;
 export const ORIGIN: Position = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
 
+/** A Tag a person adds: the shape Modes declare theirs in. */
+export const PersonTagSchema = z
+  .string()
+  .regex(
+    /^[a-z0-9][a-z0-9-]*$/,
+    "must be lowercase letters, digits and dashes",
+  );
+
 const FixtureBase = {
   id: z.string().min(1),
   name: EntityName,
@@ -115,7 +123,8 @@ export const FIXTURE_LABELS: Record<FixtureKind, string> = {
 /**
  * One device in the Rig: its type and Mode (the type is copied into
  * `fixtureTypes`), its Patch or none, its Position, and the Tags a person
- * added. It is the root Element of the tree its Mode declares.
+ * added: `tags` on the Fixture itself, which is the root Element of the tree
+ * its Mode declares, and `elementTags` by key on the Elements below it.
  */
 export const FixtureSchema = z.discriminatedUnion("kind", [
   z
@@ -126,7 +135,10 @@ export const FixtureSchema = z.discriminatedUnion("kind", [
       modeKey: z.string().min(1),
       patch: PatchSchema.nullable(),
       position: PositionSchema,
-      tags: z.array(z.string().min(1)).default([]),
+      tags: z.array(PersonTagSchema).default([]),
+      elementTags: z
+        .record(z.string().min(1), z.array(PersonTagSchema))
+        .default({}),
     })
     .strict(),
   z.object({ ...FixtureBase, kind: z.literal("group") }).strict(),

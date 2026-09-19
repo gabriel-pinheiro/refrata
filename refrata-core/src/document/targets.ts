@@ -11,8 +11,9 @@ import {
   subtreeOf,
   type Element,
 } from "../rig/elements.ts";
-import { parseSetRef, type MemberSet } from "./composition.ts";
+import { parseSetRef, type MemberSet, type Target } from "./composition.ts";
 import type { Document } from "./document.ts";
+import { setMembers } from "./fixture-sets.ts";
 import { fixtureElements } from "./fixtures.ts";
 import type { PatchedFixture } from "./rig.ts";
 
@@ -72,12 +73,54 @@ export function targetElements(
 ): readonly LocatedElement[] {
   const set = locateSet(document, ref);
   if (set !== undefined)
-    return set.members.flatMap((member) => {
+    return setMembers(document, set).flatMap((member) => {
       const located = locateElement(document, member);
       return located === undefined ? [] : [located];
     });
   const located = locateElement(document, ref);
   return located === undefined ? [] : [located];
+}
+
+/** One thing a Layer renders into once Spread is applied. */
+export interface ExpandedTarget {
+  /** The Target entry this came from. */
+  readonly source: string;
+  /** The entry's own ref, or the member or child a spread entry became. */
+  readonly ref: string;
+  readonly elements: readonly LocatedElement[];
+}
+
+/**
+ * A Layer's Targets with Spread applied, one level deep: a spread Set is
+ * its ordered members and a spread Element its children in tree order, one
+ * Target each; an Element without children stays itself. An entry that is
+ * not spread is one Target standing for all its Elements.
+ */
+export function expandTargets(
+  document: TargetSource,
+  targets: readonly Target[],
+): readonly ExpandedTarget[] {
+  return targets.flatMap((target): ExpandedTarget[] => {
+    const elements = targetElements(document, target.ref);
+    if (!target.spread)
+      return [{ source: target.ref, ref: target.ref, elements }];
+    if (locateSet(document, target.ref) !== undefined)
+      return elements.map((member) => ({
+        source: target.ref,
+        ref: member.ref,
+        elements: [member],
+      }));
+    const parent = elements[0];
+    if (parent === undefined) return [];
+    if (parent.element.children.length === 0)
+      return [{ source: target.ref, ref: target.ref, elements }];
+    return parent.element.children.flatMap((key) => {
+      const child = locateElement(document, elementRef(parent.fixture.id, key));
+      return child === undefined
+        ? []
+        : [{ source: target.ref, ref: child.ref, elements: [child] }];
+    });
+  });
 }
 
 /** Every Attribute found across a Target's Elements and their descendants, in vocabulary order. */

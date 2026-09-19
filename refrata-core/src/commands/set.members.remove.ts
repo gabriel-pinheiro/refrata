@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isRuleSet } from "../document/fixture-sets.ts";
 
 export const setMembersRemove = defineCommand({
   name: "set.members.remove",
@@ -18,6 +19,10 @@ export const setMembersRemove = defineCommand({
     const set = document.fixtureSets[payload.setId];
     if (set?.kind !== "set")
       return rejected(`“${payload.setId}” is not a Fixture Set.`);
+    if (isRuleSet(set))
+      return rejected(
+        `${set.name} is a Set by rule; its members come from its Rules.`,
+      );
     const going = new Set(payload.refs);
     for (const ref of going)
       if (!set.members.includes(ref))

@@ -52,13 +52,15 @@ describe("Rig lines", () => {
     // A create lands first, so the Strobe precedes the Group it was not put in.
     const lines = formatFixtures(stage());
     expect(lines[0]).toBe(
-      "Fixture “Strobe”  fx_s  generic/atomic-like-panel  unpatched (32ch, 32 channels)",
+      "Fixture “Strobe”  fx_s  generic/atomic-like-panel  unpatched (32ch, 32 channels)  [root generic/atomic-like-panel]",
     );
-    expect(lines[1]).toBe("  Backlight  fx_s/backlight");
-    expect(lines[2]).toBe("    Panel 1  fx_s/panel-1  dimmer, color");
+    expect(lines[1]).toBe("  Backlight  fx_s/backlight  [backlight]");
+    expect(lines[2]).toBe(
+      "    Panel 1  fx_s/panel-1  dimmer, color  [panel-1 panel odd bottom]",
+    );
     expect(lines[19]).toBe("Group “Truss”  fx_g");
     expect(lines[20]).toBe(
-      "  Fixture “Par”  fx_p  generic/rgb-3ch  Universe 1 @ 1 (3ch, 3 channels)",
+      "  Fixture “Par”  fx_p  generic/rgb-3ch  Universe 1 @ 1 (3ch, 3 channels)  [root generic/rgb-3ch]",
     );
     expect(lines).toHaveLength(3 + 18);
   });
