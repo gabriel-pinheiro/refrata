@@ -20,6 +20,9 @@ const SET_CHANNEL_RANGE = 2;
  * The uDMX an Output names: `any` for the first one, else a port location
  * or a serial number. Clones usually share one serial number, so a serial
  * number that several devices carry is an error naming their locations.
+ * A device on the shared ids that cannot be read is passed over while
+ * another matches; when none does it may be the uDMX, so it is an error
+ * saying how to give access, not a missing device.
  */
 export function pickUdmx(
   devices: readonly UsbDeviceInfo[],
@@ -28,9 +31,21 @@ export function pickUdmx(
   const udmxs = devices
     .filter((candidate) => candidate.productName === UDMX_PRODUCT_NAME)
     .toSorted((a, b) => a.location.localeCompare(b.location));
+  const missing = (message: string): Error => {
+    const unreadable = devices
+      .filter((candidate) => candidate.unreadable !== undefined)
+      .map(
+        (candidate) =>
+          `${candidate.location} (${candidate.unreadable ?? "unknown"})`,
+      );
+    if (unreadable.length === 0) return new DeviceMissingError(message);
+    return new Error(
+      `${message} Cannot read the USB device at ${unreadable.join(", ")}; on Linux a udev rule must give your user access to it.`,
+    );
+  };
   if (device === ANY_DEVICE) {
     const first = udmxs[0];
-    if (first === undefined) throw new DeviceMissingError("No uDMX found.");
+    if (first === undefined) throw missing("No uDMX found.");
     return first;
   }
   const atLocation = udmxs.find((candidate) => candidate.location === device);
@@ -40,9 +55,7 @@ export function pickUdmx(
   );
   const [only, ...others] = withSerial;
   if (only === undefined)
-    throw new DeviceMissingError(
-      `No uDMX with serial number or port location ${device}.`,
-    );
+    throw missing(`No uDMX with serial number or port location ${device}.`);
   if (others.length > 0)
     throw new Error(
       `${String(withSerial.length)} uDMX devices share serial number ${device}; name one by port location: ${withSerial.map((candidate) => candidate.location).join(", ")}.`,

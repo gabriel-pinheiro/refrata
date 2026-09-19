@@ -118,14 +118,13 @@ serial number, so a uDMX Output names its device by serial number or, when
 that is ambiguous, by USB port location (`3-4`); a serial number several
 connected devices carry is an error naming their locations.
 
-The first build ships one kind: an Enttec-compatible USB widget over a serial
-port. Both real Enttec widgets and every generic clone enumerate as the same
-FTDI chip; what differs is whether the widget frames DMX itself (DMX USB Pro
-and compatibles take packets) or the host must raise the break and stream 513
-bytes at 250 kbaud (Open DMX and its clones). The kind is named after the
-family the widget in hand turns out to be, `enttec-usb-pro` or
-`enttec-open-dmx`, and the other family is added when a second device shows
-up. Art-Net and sACN keep the design above and wait.
+The first transport is a serial port: an Enttec-compatible USB widget. Both
+real Enttec widgets and every generic clone enumerate as the same FTDI chip;
+what differs is whether the widget frames DMX itself (DMX USB Pro and
+compatibles take packets, `enttec-usb-pro`) or the host must raise the break
+and stream 513 bytes at 250 kbaud (Open DMX and its clones,
+`enttec-open-dmx`). Both families ship. Art-Net and sACN keep the design above
+and wait.
 
 The second transport is plain USB: `anyma-udmx`, the Anyma uDMX and its
 clones (vendor and product id `16c0:05dc`, shared by many hobby devices, so
@@ -139,7 +138,9 @@ drop per few hundred to few thousand frames, with or without a DMX cable
 attached). The Runtime therefore sends it only the range that changed since
 the last frame it took, and nothing when nothing changed; a reopened device is
 sent its whole frame, since a reset uDMX holds zeros. On Linux the user needs
-a udev rule granting access to the device, as QLC+ and OLA also require.
+a udev rule granting access to the device, as QLC+ and OLA also require; a
+device on the shared ids that cannot be read is passed over while a uDMX
+matches, and named in the error with the udev hint when none does.
 
 In the Runtime each transport family is a folder under `output/` (`serial/`,
 `usb/`, later `network/`) whose drivers open a link that takes frames; the

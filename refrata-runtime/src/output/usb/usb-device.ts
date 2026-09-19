@@ -11,6 +11,8 @@ export interface UsbDeviceInfo {
   readonly location: string;
   readonly productName: string | undefined;
   readonly serialNumber: string | undefined;
+  /** Why the names could not be read, when the device refused to be opened for them. */
+  readonly unreadable?: string;
 }
 
 /** A vendor control transfer from host to device. */
@@ -31,7 +33,9 @@ export interface UsbFactory {
   /**
    * The devices with this vendor and product id. Names are read only for
    * these: reading a device's names opens it, which other devices on the
-   * bus may refuse.
+   * bus may refuse. One that refuses is listed as `unreadable` rather than
+   * failing the list, since the ids may be shared with devices that are not
+   * ours to open.
    */
   list(vendorId: number, productId: number): Promise<readonly UsbDeviceInfo[]>;
   open(location: string): Promise<UsbHandle>;
@@ -67,12 +71,14 @@ export async function nodeUsbFactory(): Promise<UsbFactory> {
             serialNumber: device.serialNumber ?? undefined,
           };
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          throw new Error(
-            `Cannot read the USB device at ${location} (${message}); on Linux a udev rule must give your user access to it.`,
-            { cause: error },
-          );
+          return {
+            vendorId,
+            productId,
+            location,
+            productName: undefined,
+            serialNumber: undefined,
+            unreadable: error instanceof Error ? error.message : String(error),
+          };
         }
       });
     },

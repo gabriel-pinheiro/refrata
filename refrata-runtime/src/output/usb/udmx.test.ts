@@ -30,6 +30,21 @@ describe("pickUdmx", () => {
       "2 uDMX devices share serial number ilLUTZminator001; name one by port location: 3-2, 3-4.",
     );
   });
+
+  it("passes over an unreadable device while a uDMX matches, and says how to give access when none does", () => {
+    const denied = {
+      ...UDMX_DEVICE,
+      location: "1-3",
+      productName: undefined,
+      serialNumber: undefined,
+      unreadable: "open error: permission denied (errno 13)",
+    };
+    expect(pickUdmx([denied, UDMX_DEVICE], "any").location).toBe("3-4");
+    const refusal =
+      "No uDMX found. Cannot read the USB device at 1-3 (open error: permission denied (errno 13)); on Linux a udev rule must give your user access to it.";
+    expect(() => pickUdmx([denied], "any")).toThrow(refusal);
+    expect(() => pickUdmx([denied], "any")).not.toThrow(DeviceMissingError);
+  });
 });
 
 describe("changedRange", () => {
