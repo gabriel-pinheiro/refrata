@@ -239,4 +239,26 @@ describe("resolvePayloadNames", () => {
       }),
     ).toEqual({ layerId: "base", after: null });
   });
+  it("reads a Visual Layer's commands and Addresses by the Layer's name", () => {
+    const document = stageLook();
+    expect(
+      resolvePayloadNames(document, "layer.binding.set", {
+        layerId: "Base",
+        slot: "level",
+        attribute: "dimmer",
+      }),
+    ).toEqual({ layerId: "base", slot: "level", attribute: "dimmer" });
+    expect(
+      resolvePayloadNames(document, "layer.visual.set", {
+        layerId: "Base",
+        visual: "chase",
+      }),
+    ).toEqual({ layerId: "base", visual: "chase" });
+    expect(resolveAddressNames(document, "layer/Base/param/rate")).toBe(
+      "layer/base/param/rate",
+    );
+    expect(resolveAddressNames(document, "layer/Base/cue/step")).toBe(
+      "layer/base/cue/step",
+    );
+  });
 });

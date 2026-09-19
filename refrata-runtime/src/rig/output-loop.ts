@@ -2,6 +2,7 @@ import {
   resolveDocument,
   settings,
   universeFrames,
+  VisualPlayer,
   type Document,
   type ResolvedDocument,
 } from "@refrata/core";
@@ -14,13 +15,19 @@ export interface OutputLoopOptions {
   readonly store: DocumentStore;
   readonly outputs: OutputManager;
   readonly rateHz?: number;
+  /** Milliseconds from a steady clock; tests pass their own to step Visuals by hand. */
+  readonly now?: () => number;
 }
 
 /**
- * The output loop: at the output rate, resolve the open Installation,
- * encode one DMX Frame per Universe, hand the frames to the Outputs, and
+ * The output loop: at the output rate, step the playing Scene's Visuals,
+ * resolve the open Installation with what they wrote, encode one DMX Frame
+ * per Universe, hand the frames to the Outputs, and
  * keep the latest resolved values for the Resolved Stream and the CLI. It
  * runs whenever an Installation with a Universe is open, Outputs or not.
+ * The Visual instances live here and nowhere else: playing a Scene, the
+ * playing one included, makes them anew, and a Cue reaches the instance of
+ * its Layer.
  */
 export class OutputLoop {
   readonly #options: OutputLoopOptions;
@@ -35,6 +42,9 @@ export class OutputLoop {
   #fps = 0;
   #unsubscribeStore: (() => void) | undefined;
   #unsubscribeDeltas: (() => void) | undefined;
+  #unsubscribeEvents: (() => void) | undefined;
+  readonly #visuals = new VisualPlayer();
+  #steppedAt: number | undefined;
 
   constructor(options: OutputLoopOptions) {
     this.#options = options;
@@ -83,6 +93,13 @@ export class OutputLoop {
       if (delta.patches.some((patch) => patch.path[0] === "outputs"))
         void this.#options.outputs.sync(session.document.outputs);
     });
+    this.#unsubscribeEvents?.();
+    this.#unsubscribeEvents = session?.onEvent(({ address }) => {
+      const [table, id = "", kind, key = ""] = address.split("/");
+      if (table === "scene" && kind === "play") this.#visuals.restart();
+      if (table === "layer" && kind === "cue") this.#visuals.cue(id, key);
+    });
+    this.#visuals.restart();
     this.#document = session?.document;
     void this.#options.outputs.sync(session?.document.outputs ?? {});
     // A new document must not keep showing the old one's values.
@@ -94,12 +111,21 @@ export class OutputLoop {
     const session = this.#options.store.currentSession();
     const document = session?.document;
     this.#document = document;
+    const steppedAt = (
+      this.#options.now ?? performance.now.bind(performance)
+    )();
+    const dt =
+      this.#steppedAt === undefined ? 0 : (steppedAt - this.#steppedAt) / 1_000;
+    this.#steppedAt = steppedAt;
     if (document === undefined) {
       this.#resolved = new Map();
       this.#frames = new Map();
       return;
     }
-    this.#resolved = resolveDocument(document);
+    this.#resolved = resolveDocument(
+      document,
+      this.#visuals.step(document, dt),
+    );
     this.#frames = universeFrames(document, this.#resolved);
     this.#options.outputs.send(this.#frames);
     this.#ticks += 1;
@@ -125,6 +151,8 @@ export class OutputLoop {
     this.#timer = undefined;
     this.#unsubscribeStore?.();
     this.#unsubscribeDeltas?.();
+    this.#unsubscribeEvents?.();
+    this.#visuals.restart();
     await this.#options.outputs.close();
   }
 }

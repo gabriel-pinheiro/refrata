@@ -26,11 +26,15 @@ not introduce near-synonyms.
   (`refrata-core/src/address/`). Add the address; do not add a special case to
   Macros, OSC or the CLI.
 - Commands return patches; they never mutate. Performance commands (Blackout,
-  Controller values, and later Scene play and Cues) are `kind: "performance"`:
+  Controller values, Scene play and Cues) are `kind: "performance"`:
   replicated, not undoable, not dirtying.
 - Element Parameters are reached only through the stack (Layers over
   Targets). Never link a Controller or write an Address straight onto a
   fixture's Parameter; that is a Look Layer row with a Link.
+- A Visual lives in `refrata-core/src/visuals/`, one file each, registered
+  with one line in `catalog.ts`. It is written against kinds: it sees `dt`,
+  its Parameter Values and its Targets as key, index and count, never a
+  fixture, a Tag or a Position. Only the Runtime constructs a `VisualPlayer`.
 - Channels exist only inside a Mode's Encoding. Nothing above
   `refrata-core/src/rig/` may mention a DMX channel or a byte.
 - Tunables (history limits, autosave delay, ports, timeouts, output rate) live

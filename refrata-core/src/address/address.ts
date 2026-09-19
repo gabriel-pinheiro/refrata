@@ -6,7 +6,7 @@ import {
 } from "../parameters.ts";
 import type { Controller, Document } from "../document/document.ts";
 import { allFixtures, fixtureElements } from "../document/fixtures.ts";
-import { lookLayers } from "../document/layers.ts";
+import { targetedLayers } from "../document/layers.ts";
 import { orderedEntries } from "../document/order.ts";
 import {
   hasRowRef,
@@ -23,10 +23,12 @@ import { id as brand } from "../ids.ts";
 import {
   ALL_TARGETS_REF,
   isSetRef,
+  isTargetedLayer,
   SET_REF_PREFIX,
 } from "../document/composition.ts";
 import { isAttributeKey } from "../rig/attributes.ts";
 import { elementRef } from "../rig/elements.ts";
+import { visualPatterns } from "./visual-addresses.ts";
 
 /**
  * An Address names one controllable property or trigger in a Document, such
@@ -102,7 +104,7 @@ export function addressSource(partial: Partial<AddressSource>): AddressSource {
   };
 }
 
-interface AddressPattern {
+export interface AddressPattern {
   /**
    * Segments; `*` captures one entity id (never a name: names resolve to
    * ids in the CLI), and `<prefix>*` captures the rest of a segment that
@@ -291,7 +293,7 @@ const patterns: readonly AddressPattern[] = [
     pattern: ["layer", "*", "opacity"],
     resolve: (document, [id = ""]) => {
       const layer = document.layers[id];
-      if (layer?.kind !== "look") return undefined;
+      if (!isTargetedLayer(layer)) return undefined;
       return {
         label: "Opacity",
         owner: layer.name,
@@ -301,7 +303,8 @@ const patterns: readonly AddressPattern[] = [
         range: PERCENT,
       };
     },
-    list: (document) => lookLayers(document.layers).map((layer) => [layer.id]),
+    list: (document) =>
+      targetedLayers(document.layers).map((layer) => [layer.id]),
   },
   rowPattern(
     "all",
@@ -310,6 +313,7 @@ const patterns: readonly AddressPattern[] = [
   ),
   rowPattern("set", setRowRef, (captures) => captures[2] ?? ""),
   rowPattern("element", elementRowRef, (captures) => captures[3] ?? ""),
+  ...visualPatterns,
   {
     pattern: ["macro", "*", "run"],
     resolve: (document, [id = ""]) => {
@@ -422,7 +426,8 @@ export function controllerAddress(
 
 /**
  * Document tables whose Addresses a Controller may drive: a Layer's
- * opacity, enabled and rows, and the Installation's Master. A Controller's
+ * opacity, enabled, rows and Visual Parameters, and the Installation's
+ * Master. A Controller's
  * own value and the operational switches (Blackout, Highlight) are sources
  * of control or Macro actions, never targets.
  */

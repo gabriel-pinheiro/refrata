@@ -1,7 +1,7 @@
 import { z, type ZodType } from "zod";
 
 import type { FixtureSetId, Id, LayerId, SceneId } from "../ids.ts";
-import { ParameterValueSchema } from "../parameters.ts";
+import { ParameterValueSchema, ParameterValuesSchema } from "../parameters.ts";
 import { DEFAULT_ORDER_KEY } from "./order.ts";
 
 /**
@@ -54,8 +54,8 @@ export const ALL_TARGETS_REF = "all";
 /**
  * One Target entry of a Layer: an Element reference (`<fixtureId>/<key>`)
  * or a Fixture Set (`set:<id>`), and whether it spreads into its members at
- * resolve time. Spread is stored for Visual Layers to come; a Look Layer
- * ignores it.
+ * resolve time, which is what a Visual Layer distributes across; a Look
+ * Layer ignores it.
  */
 export const TargetSchema = z
   .object({ ref: z.string().min(1), spread: z.boolean().default(false) })
@@ -90,10 +90,26 @@ const LayerBase = {
   order: z.string().min(1).default(DEFAULT_ORDER_KEY),
 };
 
-export const LAYER_KINDS = ["look", "group"] as const;
+/**
+ * A Visual Layer's assignment of one Slot: the Attribute it reaches, or
+ * null for none, and for a number Slot the two anchors mapping the Slot's 0
+ * and 1 into the Attribute's units. Anchors calibrate to the fixtures and
+ * are not Addresses.
+ */
+export const SlotBindingSchema = z
+  .object({
+    attribute: z.string().min(1).nullable(),
+    from: z.number().optional(),
+    to: z.number().optional(),
+  })
+  .strict();
+export type SlotBinding = z.infer<typeof SlotBindingSchema>;
+
+export const LAYER_KINDS = ["look", "visual", "group"] as const;
 export type LayerKind = (typeof LAYER_KINDS)[number];
 export const LAYER_LABELS: Record<LayerKind, string> = {
   look: "Look Layer",
+  visual: "Visual Layer",
   group: "Group",
 };
 
@@ -101,8 +117,11 @@ export const LAYER_LABELS: Record<LayerKind, string> = {
  * A Layer of a Scene. A Look Layer is the static one: Targets, rows per
  * Target, the "All Targets" rows in `all` that every Target takes unless
  * its own row overrides them, an opacity that is its fader, and a Blend
- * Mode. A Group has `enabled` and nothing else, so a submaster is a
- * Controller on the opacities it should ride.
+ * Mode. A Visual Layer runs one Visual of the Catalog over its Targets:
+ * the Visual's id, its Parameter Values, one Slot Binding per Slot, and the
+ * same opacity and Blend Mode, shared by every Slot. A Group has `enabled`
+ * and nothing else, so a submaster is a Controller on the opacities it
+ * should ride.
  */
 export const LayerSchema = z.discriminatedUnion("kind", [
   z
@@ -116,10 +135,31 @@ export const LayerSchema = z.discriminatedUnion("kind", [
       all: AttributeRowsSchema.default({}),
     })
     .strict(),
+  z
+    .object({
+      ...LayerBase,
+      kind: z.literal("visual"),
+      targets: z.array(TargetSchema),
+      opacity: z.number().min(0).max(1),
+      blendMode: BlendModeSchema,
+      visual: z.string().min(1),
+      parameters: ParameterValuesSchema,
+      bindings: z.record(z.string().min(1), SlotBindingSchema),
+    })
+    .strict(),
   z.object({ ...LayerBase, kind: z.literal("group") }).strict(),
 ]);
 export type Layer = Entity<typeof LayerSchema, LayerId>;
 export type LookLayer = Extract<Layer, { kind: "look" }>;
+export type VisualLayer = Extract<Layer, { kind: "visual" }>;
+/** A Layer with Targets, opacity and a Blend Mode: every kind but a Group. */
+export type TargetedLayer = LookLayer | VisualLayer;
+
+export function isTargetedLayer(
+  layer: Layer | undefined,
+): layer is TargetedLayer {
+  return layer?.kind === "look" || layer?.kind === "visual";
+}
 
 const FixtureSetBase = {
   id: z.string().min(1),

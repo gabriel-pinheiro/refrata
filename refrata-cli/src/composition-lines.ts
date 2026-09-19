@@ -1,10 +1,8 @@
 import {
   ALL_TARGETS_LABEL,
-  attributeDefinition,
   BLEND_MODE_LABELS,
   childLayers,
   expandTargets,
-  isAttributeKey,
   isRuleSet,
   layerEffectivelyEnabled,
   sceneLayers,
@@ -13,50 +11,23 @@ import {
   type Document,
   type Layer,
   type LookRow,
-  type ParameterValue,
   type Scene,
 } from "@refrata/core";
 
 import { formatRule, unmatchedTags } from "./tag-lines.ts";
 import { formatTreeNodes, treeNodes } from "./tree-nodes.ts";
+import { formatRowValue, percent } from "./value-lines.ts";
+import { visualLayerLines, visualName } from "./visual-lines.ts";
+
+export { formatRowValue } from "./value-lines.ts";
 
 /**
  * The composition as the CLI shows it: Scenes as one line each, a Scene's
- * stack topmost first with each Look Layer's Targets and rows under it (a
- * spread Target with what it expands to), and Sets in their Groups with
+ * stack topmost first with each Look Layer's Targets and rows under it and
+ * each Visual Layer's Visual, Parameters, bindings and Cues (a spread Target
+ * with what it expands to), and Sets in their Groups with
  * their Rules and their members named `Fixture › Element`.
  */
-
-const percent = (value: number): string =>
-  `${String(Math.round(value * 100))}%`;
-
-function hex(color: readonly number[]): string {
-  return `#${color
-    .slice(0, 3)
-    .map((channel) =>
-      Math.round(Math.min(1, Math.max(0, channel)) * 255)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-}
-
-/** A row's value in its Attribute's units: 40%, 12 Hz, #00ff00, open. */
-export function formatRowValue(
-  attribute: string,
-  value: ParameterValue,
-): string {
-  if (Array.isArray(value)) return hex(value);
-  if (typeof value === "boolean") return value ? "on" : "off";
-  if (typeof value !== "number") return String(value);
-  const definition = isAttributeKey(attribute)
-    ? attributeDefinition(attribute)
-    : undefined;
-  if (definition?.kind !== "number") return String(value);
-  if (definition.percent === true) return percent(value);
-  const text = Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return definition.unit === undefined ? text : `${text} ${definition.unit}`;
-}
 
 function describeRow(attribute: string, row: LookRow): string {
   return `${attribute} ${formatRowValue(attribute, row.value)}`;
@@ -95,10 +66,11 @@ function describeLayer(document: Document, layer: Layer): string {
         `${targetLabel(document, target.ref)}${target.spread ? " (spread)" : ""}`,
     )
     .join(", ");
-  return `Look “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}  targets: ${targets === "" ? "none" : targets}${off}`;
+  const kind = layer.kind === "look" ? "Look" : `Visual (${visualName(layer)})`;
+  return `${kind} “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}  targets: ${targets === "" ? "none" : targets}${off}`;
 }
 
-/** A Scene's stack topmost first, Groups indented, each Look Layer's rows under it: All Targets first, then per Target. */
+/** A Scene's stack topmost first, Groups indented; under a Look Layer its rows, All Targets first, then per Target; under a Visual Layer what `visualLayerLines` says. */
 export function formatStack(document: Document, sceneId: string): string[] {
   const lines: string[] = [];
   const visit = (parentId: string | null, depth: number): void => {
@@ -109,7 +81,13 @@ export function formatStack(document: Document, sceneId: string): string[] {
         continue;
       }
       const indent = "  ".repeat(depth + 1);
-      const shared = describeRows(ALL_TARGETS_LABEL, layer.all);
+      if (layer.kind === "visual")
+        for (const line of visualLayerLines(document, layer))
+          lines.push(`${indent}${line}`);
+      const shared =
+        layer.kind === "look"
+          ? describeRows(ALL_TARGETS_LABEL, layer.all)
+          : undefined;
       if (shared !== undefined) lines.push(`${indent}${shared}`);
       for (const target of layer.targets) {
         if (target.spread) {
@@ -120,6 +98,7 @@ export function formatStack(document: Document, sceneId: string): string[] {
             `${indent}${targetLabel(document, target.ref)} spreads to: ${expanded === "" ? "nothing" : expanded}`,
           );
         }
+        if (layer.kind !== "look") continue;
         const line = describeRows(
           targetLabel(document, target.ref),
           layer.rows[target.ref] ?? {},

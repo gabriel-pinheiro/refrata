@@ -6,8 +6,9 @@ import {
   flattenStack,
   isRuleSet,
   isSetRef,
+  isTargetedLayer,
   orderedEntries,
-  type LookLayer,
+  type TargetedLayer,
   type MemberSet,
   type Scene,
 } from "@refrata/core";
@@ -18,15 +19,15 @@ import { useCommand, useSignal } from "@/lib/client";
 import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
 
-/** The Look Layers of one Scene, topmost first, as a menu group. */
+/** The Look and Visual Layers of one Scene, topmost first, as a menu group. */
 export interface LayerChoices {
   readonly scene: Scene;
-  readonly layers: readonly LookLayer[];
+  readonly layers: readonly TargetedLayer[];
 }
 
 /**
  * What a selection of Fixtures, Elements and Sets can be used for: added to
- * a Look Layer as Targets, added to a Fixture Set by list as members (Sets
+ * a Look or Visual Layer as Targets, added to a Fixture Set by list as members (Sets
  * cannot be members, and a Set by rule takes none), or made into a new Set. After adding, the Layer or Set is
  * selected so the inspector shows the new Targets and the Rig View outlines
  * them. Render `dialog` wherever the hook is used; it names the new Set.
@@ -44,7 +45,7 @@ export function useTargetActions(view: DocumentView) {
       : orderedEntries(document.scenes).map((scene) => ({
           scene,
           layers: flattenStack(document.layers, scene.id).filter(
-            (layer): layer is LookLayer => layer.kind === "look",
+            isTargetedLayer,
           ),
         }));
   const setChoices: readonly MemberSet[] =
@@ -52,7 +53,7 @@ export function useTargetActions(view: DocumentView) {
       ? []
       : allSets(document.fixtureSets).filter((set) => !isRuleSet(set));
 
-  function addToLayer(layer: LookLayer, refs: readonly string[]): void {
+  function addToLayer(layer: TargetedLayer, refs: readonly string[]): void {
     const targets = refs.filter(
       (ref) => !layer.targets.some((target) => target.ref === ref),
     );

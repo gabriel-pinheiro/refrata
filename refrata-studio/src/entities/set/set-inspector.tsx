@@ -108,6 +108,20 @@ export function SetInspector({
           )}
         </InspectorSection>
       )}
+      {set.kind === "set" && (
+        <p
+          className="border-t px-3 py-2 text-[0.6875rem]/relaxed text-muted-foreground"
+          data-testid="set-order"
+        >
+          {isRuleSet(set)
+            ? "Order: Rule by Rule, and within a Rule the Fixtures' order in the navigator, then each Fixture's own tree order."
+            : "Order: the list above, as dragged."}{" "}
+          A Visual such as a Chase or a Rainbow walks a spread Set in this order
+          {isRuleSet(set)
+            ? "; reorder the Fixtures in the navigator, or convert to a list, to change it."
+            : "."}
+        </p>
+      )}
       {picking && set.kind === "set" && (
         <TargetPicker
           view={view}

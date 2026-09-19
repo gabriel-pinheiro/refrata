@@ -1,15 +1,17 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isTargetedLayer } from "../document/composition.ts";
 
 /**
  * Sets Spread on one Target entry: on, a Set counts as its members and an
- * Element as its children, one Target each. A Look Layer ignores it.
+ * Element as its children, one Target each, which is what a Visual
+ * distributes across. A Look Layer ignores it.
  */
 export const layerTargetsSpread = defineCommand({
   name: "layer.targets.spread",
   kind: "authoring",
-  description: "Turn Spread on or off for one Target of a Look Layer.",
+  description: "Turn Spread on or off for one Target of a Layer.",
   payload: z
     .object({
       layerId: z.string().min(1),
@@ -20,8 +22,8 @@ export const layerTargetsSpread = defineCommand({
   label: ({ spread }) => (spread ? "Spread Target" : "Unspread Target"),
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
-    if (layer?.kind !== "look")
-      return rejected(`“${payload.layerId}” is not a Look Layer.`);
+    if (!isTargetedLayer(layer))
+      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
     const target = layer.targets.find((entry) => entry.ref === payload.ref);
     if (target === undefined)
       return rejected(`“${payload.ref}” is not a Target of ${layer.name}.`);

@@ -2,7 +2,7 @@ import { effectiveAt } from "../address/links.ts";
 import type { Document } from "../document/document.ts";
 import { allFixtures, fixtureElements } from "../document/fixtures.ts";
 import { childLayers } from "../document/layers.ts";
-import type { LookLayer } from "../document/composition.ts";
+import type { TargetedLayer } from "../document/composition.ts";
 import type {
   Color,
   ParameterDefinition,
@@ -14,6 +14,10 @@ import { elementRef, type Element } from "../rig/elements.ts";
 import { defaultsOf } from "../rig/encoding.ts";
 import { blendValue } from "./blend.ts";
 import { lookContributions } from "./contributions.ts";
+import {
+  visualContributions,
+  type VisualOutputs,
+} from "./visual-contributions.ts";
 
 /** Every Element's resolved values, keyed by `<fixtureId>/<key>`. */
 export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
@@ -21,13 +25,18 @@ export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
 /**
  * Resolve: every Element's Parameter Values for this frame. Start from the
  * Mode's Defaults, apply the active Scene's Layers bottom to top with their
- * opacity and Blend Mode, then Master scales every `dimmer`, Blackout
+ * opacity and Blend Mode (a Look Layer from its rows, a Visual Layer from
+ * what its Visual wrote this frame, handed in as `visuals` by whoever steps
+ * the instances), then Master scales every `dimmer`, Blackout
  * forces `dimmer` 0 and `shutter` closed, and a held Highlight overrides.
  * Links are read here, so a Controller on a Layer's opacity or row is seen
  * at the output rate. Nothing below the Element level is touched: bytes are
  * Encoding's business.
  */
-export function resolveDocument(document: Document): ResolvedDocument {
+export function resolveDocument(
+  document: Document,
+  visuals?: VisualOutputs,
+): ResolvedDocument {
   const values = new Map<string, Record<string, ParameterValue>>();
   const elements = new Map<string, Element>();
   const highlighted = new Map<string, boolean>();
@@ -48,7 +57,11 @@ export function resolveDocument(document: Document): ResolvedDocument {
       layer.opacity,
     );
     if (typeof opacity !== "number" || opacity <= 0) continue;
-    for (const [ref, byAttribute] of lookContributions(document, layer)) {
+    const contributions =
+      layer.kind === "look"
+        ? lookContributions(document, layer)
+        : visualContributions(document, layer, visuals?.get(layer.id));
+    for (const [ref, byAttribute] of contributions) {
       const own = values.get(ref);
       const element = elements.get(ref);
       if (own === undefined || element === undefined) continue;
@@ -91,11 +104,11 @@ export function resolveDocument(document: Document): ResolvedDocument {
   return values;
 }
 
-/** The active Scene's Look Layers bottom to top, skipping anything disabled by itself or a Group above it. */
-function activeStack(document: Document): readonly LookLayer[] {
+/** The active Scene's Look and Visual Layers bottom to top, skipping anything disabled by itself or a Group above it. */
+function activeStack(document: Document): readonly TargetedLayer[] {
   const sceneId = document.installation.activeScene;
   if (sceneId === null || !(sceneId in document.scenes)) return [];
-  const result: LookLayer[] = [];
+  const result: TargetedLayer[] = [];
   const visit = (parentId: string | null): void => {
     for (const layer of childLayers(document.layers, sceneId, parentId)) {
       const enabled = effectiveAt(

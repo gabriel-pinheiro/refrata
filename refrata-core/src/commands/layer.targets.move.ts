@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isTargetedLayer } from "../document/composition.ts";
 
 /** Places a Target after another (or first): order decides which Target wins where two reach one Element. */
 export const layerTargetsMove = defineCommand({
@@ -20,8 +21,8 @@ export const layerTargetsMove = defineCommand({
     `layer.targets.move:${layerId}:${target}`,
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
-    if (layer?.kind !== "look")
-      return rejected(`“${payload.layerId}” is not a Look Layer.`);
+    if (!isTargetedLayer(layer))
+      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
     const moving = layer.targets.find((t) => t.ref === payload.target);
     if (moving === undefined)
       return rejected(`“${payload.target}” is not a Target of the Layer.`);

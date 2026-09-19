@@ -13,6 +13,7 @@ Working from a shell
              this shell's undo history (default: user@host).
 
   Read       health, library, fixtures, tags, sets, scenes, layers <scene>,
+             visuals [id] (the Catalog, or one Visual of it),
              controllers, macros, osc, get [path|Address], addresses,
              commands, describe <command> (its payload fields; --json for
              the schema), dmx <universe> (the 512 bytes going out, runs
@@ -68,6 +69,28 @@ Working from a shell
              dimmer; blackout on|off forces them to 0. play and blackout are
              show control (never undone); the rest is authoring.
 
+  Visuals    layers add <scene> <name> --visual <id> [--target <t>]...  a
+             Visual Layer running one Visual of the Catalog (lfo, shimmer,
+             chase, rainbow, static-number, static-color, circle) over its
+             Targets, with the Visual's default Parameters and bindings.
+             A Visual sees its Targets in order, a Set in the Set's order;
+             a Target arrives not spread, and "layers" warns when a Chase
+             or a Rainbow has one Target: spread it to step through it.
+             layers param <layer> <name> <value>  sets a Visual Parameter
+             (rate 2, order bounce, color '[1,1,1,1]'); rates are in Hz.
+             layers bind <layer> <slot> <attribute|none> [--from x --to y]
+             binds a Slot to an Attribute; --from and --to are what a
+             number Slot's 0 and 1 become in the Attribute's units (they
+             calibrate to the fixtures and are not Addresses). Shimmer and
+             Chase have a color and a level Slot, either or both bound.
+             layers visual <layer> <id>  changes the Visual; Parameters
+             and bindings start over.
+             cue <layer> <key>  fires a Cue (chase: step, restart; shimmer:
+             fire; lfo, rainbow, circle: sync). Show control, never undone;
+             a Layer outside the playing Scene has no running Visual and
+             drops it. Playing the playing Scene again restarts every
+             Visual in it.
+
   Write      run <command> [json]  any command; ids come back in "created".
              edit <Address> <value>  authoring change, undoable.
              set <Address> <value>   show control, never undone.
@@ -92,6 +115,7 @@ Working from a shell
              scene/<id|name>/play             element/<fixture>/<key>/highlight
              layer/<id|name>/opacity          layer/<id|name>/enabled
              layer/<id|name>/row/<target|all>/<attribute>
+             layer/<id|name>/param/<name>     layer/<id|name>/cue/<key>
              (a row's <target> is written as in "look"; "addresses" lists
              them all; link, edit and set take any of them)
 
@@ -107,7 +131,11 @@ Working from a shell
              tag Par wall
              sets add Wall --rule wall
              layers add Verse Wash --target set:Wall
+             layers add Verse Breathe --visual lfo --target set:Wall
+             layers bind Breathe value dimmer --from 0.2 --to 0.6
+             layers param Breathe rate 0.25
              play Verse
+             cue Breathe sync
              dmx "Universe 1"
              run controller.create '{"kind":"number","name":"Fader",
                  "addresses":["layer/Base/row/Par/dimmer"]}'

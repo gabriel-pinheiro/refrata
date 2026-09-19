@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { linkAt } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import { BlendModeSchema } from "../document/composition.ts";
+import { BlendModeSchema, isTargetedLayer } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
 import type { Patch } from "../document/patch.ts";
 
@@ -19,7 +19,8 @@ function controlled(
 
 /**
  * Settings of a Layer, each optional so one call changes any subset:
- * enabled on every kind, opacity and Blend Mode on Look Layers. Enabled
+ * enabled on every kind, opacity and Blend Mode on every kind but a
+ * Group. Enabled
  * and opacity are also Addresses (`layer/<id>/enabled`, `layer/<id>/opacity`)
  * and refuse a hand edit while a Controller drives them.
  */
@@ -62,8 +63,7 @@ export const layerUpdate = defineCommand({
       set("enabled", payload.enabled);
     }
     if (payload.opacity !== undefined) {
-      if (layer.kind !== "look")
-        return rejected("Only Look Layers have opacity.");
+      if (!isTargetedLayer(layer)) return rejected("A Group has no opacity.");
       const problem = controlled(
         document,
         `layer/${layer.id}/opacity`,
@@ -73,8 +73,8 @@ export const layerUpdate = defineCommand({
       set("opacity", payload.opacity);
     }
     if (payload.blendMode !== undefined) {
-      if (layer.kind !== "look")
-        return rejected("Only Look Layers have a Blend Mode.");
+      if (!isTargetedLayer(layer))
+        return rejected("A Group has no Blend Mode.");
       set("blendMode", payload.blendMode);
     }
     return accepted(patches);

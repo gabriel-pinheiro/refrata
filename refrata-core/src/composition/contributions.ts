@@ -2,7 +2,7 @@ import { effectiveAt, linksUnder } from "../address/links.ts";
 import { ALL_TARGETS_REF, type LookLayer } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
 import { rowsAt, storedRow } from "../document/look-rows.ts";
-import { targetElements } from "../document/targets.ts";
+import { targetElements, type LocatedElement } from "../document/targets.ts";
 import type { ParameterValue } from "../parameters.ts";
 import { isAttributeKey, type AttributeKey } from "../rig/attributes.ts";
 import { elementRef, subtreeOf } from "../rig/elements.ts";
@@ -19,7 +19,7 @@ export type Contributions = ReadonlyMap<
   ReadonlyMap<AttributeKey, Contribution>
 >;
 
-interface Candidate extends Contribution {
+export interface Candidate extends Contribution {
   /** Whether the row sat on the Element's own Target, not an ancestor's. */
   readonly own: boolean;
   /** Position of the Target in the Layer's list; later wins among equals. */
@@ -101,33 +101,48 @@ export function lookContributions(
       if (row !== undefined) rows.set(attribute, row);
     }
     if (rows.size === 0) return;
-    for (const located of targetElements(document, target.ref)) {
-      const subtree = subtreeOf(located.elements, located.element.key);
-      for (const [attribute, row] of rows) {
-        const owners =
-          attribute in located.element.parameters
-            ? [located.element]
-            : subtree.filter((element) => attribute in element.parameters);
-        for (const owner of owners) {
-          const ref = elementRef(located.fixture.id, owner.key);
-          let byAttribute = best.get(ref);
-          if (byAttribute === undefined) {
-            byAttribute = new Map();
-            best.set(ref, byAttribute);
-          }
-          const candidate: Candidate = {
-            ...row,
-            own: owner === located.element,
-            index,
-          };
-          const current = byAttribute.get(attribute);
-          if (current === undefined || beats(candidate, current))
-            byAttribute.set(attribute, candidate);
-        }
-      }
-    }
+    for (const located of targetElements(document, target.ref))
+      for (const [attribute, row] of rows)
+        landContribution(best, located, attribute, row, index);
   });
   return best;
+}
+
+/**
+ * Lands one Contribution of the Target at `index` on a located Element: on
+ * the Element when it owns the Attribute, else on every descendant that
+ * does, keeping per Element and Attribute the candidate that wins by the
+ * Target rule.
+ */
+export function landContribution(
+  best: Map<string, Map<AttributeKey, Candidate>>,
+  located: LocatedElement,
+  attribute: AttributeKey,
+  contribution: Contribution,
+  index: number,
+): void {
+  const owners =
+    attribute in located.element.parameters
+      ? [located.element]
+      : subtreeOf(located.elements, located.element.key).filter(
+          (element) => attribute in element.parameters,
+        );
+  for (const owner of owners) {
+    const ref = elementRef(located.fixture.id, owner.key);
+    let byAttribute = best.get(ref);
+    if (byAttribute === undefined) {
+      byAttribute = new Map();
+      best.set(ref, byAttribute);
+    }
+    const candidate: Candidate = {
+      ...contribution,
+      own: owner === located.element,
+      index,
+    };
+    const current = byAttribute.get(attribute);
+    if (current === undefined || beats(candidate, current))
+      byAttribute.set(attribute, candidate);
+  }
 }
 
 function beats(candidate: Candidate, current: Candidate): boolean {

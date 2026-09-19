@@ -22,6 +22,7 @@ import { fixtureTagsRemove } from "./fixture.tags.remove.ts";
 import { fixtureUngroup } from "./fixture.ungroup.ts";
 import { fixtureUpdate } from "./fixture.update.ts";
 import { installationRename } from "./installation.rename.ts";
+import { layerBindingSet } from "./layer.binding.set.ts";
 import { layerCreate } from "./layer.create.ts";
 import { layerDuplicate } from "./layer.duplicate.ts";
 import { layerMove } from "./layer.move.ts";
@@ -35,6 +36,7 @@ import { layerTargetsRemove } from "./layer.targets.remove.ts";
 import { layerTargetsSpread } from "./layer.targets.spread.ts";
 import { layerUngroup } from "./layer.ungroup.ts";
 import { layerUpdate } from "./layer.update.ts";
+import { layerVisualSet } from "./layer.visual.set.ts";
 import { linkCreate } from "./link.create.ts";
 import { linkRemove } from "./link.remove.ts";
 import { linkUpdate } from "./link.update.ts";
@@ -127,6 +129,8 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   layerTargetsMove,
   layerRowSet,
   layerRowRelease,
+  layerVisualSet,
+  layerBindingSet,
   layerRemove,
   controllerCreate,
   controllerRename,

@@ -22,7 +22,7 @@ import { InspectorSection } from "@/inspector/fields/inspector-section";
 
 import { useTargetActions, type LayerChoices } from "./use-target-actions";
 
-const NO_LAYERS = "No Look Layer yet. Add one to a Scene first.";
+const NO_LAYERS = "No Layer yet. Add one to a Scene first.";
 const NO_SETS = "No Fixture Set yet.";
 
 /**
@@ -51,7 +51,7 @@ export function TargetActionsSection({
             disabled={layers.length === 0}
             title={layers.length === 0 ? NO_LAYERS : undefined}
           >
-            <Layers /> Add to Look Layer <ChevronDown />
+            <Layers /> Add to Layer <ChevronDown />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <LayerItems
@@ -136,7 +136,7 @@ export function TargetContextItems({
     <>
       <ContextMenuSub>
         <ContextMenuSubTrigger disabled={layers.length === 0}>
-          <Layers /> Add to Look Layer
+          <Layers /> Add to Layer
         </ContextMenuSubTrigger>
         <ContextMenuSubContent>
           {layers.map((group) => (

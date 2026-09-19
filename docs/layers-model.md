@@ -68,8 +68,10 @@ Set. No separate "Fixture Target" is needed, and from a Visual's point of view
 a Target is opaque: one controllable thing that accepts Contributions and
 happens to have some Attributes.
 
-Every Layer carries one **ordered list** of Targets, and a Visual declares
-whether it uses one or many. This covers the distinction the brief draws:
+Every Layer carries one **ordered list** of Targets, and every Visual is
+handed the whole list after Spread, each Target as a key, an index and the
+count; a Visual that does not care about order writes the same at every
+index. This covers the distinction the brief draws:
 
 - a Chase given three Targets, `Atomic 1`, `Atomic 2`, `Atomic 3`, steps
   the three devices, each flashing all eight Panels at once;
@@ -105,8 +107,10 @@ Scene `Verse`, bottom to top:
 2. **Visual Layer** `Shimmer`, Target `All Aura Panels` spread, Visual
    Shimmer, its `color` Parameter white. Shimmer writes, per Target and per
    frame, white with an alpha it animates from 0 up and back down at random
-   moments. Panels flash white over the green and return; nothing else is
-   touched because Shimmer declares it writes `color` only.
+   moments, and nothing at all for a Panel between sparkles. Panels flash
+   white over the green and return; nothing else is touched because only
+   Shimmer's `color` Slot is bound. Bind its `level` Slot to `dimmer` as well
+   and the sparkle is full white instead of white at 0.4.
 3. **The fade in.** Not a Layer: it is the Scene's Transition Time when
    `Verse` is played from a `Dark` Scene, or a Layer Fade on `Base` when a
    Macro enables it. See docs/transitions.md. Either way the rig comes up

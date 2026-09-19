@@ -9,7 +9,7 @@ document, a web Studio edits it through commands, everything controllable is an
 Address, and performance input arrives over OSC/OSCQuery from a hub such as
 Chataigne. Terms Difracta already defines with the same meaning (Runtime, Studio,
 Command, Address, Revision, Inspector, Navigator, Group, Controller, Macro,
-Autosave) are not repeated; only the terms that differ or are new are here.
+Autosave, Catalog, Parameter Schema) are not repeated; only the terms that differ or are new are here.
 
 Five sections, read bottom-up: the wire, the fixture library, the Rig,
 composition, and the Rig View. Rig-side terms end with an **Elsewhere** line saying what grandMA3
@@ -499,7 +499,11 @@ navigator, then tree order inside each Fixture. A member whose ancestor is
 also a member of the Set is dropped, whichever Rules brought them, so a Set
 never holds a Fixture and one of its own Panels through its Rules.
 
-Order is part of the Set and is what effects spread along. A Fixture Set only
+Order is part of the Set and is what effects spread along: a Visual walks its
+Targets in the Set's order and in no other, so a Chase that zigzags is fixed
+by reordering the Set (the Fixtures in the navigator for a rule Set, the list
+for a list Set), and the Set inspector says which order it has. Ordering
+members by Position was declined. A Fixture Set only
 points; it stores no Parameter Values. Removing a Fixture removes it from every
 Set, and a Mode change that drops an Element key drops that member with a
 removal warning. An empty Set is allowed. A grid arrangement for spatial
@@ -575,9 +579,12 @@ a Chase given `All Atomics` spread steps device by device and given `All Aura
 Panels` spread steps panel by panel. A spread Element expands to its children
 in tree order, so one pixel bar chases along its pixels without a Set of its
 own, and a spread Strobe root is its `backlight` and its `strobe`, not the
-sixteen parts. Spread is one level deep; grids are deferred. A Look Layer ignores Spread,
-since every member takes the same row either way; it has no control in Studio
-until Visuals exist, and `refrata layers` prints each Target's expansion.
+sixteen parts. Spread is one level deep; grids are deferred. A Look Layer
+ignores Spread, since every member takes the same row either way, and hides
+the control. On a Visual Layer each Target entry has a Spread toggle showing
+the live expansion ("24 Targets" beside `All Aura Panels`); a Target arrives
+not spread, whatever the Visual. `refrata layers` prints each Target's
+expansion.
 
 ### Contribution
 
@@ -702,29 +709,101 @@ would be a second way to say what a Target of its own already says, and with
 a rule Set it would keep rows for members that have left. A value that is per
 Element by nature (a mover's focus position) is one Target per Element.
 
+### Visual
+
+Code in the Catalog that animates Parameters over time: LFO, Shimmer, Chase,
+Rainbow, Static Number, Static Color, Circle. A Visual declares its Slots
+with a default binding each, its Parameter Schema, the Cues it answers,
+whether it distributes across Targets, and one line saying what it is. It
+is written against kinds, never against a fixture. It runs in the Runtime
+only, on the Output tick and in the Output's process; Studio and the CLI never
+run one, and the Rig View shows it through the Resolved Stream.
+
+One instance exists per Visual Layer of the playing Scene. It is made when
+the Scene plays and disposed when another Scene plays; it is stepped with
+`dt` every frame whether its Layer is enabled or visible, so two Chases at
+one rate stay in step when the second is enabled mid-song. No edit remakes
+it (a Parameter, a binding, a Target coming or going); only choosing another
+Visual for the Layer does. Playing the Scene that is already playing remakes
+every instance, which is how one pad re-syncs a whole Scene.
+
+Each frame the instance receives its Layer's Targets after Spread, in order,
+each as a stable key, an index and the count, and nothing else: no Tags, no
+Position, no Attributes. State a Visual keeps per Target is kept by key, so
+a Fixture joining a rule Set mid-show moves no sparkle. A Visual that
+distributes across Targets (Chase, Rainbow) says so, and Studio warns when
+such a Layer has one Target after Spread and offers to spread it; it is a
+hint, never a refusal, and every Visual accepts any number of Targets.
+
+Visuals come in two families. A value Visual (LFO, Rainbow, the Statics,
+Circle) writes a moving value at alpha 1. An envelope Visual (Shimmer, Chase)
+writes a fixed value, its `color` or `level` Parameter, at a moving alpha and
+says nothing about a Target outside its envelope, which is a Release: what is
+below shows through, and "dark between sparkles" is a Look Layer with
+`dimmer` 0 underneath.
+
+Rates are in hertz everywhere (cycles, steps or firings per second), so one
+tempo Controller links to every rate and the Links' anchors carry the
+multiples.
+
+### Cue
+
+A named trigger a Visual declares, Difracta's term with Difracta's meaning:
+the Address `layer/<id>/cue/<key>`, no payload, a performance event that is
+never stored, undone or replayed, fired by a Macro, OSC, the CLI or a button
+in the Layer's inspector. Chase answers `step` and `restart`, Shimmer `fire`,
+LFO and Rainbow `sync`. A Visual with an automatic rate fires its own Cue at
+that rate, so rate 0 leaves it to the hub and a `step` from the hub re-arms
+the timer on the beat. A Cue reaches the instance of a Layer in the playing
+Scene, enabled or not; a Layer of any other Scene has no instance and the Cue
+is dropped.
+
+Do not confuse with a console's cue, a stored look in a sequence; that is
+nearer a Scene here.
+
 ### Slot
 
-One typed output a Visual declares: Shimmer has one color Slot, an LFO one
-number Slot, Circle two number Slots (`x`, `y`). Numbers leave a Slot in
-0 to 1. A Visual is written against kinds, never against a fixture; it does
-not know whether its number Slot ends up on a dimmer or a zoom.
+One typed output a Visual declares, a number or a color: an LFO has one
+number Slot, Rainbow one color Slot, Circle two number Slots (`x`, `y`),
+Shimmer and Chase a color Slot `color` and a number Slot `level`. Numbers
+leave a Slot in 0 to 1. Each frame a Slot carries, per Target, a value and an
+alpha, or nothing. A Visual is written against kinds, never against a
+fixture; it does not know whether its number Slot ends up on a dimmer or a
+zoom.
 
 ### Slot Binding
 
-A Layer's assignment of one of its Visual's Slots to an Attribute, with two
-anchors mapping 0 and 1 into the Attribute's units, exactly as a Difracta
-Parameter Link maps a Controller. A Visual declares a default binding for each
-Slot (`x` to `pan`, the number Slot of an LFO to `dimmer`); the Layer may
-rebind, so one LFO serves dimmer, strobe, zoom or iris. A Contribution lands on
-every Element of the Layer's Targets that has a Parameter for the bound
-Attribute; the others ignore it.
+A Layer's assignment of one of its Visual's Slots to one Attribute, or to
+none. A number Slot binds to any number Attribute, with two anchors mapping
+0 and 1 into the Attribute's units, exactly as a Difracta Parameter Link maps
+a Controller; a color Slot binds to a color Attribute and has no anchors;
+choices and booleans are not bound. A Visual declares a default binding for
+each Slot (`x` to `pan`, an LFO's Slot to `dimmer`, Shimmer's `color` to
+`color` with `level` unbound, Chase's `level` to `dimmer` with `color`
+unbound); the Layer may rebind, so one LFO serves dimmer, strobe, zoom or
+iris, and a Shimmer with both Slots bound is a bright white sparkle over a
+dim look, in step because it is one instance. One Slot reaches one Attribute;
+an LFO on dimmer and on zoom is two Layers. A Contribution lands on every
+Element of the Layer's Targets that has a Parameter for the bound Attribute,
+fanning down as a Look Layer row does; the others ignore it.
+
+Anchors and Visual Parameters divide the work. Anchors calibrate to the
+fixtures, are set once per Layer, are not Addresses, and show in Studio as a
+range in the Attribute's units ("dimmer 0 % to 60 %"). Visual Parameters
+shape the output inside the Slot's 0 to 1 and are Addresses, so they are
+performed: an LFO's `low` and `high`, an envelope Visual's `level`. One
+Controller on the `high` of five LFO Layers pulls them all down while each
+Layer's anchors keep the fixtures equalised.
 
 ### Visual Layer
 
-A Layer running one Visual over its Targets. The Visual declares its Slots
-with default bindings, its Parameter Schema, whether it takes one Target or
-many, and the Cues it answers; each frame it produces one Contribution per
-Slot per Target, and the Slot Bindings say which Attribute each reaches.
+A Layer running one Visual over its Targets: the Visual's id, its Parameter
+Values, one Slot Binding per Slot, Targets with Spread, opacity and one Blend
+Mode shared by every Slot. Each frame it produces one Contribution per bound
+Slot per Target. Its Addresses are those of any Layer plus
+`layer/<id>/param/<name>` per Visual Parameter, linkable, and
+`layer/<id>/cue/<key>` per Cue. A Layer whose Visual the Catalog does not
+know contributes nothing and says so.
 
 ### Controller and Parameter Link
 

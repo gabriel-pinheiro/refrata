@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import { elementRef, setMembers, targetElements } from "@refrata/core";
+import {
+  elementRef,
+  isTargetedLayer,
+  setMembers,
+  targetElements,
+} from "@refrata/core";
 import { useMemo } from "react";
 
 import { useSignal } from "@/lib/client";
@@ -7,7 +12,7 @@ import type { Selection } from "@/selection/selection";
 
 /**
  * The Element refs the Rig View outlines for what is selected: the Targets
- * of every selected Look Layer (Sets expanded to members) and the members
+ * of every selected Look or Visual Layer (Sets expanded to members) and the members
  * of every selected Fixture Set. Each ref is one Element; the shape draws
  * its subtree as one box.
  */
@@ -22,7 +27,7 @@ export function useOutlined(
     for (const item of selected) {
       if (item.kind === "layer") {
         const layer = document.layers[item.id];
-        if (layer?.kind === "look")
+        if (isTargetedLayer(layer))
           refs.push(...layer.targets.map((target) => target.ref));
       } else if (item.kind === "set") {
         const set = document.fixtureSets[item.id];

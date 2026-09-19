@@ -1,5 +1,11 @@
 import type { Document, Table } from "./document.ts";
-import type { Layer, LookLayer } from "./composition.ts";
+import {
+  isTargetedLayer,
+  type Layer,
+  type LookLayer,
+  type TargetedLayer,
+  type VisualLayer,
+} from "./composition.ts";
 import { orderedEntries } from "./order.ts";
 import type { Patch } from "./patch.ts";
 
@@ -82,8 +88,24 @@ export function lookLayers(layers: Table<Layer>): readonly LookLayer[] {
   );
 }
 
+/** The Visual Layers of one Scene, in no particular order, enabled or not. */
+export function sceneVisualLayers(
+  layers: Table<Layer>,
+  sceneId: string,
+): readonly VisualLayer[] {
+  return Object.values(layers).filter(
+    (layer): layer is VisualLayer =>
+      layer.kind === "visual" && layer.sceneId === sceneId,
+  );
+}
+
+/** Every Layer that has Targets. */
+export function targetedLayers(layers: Table<Layer>): readonly TargetedLayer[] {
+  return Object.values(layers).filter(isTargetedLayer);
+}
+
 /**
- * Patches dropping, from every Look Layer, the Targets `drop` names and
+ * Patches dropping, from every Layer, the Targets `drop` names and
  * their rows: what the removal of a Fixture, an Element key or a Fixture
  * Set takes with it. Links and Macro actions on those rows are the caller's
  * business (see `dropRowLinks`). Returns the Targets dropped per Layer.
@@ -94,11 +116,14 @@ export function dropTargets(
 ): { readonly patches: Patch[]; readonly dropped: Map<string, string[]> } {
   const patches: Patch[] = [];
   const dropped = new Map<string, string[]>();
-  for (const layer of lookLayers(document.layers)) {
+  for (const layer of targetedLayers(document.layers)) {
     const going = layer.targets.filter((target) => drop(target.ref));
-    const stale = Object.keys(layer.rows).filter(
-      (ref) => drop(ref) || !layer.targets.some((t) => t.ref === ref),
-    );
+    const stale =
+      layer.kind === "look"
+        ? Object.keys(layer.rows).filter(
+            (ref) => drop(ref) || !layer.targets.some((t) => t.ref === ref),
+          )
+        : [];
     if (going.length === 0 && stale.length === 0) continue;
     if (going.length > 0) {
       patches.push({

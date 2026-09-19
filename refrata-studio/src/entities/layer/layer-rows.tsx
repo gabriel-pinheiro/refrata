@@ -56,7 +56,7 @@ export function LayerRows({
   const command = useCommand(view);
   const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
-  const { createItems } = useLayerActions(view);
+  const { createItems, dialog } = useLayerActions(view);
   const layers = useDocumentPath<Table<Layer>>(view, ["layers"]) ?? {};
   const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
   const controllers =
@@ -207,6 +207,7 @@ export function LayerRows({
           </SortableItem>
         );
       })}
+      {dialog}
     </SortableList>
   );
 }

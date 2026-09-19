@@ -1,0 +1,54 @@
+import { z } from "zod";
+
+import { accepted, defineCommand, rejected } from "../command/command.ts";
+import type { Patch } from "../document/patch.ts";
+import { removalWarnings } from "../document/removal.ts";
+import { defaultBindings } from "../document/visual-layers.ts";
+import { defaultParameterValues } from "../parameters.ts";
+import { visualDefinition } from "../visuals/catalog.ts";
+import { dropLayerReferences } from "./layer.remove.ts";
+
+/**
+ * Gives a Visual Layer another Visual of the Catalog. Parameter Values and
+ * bindings start over from the new Visual's defaults, and the Links and
+ * Macro actions on the old Visual's Parameters and Cues go with them;
+ * Targets, opacity and Blend Mode stay.
+ */
+export const layerVisualSet = defineCommand({
+  name: "layer.visual.set",
+  kind: "authoring",
+  description:
+    "Choose the Visual a Visual Layer runs; its Parameters and bindings reset.",
+  payload: z
+    .object({ layerId: z.string().min(1), visual: z.string().min(1) })
+    .strict(),
+  label: () => "Change Visual",
+  apply({ document, payload }) {
+    const layer = document.layers[payload.layerId];
+    if (layer?.kind !== "visual")
+      return rejected(`“${payload.layerId}” is not a Visual Layer.`);
+    const definition = visualDefinition(payload.visual);
+    if (definition === undefined)
+      return rejected(`“${payload.visual}” is not a Visual of the Catalog.`);
+    if (layer.visual === definition.id) return accepted([]);
+    const patches: Patch[] = dropLayerReferences(document, [
+      `layer/${layer.id}/param/`,
+      `layer/${layer.id}/cue/`,
+    ]);
+    const warnings = removalWarnings(document, patches, layer.name);
+    patches.push(
+      { op: "set", path: ["layers", layer.id, "visual"], value: definition.id },
+      {
+        op: "set",
+        path: ["layers", layer.id, "parameters"],
+        value: { ...defaultParameterValues(definition.parameters) },
+      },
+      {
+        op: "set",
+        path: ["layers", layer.id, "bindings"],
+        value: defaultBindings(definition),
+      },
+    );
+    return accepted(patches, undefined, warnings);
+  },
+});

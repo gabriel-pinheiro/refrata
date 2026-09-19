@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import type { Target } from "../document/composition.ts";
+import { isTargetedLayer, type Target } from "../document/composition.ts";
 import { targetProblem } from "../document/targets.ts";
 
 /**
- * Appends Targets to a Look Layer, or inserts them after one of its
+ * Appends Targets to a Look or Visual Layer, or inserts them after one of its
  * Targets. Any number at once, so "Add selection" is one undo step. A ref
  * already among the Targets is left where it is.
  */
@@ -13,7 +13,7 @@ export const layerTargetsAdd = defineCommand({
   name: "layer.targets.add",
   kind: "authoring",
   description:
-    "Add Targets (Element refs <fixtureId>/<key> or Fixture Sets set:<id>) to a Look Layer.",
+    "Add Targets (Element refs <fixtureId>/<key> or Fixture Sets set:<id>) to a Layer.",
   payload: z
     .object({
       layerId: z.string().min(1),
@@ -26,8 +26,8 @@ export const layerTargetsAdd = defineCommand({
     targets.length === 1 ? "Add Target" : `Add ${targets.length} Targets`,
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
-    if (layer?.kind !== "look")
-      return rejected(`“${payload.layerId}” is not a Look Layer.`);
+    if (!isTargetedLayer(layer))
+      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
     const present = new Set(layer.targets.map((target) => target.ref));
     const added: Target[] = [];
     for (const ref of new Set(payload.targets)) {

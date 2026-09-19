@@ -4,7 +4,7 @@ import {
   setMembers,
   targetLabel,
   type Document,
-  type LookLayer,
+  type TargetedLayer,
 } from "@refrata/core";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
@@ -25,7 +25,7 @@ export function SetTargetMembers({
 }: {
   readonly view: DocumentView;
   readonly document: Document;
-  readonly layer: LookLayer;
+  readonly layer: TargetedLayer;
   readonly target: string;
 }) {
   const command = useCommand(view);

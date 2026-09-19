@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isTargetedLayer } from "../document/composition.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
 import { dropLayerReferences } from "./layer.remove.ts";
@@ -9,7 +10,7 @@ import { dropLayerReferences } from "./layer.remove.ts";
 export const layerTargetsRemove = defineCommand({
   name: "layer.targets.remove",
   kind: "authoring",
-  description: "Remove Targets from a Look Layer, with their rows.",
+  description: "Remove Targets from a Layer, with their rows.",
   payload: z
     .object({
       layerId: z.string().min(1),
@@ -20,8 +21,8 @@ export const layerTargetsRemove = defineCommand({
     targets.length === 1 ? "Remove Target" : `Remove ${targets.length} Targets`,
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
-    if (layer?.kind !== "look")
-      return rejected(`“${payload.layerId}” is not a Look Layer.`);
+    if (!isTargetedLayer(layer))
+      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
     const going = new Set(payload.targets);
     for (const ref of going)
       if (!layer.targets.some((target) => target.ref === ref))
@@ -37,7 +38,7 @@ export const layerTargetsRemove = defineCommand({
       value: layer.targets.filter((target) => !going.has(target.ref)),
     });
     for (const ref of going)
-      if (ref in layer.rows)
+      if (layer.kind === "look" && ref in layer.rows)
         patches.push({ op: "remove", path: ["layers", layer.id, "rows", ref] });
     return accepted(patches, undefined, warnings);
   },

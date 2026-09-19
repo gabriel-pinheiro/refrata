@@ -2,12 +2,12 @@ import type { CommandResult } from "@refrata/protocol";
 import type { Command } from "commander";
 
 import type { Cli } from "../cli.ts";
-import { formatScenes, formatStack } from "../composition-lines.ts";
+import { formatScenes } from "../composition-lines.ts";
 import { parseValue } from "../connection.ts";
-import { resolveId, resolveRowRef, resolveTargetRef } from "../names.ts";
+import { resolveId, resolveRowRef } from "../names.ts";
 import { formatCommandResult } from "../result.ts";
 
-/** Scenes, Layers, Looks, Master and Blackout: composing a show from the shell. Sets are in `sets.ts`. */
+/** Scenes, Looks, Master and Blackout: composing a show from the shell. Layers are in `layers.ts`, Sets in `sets.ts`. */
 export function registerComposition(program: Command, cli: Cli): void {
   const scenes = program
     .command("scenes")
@@ -61,93 +61,6 @@ export function registerComposition(program: Command, cli: Cli): void {
         cli.print(
           { address, sceneId, ...result },
           () => `Playing “${document.scenes[sceneId]?.name ?? sceneId}”`,
-        );
-      }),
-    );
-
-  const layers = program
-    .command("layers")
-    .description(
-      "List a Scene's Layers topmost first (the default), add one, or spread a Target.",
-    );
-
-  layers
-    .command("list <scene>", { isDefault: true })
-    .description(
-      "List a Scene's stack: each Look Layer with its Targets and rows.",
-    )
-    .action((scene: string) =>
-      cli.withDocument(async (client, summary) => {
-        const { document } = await cli.replica(client, summary.id);
-        const sceneId = resolveId(document, "scenes", scene);
-        const own = Object.values(document.layers).filter(
-          (layer) => layer.sceneId === sceneId,
-        );
-        cli.print(own, () => formatStack(document, sceneId).join("\n"));
-      }),
-    );
-
-  layers
-    .command("add <scene> <name>")
-    .description(
-      "Add a Look Layer at the top of a Scene, targeting what --target names (a Fixture, <fixture>/<key> or set:<set>).",
-    )
-    .option(
-      "--target <ref>",
-      "a Target; repeat for several",
-      (value: string, previous: string[]) => [...previous, value],
-      [] as string[],
-    )
-    .option("--group", "add a Group instead", false)
-    .action(
-      (
-        scene: string,
-        name: string,
-        local: { target: string[]; group: boolean },
-      ) =>
-        cli.withDocument(async (client, summary) => {
-          const { document } = await cli.replica(client, summary.id);
-          const result = await client.command<CommandResult>(
-            summary.id,
-            "layer.create",
-            {
-              sceneId: resolveId(document, "scenes", scene),
-              name,
-              kind: local.group ? "group" : "look",
-              ...(local.group
-                ? {}
-                : {
-                    targets: local.target.map((text) =>
-                      resolveTargetRef(document, text),
-                    ),
-                  }),
-            },
-          );
-          cli.print(result, () => formatCommandResult(result, "layer.create"));
-        }),
-    );
-
-  layers
-    .command("spread <layer> <target> <state>")
-    .description(
-      'Spread one Target on or off: on, a Set counts as its members and an Element as its children, one Target each. A Look Layer ignores it; "layers" prints what it expands to.',
-    )
-    .action((layer: string, target: string, state: string) =>
-      cli.withDocument(async (client, summary) => {
-        if (state !== "on" && state !== "off")
-          throw new Error("layers spread takes “on” or “off”.");
-        const { document } = await cli.replica(client, summary.id);
-        const result = await client.command<CommandResult>(
-          summary.id,
-          "layer.targets.spread",
-          {
-            layerId: resolveId(document, "layers", layer),
-            ref: resolveTargetRef(document, target),
-            spread: state === "on",
-          },
-        );
-        cli.print(result, () =>
-          formatCommandResult(result, "layer.targets.spread"),
         );
       }),
     );

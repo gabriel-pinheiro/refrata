@@ -115,6 +115,61 @@ describe("OutputLoop", () => {
   });
 });
 
+describe("OutputLoop with Visuals", () => {
+  it("steps a Chase, delivers a Cue and starts over when the Scene is played again", async () => {
+    const { documentId } = await stageStrobe();
+    const session = store.session(documentId)!;
+    const run = (name: string, payload: unknown): void => {
+      const result = session.execute(name, payload, "test");
+      if (!result.ok) throw new Error(result.error);
+    };
+    run("scene.create", { id: "verse", name: "Verse" });
+    run("layer.create", {
+      id: "fx",
+      kind: "visual",
+      visual: "chase",
+      sceneId: "verse",
+      targets: ["strobe/backlight"],
+    });
+    run("layer.targets.spread", {
+      layerId: "fx",
+      ref: "strobe/backlight",
+      spread: true,
+    });
+    run("address.edit", { address: "layer/fx/param/rate", value: 0 });
+
+    let clock = 0;
+    const outputs = new OutputManager({
+      drivers: createDrivers({
+        serial: () => Promise.reject(new Error("none")),
+      }),
+      log: () => undefined,
+      retryMs: 0,
+    });
+    const loop = new OutputLoop({
+      store,
+      outputs,
+      rateHz: 0.001,
+      now: () => clock,
+    });
+    loop.start();
+    const litPanels = (): string[] => {
+      clock += 25;
+      loop.tick();
+      return [...loop.resolved()]
+        .filter(([, values]) => values.dimmer === 1)
+        .map(([ref]) => ref);
+    };
+    // The first Scene of an Installation plays as soon as it exists.
+    expect(litPanels()).toEqual(["strobe/panel-1"]);
+    run("address.trigger", { address: "layer/fx/cue/step" });
+    expect(litPanels()).toEqual(["strobe/panel-2"]);
+    run("address.trigger", { address: "scene/verse/play" });
+    expect(litPanels()).toEqual(["strobe/panel-1"]);
+    await loop.close();
+  });
+});
+
 describe("ResolvedStream", () => {
   it("sends everything for the named Fixtures first, then only changes", () => {
     const sent: { full: boolean; values: Record<string, ParameterValues> }[] =

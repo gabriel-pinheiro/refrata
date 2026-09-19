@@ -39,7 +39,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
   const { isExpanded, setExpanded } = useExpansion();
-  const { createItems } = useLayerActions(view);
+  const { createItems, dialog } = useLayerActions(view);
   const scenes = useDocumentPath<Table<Scene>>(view, ["scenes"]) ?? {};
   const activeScene = useDocumentPath<string | null>(view, [
     "installation",
@@ -177,6 +177,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
           })}
         </SortableList>
       </NavigatorSection>
+      {dialog}
       <NameDialog
         request={
           naming
