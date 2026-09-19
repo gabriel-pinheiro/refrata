@@ -93,7 +93,6 @@ describe("OSC tree", () => {
       ["/controller/tint", "Looks · Tint", "r"],
       ["/controller/energy", "Energy", "f"],
       ["/macro/hit", "Hit", "I"],
-      ["/installation/master", "Master", "f"],
     ]);
     const tree = buildTree(document);
     expect(tree.CONTENTS?.controller?.CONTENTS?.energy).toMatchObject({
@@ -103,67 +102,26 @@ describe("OSC tree", () => {
     });
     expect(targetOf("/controller/x")).toEqual({ kind: "controller", id: "x" });
     expect(targetOf("/controller/*")).toBeUndefined();
-    expect(targetOf("/thing/x/opacity")).toEqual({
-      kind: "address",
-      address: "thing/x/opacity",
-    });
-    expect(targetOf("/thing")).toBeUndefined();
+    expect(targetOf("/macro/hit")).toEqual({ kind: "macro", id: "hit" });
+    expect(targetOf("/layer/x/opacity")).toBeUndefined();
+    expect(targetOf("/scene/x/play")).toBeUndefined();
+    expect(targetOf("/controller")).toBeUndefined();
   });
 });
 
-describe("OSC composition leaves", () => {
-  it("exposes Scene play, Master and Look Layer rows, and takes values for them", async () => {
+describe("OSC and the composition", () => {
+  it("refuses every path but a Controller's and a Macro's, and a Macro plays the Scene", async () => {
     const session = store.currentSession();
     if (session === undefined) throw new Error("no session");
     for (const [name, payload] of [
       ["scene.create", { id: "verse", name: "Verse" }],
       ["scene.create", { id: "chorus", name: "Chorus" }],
+      ["macro.create", { id: "play-chorus", name: "Play Chorus" }],
       [
-        "fixture.create",
+        "macro.actions.add",
         {
-          id: "par",
-          typeKey: "generic/rgb-3ch",
-          modeKey: "3ch",
-          name: "Par",
-          fixtureType: {
-            kind: "refrata-fixture-type",
-            formatVersion: 1,
-            key: "generic/rgb-3ch",
-            manufacturer: "Generic",
-            model: "RGB",
-            modes: {
-              "3ch": {
-                name: "3ch",
-                channels: [
-                  { key: "r", element: "root" },
-                  { key: "g", element: "root" },
-                  { key: "b", element: "root" },
-                ],
-                elements: {
-                  root: {
-                    name: "RGB",
-                    parameters: {
-                      dimmer: { encode: { multiply: ["r", "g", "b"] } },
-                      color: { encode: { color: ["r", "g", "b"] } },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      ],
-      [
-        "layer.create",
-        { id: "base", sceneId: "verse", name: "Base", targets: ["par/root"] },
-      ],
-      [
-        "layer.row.set",
-        {
-          layerId: "base",
-          targets: ["par/root"],
-          attribute: "dimmer",
-          value: 0.4,
+          macroId: "play-chorus",
+          actions: [{ kind: "trigger", address: "scene/chorus/play" }],
         },
       ],
     ] as const) {
@@ -171,54 +129,27 @@ describe("OSC composition leaves", () => {
       if (!result.ok) throw new Error(result.error);
     }
     await wait(20);
-    expect(await get("/scene/chorus/play")).toMatchObject({
-      TYPE: "I",
-      DESCRIPTION: "Chorus · Play",
-    });
-    expect(await get("/installation/master?VALUE")).toEqual({ VALUE: [1] });
-    expect(await get("/layer/base/row/par/root/dimmer/value")).toMatchObject({
-      TYPE: "f",
-      VALUE: [0.4],
-      RANGE: [{ MIN: 0, MAX: 1 }],
-      DESCRIPTION: "Base · Par · Dimmer",
-    });
-    expect(await get("/layer/base/enabled")).toMatchObject({ TYPE: "T" });
-    await send(encodeMessage({ address: "/scene/chorus/play", args: [] }));
-    await send(
-      encodeMessage({
-        address: "/installation/master",
-        args: [{ type: "float32", value: 0.5 }],
-      }),
-    );
-    await send(
-      encodeMessage({
-        address: "/layer/base/row/par/root/dimmer/value",
-        args: [{ type: "float32", value: 1.7 }],
-      }),
-    );
-    await send(
-      encodeMessage({
-        address: "/layer/base/enabled",
-        args: [{ type: "false" }],
-      }),
-    );
-    await wait(60);
+    const tree = (await get("/")) as { CONTENTS: Record<string, unknown> };
+    expect(Object.keys(tree.CONTENTS)).toEqual(["controller", "macro"]);
+    for (const address of [
+      "/scene/chorus/play",
+      "/installation/master",
+      "/installation/blackout",
+    ]) {
+      await send(
+        encodeMessage({ address, args: [{ type: "float32", value: 0.5 }] }),
+      );
+    }
+    await wait(40);
+    // The rejection log says the first of a burst and counts the rest.
+    expect(logged).toContain("OSC unknown-address: /scene/chorus/play");
     expect(session.document.installation).toMatchObject({
-      activeScene: "chorus",
-      master: 0.5,
+      activeScene: "verse",
+      master: 1,
     });
-    expect(session.document.layers.base).toMatchObject({
-      enabled: false,
-      rows: { "par/root": { dimmer: { value: 1 } } },
-    });
-    await send(
-      encodeMessage({
-        address: "/installation/blackout",
-        args: [{ type: "true" }],
-      }),
-    );
-    await wait(30);
-    expect(logged.at(-1)).toBe("OSC unknown-address: /installation/blackout");
+    await send(encodeMessage({ address: "/macro/play-chorus", args: [] }));
+    await wait(40);
+    expect(session.document.installation.activeScene).toBe("chorus");
   });
 });
 

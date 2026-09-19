@@ -207,12 +207,9 @@ export function AddressPicker({
                       </span>
                       <span className="min-w-0 flex-1 truncate">
                         {candidate.owner !== "" && (
-                          <>
-                            <span>{candidate.owner}</span>
-                            <span className="text-muted-foreground/60">
-                              {" · "}
-                            </span>
-                          </>
+                          <span className="mr-1.5 text-muted-foreground">
+                            {candidate.owner}
+                          </span>
                         )}
                         <span>{candidate.label}</span>
                         {candidate.detail !== undefined && (

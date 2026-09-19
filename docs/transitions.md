@@ -91,12 +91,12 @@ than a Visual whose only job is to be transparent black.
 Manual fades stay where they were: a Controller on opacity, ridden from the
 hub. The Layer Fade is for the button-press case.
 
-### Next and Previous: the cue list is the Scene order
+### Next and Previous: declined
 
-Scenes already have an order in the navigator. Two Installation Addresses, `next` and
-`previous`, play the neighbouring Scene with its own Transition. That is a
-theatre cue list with a GO button: number the Scenes, set each one's time,
-bind `next` to a key in the hub. No new object.
+Two Installation Addresses, `next` and `previous`, walking the Scenes in
+navigator order like a theatre cue list with a GO button, were considered
+and declined on 2026-09-19. The hub keeps its own place in the set list: a
+pad per Scene, each a Macro that plays it.
 
 ## 3. What is deliberately not in v1
 

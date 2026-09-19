@@ -13,7 +13,19 @@ a projection-mapping engine built the same way.
 
 ## Status
 
-Slice 3 of the build, "parts and rules", on top of slice 2's composition.
+Slice 5 of the build, "the hub": the OSC door carries Controllers and Macros
+only, as Difracta's does, a Macro takes any Address from Studio's picker
+(Scene play, Layer Addresses, Cues), and "Make a Macro" on a Scene or a Cue
+makes the one a hub's pad needs.
+
+Slice 4, "Visuals", underneath: Visual Layers running a Visual from the
+Catalog (LFO, Shimmer, Chase, Rainbow, Static Number, Static Color, Circle)
+over their Targets, stepped by the Runtime at Output rate; Slots bound to
+Attributes with a range; Visual Parameters as linkable Addresses; Cues; the
+Spread switch per Target. The CLI gained `visuals`, `layers add --visual`,
+`layers visual`, `layers param`, `layers bind`, `cue` and `macros add`.
+
+Slice 3, "parts and rules", underneath, on top of slice 2's composition.
 Tags on Elements: declared by Modes, every Element key, the Fixture Type's
 key on the root, and a person's own on Fixtures and Elements, normalised as
 typed and renamed everywhere at once. Fixture Sets by rule: an ordered list
@@ -22,24 +34,23 @@ where every Tag has been met, resolved live so a newly tagged Fixture joins
 and takes what a Look Layer says about the Set; "Convert to list" freezes
 one. "Override" on a Set Target's member adds that Element as a Target after
 the Set. Spread expansion of a Target (a Set to its members, an Element to
-its children) as Rig logic, shown by the CLI, with no Studio control until
-Visuals. The CLI gained `tags`, `tag`, `untag`, `sets add --rule`, `sets
-rules`, `sets convert` and `layers spread`.
+its children) as Rig logic, shown by the CLI. The CLI gained `tags`, `tag`,
+`untag`, `sets add --rule`, `sets rules`, `sets convert` and `layers
+spread`.
 
 Slice 2, "one Look", underneath: Scenes as ordered stacks of Layers, Look
 Layers with rows per Target under "All Targets" rows every Target takes
 unless its own overrides, Contributions (alpha stored, read as 1 for now),
 the five Blend Modes, Resolve bottom to top from Defaults with fan-down and
 the Target rule, Master and Blackout after Resolve, Scene play as a cut,
-Layer Addresses linkable to Controllers, the OSC tree carrying Scenes,
-Master and Layer leaves, one ordered selection across the Rig View and the
+Layer Addresses linkable to Controllers, one ordered selection across the Rig View and the
 navigator with Targets outlined and a picker to fill Layers and Sets, a DMX
 Tester holding raw channels over the show, a watched library with a reload
 of the Installation's Fixture Type copies, and the CLI's `scenes`, `play`,
 `layers`, `look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig
 (Universes, Enttec-compatible and uDMX USB Outputs, Fixture Types from
 `refrata-library/`, Patch, Highlight, Encoding at 40 Hz, the Resolved
-Stream) is unchanged underneath. Not yet: Transitions, Layer Fade, Visuals.
+Stream) is unchanged underneath. Not yet: Transitions, Layer Fade, Filters.
 The design the rest is built against is in `GLOSSARY.md` and `docs/`.
 
 ## Read the design
@@ -108,12 +119,17 @@ port, 9100 by default, and announces itself with Zeroconf as `_oscjson._tcp`
 and `_osc._udp` under the name "Refrata on <hostname>", so a hub such as
 Chataigne finds it and reconnects to it whatever Installation is open.
 
-The OSC tree has one leaf per Controller at `/controller/<id>`, one per
-Macro at `/macro/<id>`, one per Scene at `/scene/<id>/play`, the grand
-master at `/installation/master`, and every Layer's `opacity`, `enabled`
-and Look Layer rows under `/layer/<id>/row/…` (a Target's or the All
-Targets `…/<attribute>/value`). Paths carry ids, so a rename never breaks
-a mapping; the name is the leaf's description.
+The OSC tree is what Difracta's is: one leaf per Controller at
+`/controller/<id>` and one per Macro at `/macro/<id>`, and the door refuses
+every other path. A fader reaches a value through a Controller linked to it
+(a Layer's opacity, a Look Layer row, a Visual Parameter, Master); a button
+reaches anything else through a Macro (Scene play, a Cue, Blackout, a
+Layer's `enabled`), and a held pad is two Macros, one at press and one at
+release. "Make a Macro" on a Scene's or a Cue button's menu, or `refrata
+macros add "Play Chorus" --trigger scene/Chorus/play`, makes the Macro a pad
+needs. Paths carry ids, so a rename never breaks a mapping; the name, with
+its Group, is the leaf's description. Controller values stream back to the
+clients that asked to LISTEN.
 
 ## Working from a shell
 

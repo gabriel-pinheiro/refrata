@@ -1,0 +1,45 @@
+import { z } from "zod";
+
+import { AddressValueSchema, type MacroAction } from "../document/document.ts";
+import type { Document } from "../document/document.ts";
+import { generateId } from "../ids.ts";
+import { resolveAddress } from "./address.ts";
+import { actionProblem } from "./fire.ts";
+
+/** A Macro action as a command receives it: without its id. */
+export const ActionInputSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("set"),
+      address: z.string().min(1),
+      value: AddressValueSchema,
+    })
+    .strict(),
+  z.object({ kind: z.literal("toggle"), address: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal("trigger"), address: z.string().min(1) }).strict(),
+]);
+export type ActionInput = z.infer<typeof ActionInputSchema>;
+
+/**
+ * The actions a command is about to store, each given its id, or why one
+ * cannot be: it must resolve and fit its Address now. A Link on the Address
+ * is not refused, since the Macro may run after the Link goes, and the
+ * inspector marks it meanwhile.
+ */
+export function newActions(
+  document: Document,
+  inputs: readonly ActionInput[],
+): readonly MacroAction[] | { readonly error: string } {
+  const added: MacroAction[] = [];
+  for (const input of inputs) {
+    const action: MacroAction = { ...input, id: generateId("action") };
+    const resolved = resolveAddress(document, action.address);
+    if (resolved === undefined)
+      return { error: `Unknown address “${action.address}”.` };
+    const problem = actionProblem(document, action);
+    if (problem !== undefined && !problem.includes("is controlled by"))
+      return { error: `${resolved.label}: ${problem}` };
+    added.push(action);
+  }
+  return added;
+}

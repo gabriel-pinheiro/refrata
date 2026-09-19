@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/context-menu";
 import { LayerRows } from "@/entities/layer/layer-rows";
 import { useLayerActions } from "@/entities/layer/use-layer-actions";
+import { macroIcons } from "@/entities/macro/macro-icons";
+import { useMakeMacro } from "@/entities/macro/use-make-macro";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useExpansion } from "@/navigator/expansion";
 import { NavigatorRow, RowAction } from "@/navigator/navigator-row";
@@ -29,6 +31,8 @@ import {
   soleId,
   useSelection,
 } from "@/selection/selection";
+
+const MacroIcon = macroIcons.macro;
 
 /**
  * Navigator section listing the Scenes, each opening to its Layer stack. The
@@ -47,6 +51,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
   ]);
   const [naming, setNaming] = useState(false);
   const ordered = orderedEntries(scenes);
+  const makeMacro = useMakeMacro(view);
   const play = (sceneId: string): void =>
     void command("address.trigger", { address: `scene/${sceneId}/play` });
 
@@ -146,6 +151,16 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
                       }
                     >
                       <Copy /> Duplicate
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() =>
+                        makeMacro(
+                          `Play ${scene.name}`,
+                          `scene/${scene.id}/play`,
+                        )
+                      }
+                    >
+                      <MacroIcon /> Make a Macro
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem

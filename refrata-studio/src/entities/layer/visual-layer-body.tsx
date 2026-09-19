@@ -11,6 +11,14 @@ import { TriangleAlert, Zap } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { macroIcons } from "@/entities/macro/macro-icons";
+import { useMakeMacro } from "@/entities/macro/use-make-macro";
 import { AddressRow } from "@/inspector/fields/address-row";
 import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
@@ -19,10 +27,13 @@ import { useCommand } from "@/lib/client";
 import { VisualBindings } from "./visual-bindings";
 import { VisualPicker } from "./visual-picker";
 
+const MacroIcon = macroIcons.macro;
+
 /**
  * What a Visual Layer has beyond any Layer: the Visual it runs, with a way
  * to choose another; one row per Visual Parameter, each an Address a
- * Controller can take; the Slot Bindings; and a button per Cue.
+ * Controller can take; the Slot Bindings; and a button per Cue, whose menu
+ * makes the Macro a hub's pad needs.
  * A Layer whose Visual the Catalog does not know says so and still lets
  * the person choose another.
  */
@@ -40,6 +51,7 @@ export function VisualLayerBody({
 }) {
   const command = useCommand(view);
   const rowLinks = useRowLinks(view);
+  const makeMacro = useMakeMacro(view);
   const [changing, setChanging] = useState(false);
   const definition = visualDefinition(layer.visual);
   return (
@@ -108,19 +120,36 @@ export function VisualLayerBody({
             <InspectorSection storageKey="visual-cues" label="Cues">
               <div className="flex flex-wrap gap-1.5">
                 {definition.cues.map((cue) => (
-                  <Button
-                    key={cue.key}
-                    variant="outline"
-                    size="sm"
-                    title={`${cue.description ?? cue.label} (${cueAddress(layer.id, cue.key)})`}
-                    onClick={() =>
-                      void command("address.trigger", {
-                        address: cueAddress(layer.id, cue.key),
-                      })
-                    }
-                  >
-                    <Zap /> {cue.label}
-                  </Button>
+                  <ContextMenu key={cue.key}>
+                    <ContextMenuTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          title={`${cue.description ?? cue.label} (${cueAddress(layer.id, cue.key)})`}
+                          onClick={() =>
+                            void command("address.trigger", {
+                              address: cueAddress(layer.id, cue.key),
+                            })
+                          }
+                        />
+                      }
+                    >
+                      <Zap /> {cue.label}
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem
+                        onClick={() =>
+                          makeMacro(
+                            `${layer.name} ${cue.label}`,
+                            cueAddress(layer.id, cue.key),
+                          )
+                        }
+                      >
+                        <MacroIcon /> Make a Macro
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </div>
             </InspectorSection>

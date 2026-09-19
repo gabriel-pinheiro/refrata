@@ -12,11 +12,12 @@ import {
   AddressPicker,
   type PickerCandidate,
 } from "@/inspector/fields/address-picker";
+import { addressPlacer } from "@/inspector/fields/address-place";
 import { useCommand, useSignal } from "@/lib/client";
 
 /**
  * Picks the Addresses a Controller will drive: every compatible one in the
- * Installation, grouped by what owns it, and linked in one step. Built for
+ * Installation, Layers under their Scene, and linked in one step. Built for
  * "this Controller onto the same Parameter of thirty things": type two
  * words, select all, link.
  */
@@ -50,16 +51,17 @@ export function LinkPicker({
   );
 }
 
-/** Every Address the Controller could drive, grouped by the table that owns it. */
+/** Every Address the Controller could drive, Layers under their Scene. */
 function collect(
   document: Document,
   controller: Controller & { readonly kind: "number" | "color" },
 ): PickerCandidate[] {
-  const result: PickerCandidate[] = [];
+  const result: (PickerCandidate & { readonly rank: number })[] = [];
+  const place = addressPlacer(document);
   for (const resolved of listAddresses(document)) {
     if (!linkable(resolved, controller.kind)) continue;
-    const group = headingOf(resolved.path[0] ?? "");
-    const owner = resolved.owner ?? "";
+    const placed = place(resolved);
+    if (placed === undefined) continue;
     const existing = linkAt(document, resolved.address);
     const elsewhere =
       existing === undefined || existing.controllerId === controller.id
@@ -67,10 +69,12 @@ function collect(
         : (document.controllers[existing.controllerId]?.name ?? "another");
     result.push({
       key: resolved.address,
-      group,
-      owner,
+      group: placed.group,
+      owner: placed.owner,
       label: resolved.label,
-      haystack: `${group} ${owner} ${resolved.label}`.toLowerCase(),
+      detail: placed.detail,
+      haystack:
+        `${placed.group} ${placed.owner} ${placed.detail ?? ""} ${resolved.label}`.toLowerCase(),
       taken: existing?.controllerId === controller.id ? "linked" : undefined,
       note:
         elsewhere === undefined
@@ -79,13 +83,8 @@ function collect(
               text: elsewhere,
               title: `Controlled by ${elsewhere}; linking moves it here`,
             },
+      rank: placed.rank,
     });
   }
-  return result;
-}
-
-/** The heading a document table is listed under, capitalized from its name. */
-function headingOf(table: string): string {
-  if (table === "operational") return "Installation";
-  return table.charAt(0).toUpperCase() + table.slice(1);
+  return result.sort((a, b) => a.rank - b.rank);
 }

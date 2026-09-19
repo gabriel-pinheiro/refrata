@@ -1,29 +1,19 @@
 import {
-  effectiveValue,
   flattenTree,
-  listAddresses,
   qualifiedName,
-  type AddressValue,
   type Color,
   type Controller,
   type Document,
-  type ResolvedAddress,
 } from "@refrata/core";
-
-import { oscPathOfAddress } from "@refrata/protocol";
 
 import type { OscArgument } from "./osc-codec.ts";
 
 /**
- * The OSCQuery tree: what Chataigne browses and maps. One leaf per
- * Controller (`/controller/<id>`) and per Macro (`/macro/<id>`), as before,
- * and one per composition Address at its own path: `/scene/<id>/play`,
- * `/installation/master`, `/layer/<id>/opacity`, `/layer/<id>/enabled` and
- * every Look Layer row. Paths carry ids so a rename never breaks a mapping;
- * the name, with its owner, is the node's DESCRIPTION. A number is a float
- * with its range, a colour an RGBA colour, a switch T or F, a choice a
- * string, a trigger an impulse. Operational switches (Blackout, Highlight)
- * are not leaves: a hub reaches Blackout through a Macro.
+ * The OSCQuery tree: what Chataigne browses and maps. Two branches, one
+ * leaf per Controller and per Macro, each named by its id so a rename or a
+ * move into a Group never breaks a mapping; the name, with its Group, is
+ * the node's DESCRIPTION. A Number Controller is a float with its range, a
+ * Color Controller an RGBA color, a Macro an impulse. Groups are not nodes.
  */
 export interface OscNode {
   readonly FULL_PATH: string;
@@ -32,11 +22,7 @@ export interface OscNode {
   readonly ACCESS: 0 | 1 | 2 | 3;
   readonly TYPE?: string;
   readonly VALUE?: readonly unknown[];
-  readonly RANGE?: readonly {
-    readonly MIN?: number;
-    readonly MAX?: number;
-    readonly VALS?: readonly string[];
-  }[];
+  readonly RANGE?: readonly { readonly MIN?: number; readonly MAX?: number }[];
   readonly CLIPMODE?: readonly string[];
   readonly CONTENTS?: Readonly<Record<string, OscNode>>;
 }
@@ -52,26 +38,20 @@ export const OSC_ATTRIBUTES = new Set([
   "VALUE",
 ]);
 
-/** What an incoming OSC path names: a Controller, a Macro, or any other document Address. */
 export type OscTarget =
   | { readonly kind: "controller"; readonly id: string }
-  | { readonly kind: "macro"; readonly id: string }
-  | { readonly kind: "address"; readonly address: string };
+  | { readonly kind: "macro"; readonly id: string };
 
-const SEGMENT = /^[A-Za-z0-9_.:-]+$/;
+export function oscPathOf(target: OscTarget): string {
+  return `/${target.kind}/${target.id}`;
+}
 
-/** The target an incoming address names; undefined for anything that is not a plain path (patterns included). */
+/** The entity an incoming address names; undefined for anything else, patterns included. */
 export function targetOf(address: string): OscTarget | undefined {
-  if (!address.startsWith("/") || address.endsWith("/")) return undefined;
-  const segments = address.slice(1).split("/");
-  if (segments.length < 2 || !segments.every((s) => SEGMENT.test(s)))
-    return undefined;
-  const [kind, id = ""] = segments;
-  if (segments.length === 2 && kind === "controller") return { kind, id };
-  if (segments.length === 2 && kind === "macro") return { kind, id };
-  if (kind === "layer" && segments[2] === "row" && segments.at(-1) === "value")
-    segments.pop();
-  return { kind: "address", address: segments.join("/") };
+  const match = /^\/(controller|macro)\/([A-Za-z0-9_.-]+)$/.exec(address);
+  if (match === null) return undefined;
+  const [, kind = "", id = ""] = match;
+  return kind === "controller" ? { kind, id } : { kind: "macro", id };
 }
 
 function colorHex(color: Color): string {
@@ -91,43 +71,19 @@ export function controllerArguments(
 ): readonly OscArgument[] {
   if (controller.kind === "number")
     return [{ type: "float32", value: controller.value }];
-  if (controller.kind === "color") return colorArguments(controller.value);
+  if (controller.kind === "color")
+    return [
+      {
+        type: "color",
+        value: [
+          Math.round(controller.value[0] * 255),
+          Math.round(controller.value[1] * 255),
+          Math.round(controller.value[2] * 255),
+          Math.round(controller.value[3] * 255),
+        ],
+      },
+    ];
   return [];
-}
-
-function colorArguments(color: Color): readonly OscArgument[] {
-  return [
-    {
-      type: "color",
-      value: [
-        Math.round(color[0] * 255),
-        Math.round(color[1] * 255),
-        Math.round(color[2] * 255),
-        Math.round(color[3] * 255),
-      ],
-    },
-  ];
-}
-
-/** An Address's current value as OSC arguments, by its type; a trigger has none. */
-export function addressArguments(
-  resolved: ResolvedAddress,
-  value: AddressValue,
-): readonly OscArgument[] {
-  switch (resolved.type) {
-    case "number":
-      return [
-        { type: "float32", value: typeof value === "number" ? value : 0 },
-      ];
-    case "boolean":
-      return [{ type: value === true ? "true" : "false" }];
-    case "color":
-      return colorArguments(typeof value === "object" ? value : [0, 0, 0, 1]);
-    case "choice":
-      return [{ type: "string", value: String(value) }];
-    case "trigger":
-      return [];
-  }
 }
 
 /** One leaf of the tree, kept flat for diffing between documents. */
@@ -135,72 +91,20 @@ export interface OscLeaf {
   readonly path: string;
   readonly target: OscTarget;
   readonly node: OscNode;
-  /** The value as OSC arguments, sent to clients that LISTEN. */
-  readonly args: readonly OscArgument[];
 }
 
-/** The node for one resolved Address showing `value`. */
-function nodeOf(
-  path: string,
-  description: string,
-  resolved: ResolvedAddress,
-  value: AddressValue,
-): OscNode {
-  const base = { FULL_PATH: path, DESCRIPTION: description } as const;
-  switch (resolved.type) {
-    case "number": {
-      const range = resolved.range ?? { min: 0, max: 1 };
-      return {
-        ...base,
-        ACCESS: 3,
-        TYPE: "f",
-        VALUE: [typeof value === "number" ? value : 0],
-        RANGE: [{ MIN: range.min, MAX: range.max }],
-        CLIPMODE: ["both"],
-      };
-    }
-    case "boolean":
-      return {
-        ...base,
-        ACCESS: 3,
-        TYPE: value === true ? "T" : "F",
-        VALUE: [value === true],
-      };
-    case "color":
-      return {
-        ...base,
-        ACCESS: 3,
-        TYPE: "r",
-        VALUE: [colorHex(typeof value === "object" ? value : [0, 0, 0, 1])],
-      };
-    case "choice":
-      return {
-        ...base,
-        ACCESS: 3,
-        TYPE: "s",
-        VALUE: [String(value)],
-        RANGE: [
-          { VALS: (resolved.options ?? []).map((option) => option.value) },
-        ],
-      };
-    case "trigger":
-      return { ...base, ACCESS: 2, TYPE: "I" };
-  }
-}
-
-/** Every leaf the document exposes: Controllers and Macros in navigator order, then the composition Addresses. */
+/** Every leaf the document exposes, in navigator order. */
 export function leavesOf(document: Document | undefined): readonly OscLeaf[] {
   if (document === undefined) return [];
   const leaves: OscLeaf[] = [];
   for (const controller of flattenTree(document.controllers)) {
     if (controller.kind === "group") continue;
     const target: OscTarget = { kind: "controller", id: controller.id };
-    const path = `/controller/${controller.id}`;
+    const path = oscPathOf(target);
     const description = qualifiedName(document.controllers, controller);
     leaves.push({
       path,
       target,
-      args: controllerArguments(controller),
       node:
         controller.kind === "number"
           ? {
@@ -224,11 +128,10 @@ export function leavesOf(document: Document | undefined): readonly OscLeaf[] {
   for (const macro of flattenTree(document.macros)) {
     if (macro.kind === "group") continue;
     const target: OscTarget = { kind: "macro", id: macro.id };
-    const path = `/macro/${macro.id}`;
+    const path = oscPathOf(target);
     leaves.push({
       path,
       target,
-      args: [],
       node: {
         FULL_PATH: path,
         DESCRIPTION: qualifiedName(document.macros, macro),
@@ -237,85 +140,37 @@ export function leavesOf(document: Document | undefined): readonly OscLeaf[] {
       },
     });
   }
-  for (const resolved of listAddresses(document)) {
-    const [head] = resolved.address.split("/");
-    if (
-      head === "controller" ||
-      head === "macro" ||
-      resolved.path[0] === "operational"
-    )
-      continue;
-    const path = oscPathOfAddress(resolved.address);
-    const value =
-      resolved.type === "trigger" ? "" : effectiveValue(document, resolved);
-    const description =
-      resolved.owner === undefined
-        ? resolved.label
-        : `${resolved.owner} · ${resolved.label}`;
-    leaves.push({
-      path,
-      target: { kind: "address", address: resolved.address },
-      args: addressArguments(resolved, value),
-      node: nodeOf(path, description, resolved, value),
-    });
-  }
   return leaves;
-}
-
-const HEADINGS: Readonly<Record<string, string>> = {
-  controller: "Controllers",
-  macro: "Macros",
-  scene: "Scenes",
-  layer: "Layers",
-  installation: "Installation",
-};
-
-interface MutableNode {
-  FULL_PATH: string;
-  DESCRIPTION?: string;
-  ACCESS: 0 | 1 | 2 | 3;
-  CONTENTS: Record<string, OscNode>;
 }
 
 export function buildTree(
   document: Document | undefined,
   leaves: readonly OscLeaf[] = leavesOf(document),
 ): OscNode {
-  const root: MutableNode = {
+  const controllers: Record<string, OscNode> = {};
+  const macros: Record<string, OscNode> = {};
+  for (const leaf of leaves)
+    (leaf.target.kind === "controller" ? controllers : macros)[leaf.target.id] =
+      leaf.node;
+  return {
     FULL_PATH: "/",
     DESCRIPTION: document?.installation.name ?? "No Installation open",
     ACCESS: 0,
-    CONTENTS: {},
+    CONTENTS: {
+      controller: {
+        FULL_PATH: "/controller",
+        DESCRIPTION: "Controllers",
+        ACCESS: 0,
+        CONTENTS: controllers,
+      },
+      macro: {
+        FULL_PATH: "/macro",
+        DESCRIPTION: "Macros",
+        ACCESS: 0,
+        CONTENTS: macros,
+      },
+    },
   };
-  const containers = new Map<string, MutableNode>([["/", root]]);
-  for (const [head, description] of Object.entries(HEADINGS)) {
-    const node: MutableNode = {
-      FULL_PATH: `/${head}`,
-      DESCRIPTION: description,
-      ACCESS: 0,
-      CONTENTS: {},
-    };
-    containers.set(node.FULL_PATH, node);
-    root.CONTENTS[head] = node;
-  }
-  for (const leaf of leaves) {
-    const segments = leaf.path.slice(1).split("/");
-    let parent = root;
-    let path = "";
-    for (const segment of segments.slice(0, -1)) {
-      path += `/${segment}`;
-      let container = containers.get(path);
-      if (container === undefined) {
-        container = { FULL_PATH: path, ACCESS: 0, CONTENTS: {} };
-        containers.set(path, container);
-        parent.CONTENTS[segment] = container;
-      }
-      parent = container;
-    }
-    const last = segments[segments.length - 1];
-    if (last !== undefined) parent.CONTENTS[last] = leaf.node;
-  }
-  return root;
 }
 
 export function nodeAt(root: OscNode, path: string): OscNode | undefined {

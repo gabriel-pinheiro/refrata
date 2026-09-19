@@ -5,7 +5,6 @@ import {
   listAddresses,
   type AddressValue,
   type Document,
-  type ResolvedAddress,
   type RunnableMacro,
 } from "@refrata/core";
 import { useMemo } from "react";
@@ -14,6 +13,7 @@ import {
   AddressPicker,
   type PickerCandidate,
 } from "@/inspector/fields/address-picker";
+import { addressPlacer } from "@/inspector/fields/address-place";
 import { useCommand, useSignal } from "@/lib/client";
 
 /**
@@ -81,17 +81,13 @@ function actionFor(
   };
 }
 
-const HEADING_RANK: Record<string, number> = {
-  Installation: 0,
-  Controllers: 1,
-  Macros: 2,
-};
-
-/** Every Address, with the words that find it, in the order the picker lists them. */
+/** Every Address but the Macro's own run, with the words that find it, in the order the picker lists them. */
 function collect(document: Document, macro: RunnableMacro): PickerCandidate[] {
   const result: (PickerCandidate & { readonly rank: number })[] = [];
+  const place = addressPlacer(document);
   for (const resolved of listAddresses(document)) {
-    const placed = place(resolved, macro);
+    if (resolved.address === `macro/${macro.id}/run`) continue;
+    const placed = place(resolved);
     if (placed === undefined) continue;
     const link = linkAt(document, resolved.address);
     const controller =
@@ -101,8 +97,9 @@ function collect(document: Document, macro: RunnableMacro): PickerCandidate[] {
       group: placed.group,
       owner: placed.owner,
       label: resolved.label,
+      detail: placed.detail,
       haystack:
-        `${placed.group} ${placed.owner} ${resolved.label}`.toLowerCase(),
+        `${placed.group} ${placed.owner} ${placed.detail ?? ""} ${resolved.label}`.toLowerCase(),
       note:
         controller === undefined
           ? undefined
@@ -110,27 +107,8 @@ function collect(document: Document, macro: RunnableMacro): PickerCandidate[] {
               text: controller.name,
               title: `Controlled by ${controller.name}; a set action is skipped while it is`,
             },
-      rank: HEADING_RANK[placed.group] ?? 9,
+      rank: placed.rank,
     });
   }
   return result.sort((a, b) => a.rank - b.rank);
-}
-
-function place(
-  resolved: ResolvedAddress,
-  macro: RunnableMacro,
-): { readonly group: string; readonly owner: string } | undefined {
-  const [kind, id = ""] = resolved.address.split("/");
-  switch (kind) {
-    case "installation":
-      return { group: "Installation", owner: "" };
-    case "controller":
-      return { group: "Controllers", owner: resolved.owner ?? "" };
-    case "macro":
-      return id === macro.id
-        ? undefined
-        : { group: "Macros", owner: resolved.owner ?? "" };
-    default:
-      return undefined;
-  }
 }

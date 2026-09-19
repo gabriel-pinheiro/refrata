@@ -42,6 +42,28 @@ const actionsOf = (document: Document, id: string) =>
   macro(document, id).actions.map(({ kind, address }) => `${kind} ${address}`);
 
 describe("Macros", () => {
+  it("creates a Macro with its actions in one command, and refuses them on a Group", () => {
+    let document = stage();
+    document = run(document, "macro.create", {
+      id: "again",
+      name: "Again",
+      actions: [{ kind: "trigger", address: "macro/hit/run" }],
+    }).document;
+    expect(actionsOf(document, "again")).toEqual(["trigger macro/hit/run"]);
+    expect(
+      failure(document, "macro.create", {
+        name: "Nowhere",
+        actions: [{ kind: "trigger", address: "scene/gone/play" }],
+      }),
+    ).toMatch(/Unknown address/);
+    expect(
+      failure(document, "macro.create", {
+        kind: "group",
+        actions: [{ kind: "trigger", address: "macro/hit/run" }],
+      }),
+    ).toMatch(/holds no actions/);
+  });
+
   it("creates, groups, moves, duplicates, ungroups and removes Macros", () => {
     let document = stage();
     expect(macro(document, "hit")).toMatchObject({

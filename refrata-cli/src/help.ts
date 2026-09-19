@@ -91,6 +91,13 @@ Working from a shell
              drops it. Playing the playing Scene again restarts every
              Visual in it.
 
+  Hub        osc  lists what a hub such as Chataigne sees: one leaf per
+             Controller and one per Macro, nothing else. A fader is a
+             Controller linked to a value (link); a button is a Macro.
+             macros add <name> --trigger scene/Chorus/play  makes the Macro
+             a pad needs; --trigger layer/Chase/cue/step fires a Cue. A held
+             pad is two Macros, one at press and one at release.
+
   Write      run <command> [json]  any command; ids come back in "created".
              edit <Address> <value>  authoring change, undoable.
              set <Address> <value>   show control, never undone.
