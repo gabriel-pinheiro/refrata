@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import dimmerJson from "../../../refrata-library/generic/dimmer-1ch.json" with { type: "json" };
+import moverJson from "../../../refrata-library/generic/moving-head.json" with { type: "json" };
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import rgbwJson from "../../../refrata-library/generic/rgbw-4ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import strobeJson from "../../test-fixtures/atomic-like-panel.json" with { type: "json" };
 
 import {
   elementsOf,
@@ -35,6 +36,9 @@ function mode(type: FixtureType, key: string): Mode {
 const rgb = mode(load(rgbJson), "3ch");
 const rgbw = mode(load(rgbwJson), "4ch");
 const dimmer = mode(load(dimmerJson), "1ch");
+const moverType = load(moverJson);
+const mover8 = mode(moverType, "8ch");
+const mover10 = mode(moverType, "10ch");
 const strobeType = load(strobeJson);
 const strobe32 = mode(strobeType, "32ch");
 
@@ -48,10 +52,12 @@ function encode(
 }
 
 describe("Fixture Type files", () => {
-  it("parse the bundled types with their footprints", () => {
+  it("parse with their footprints", () => {
     expect(footprintOf(dimmer)).toBe(1);
     expect(footprintOf(rgb)).toBe(3);
     expect(footprintOf(rgbw)).toBe(4);
+    expect(footprintOf(mover8)).toBe(8);
+    expect(footprintOf(mover10)).toBe(10);
     expect(footprintOf(strobe32)).toBe(32);
     expect(footprintOf(mode(strobeType, "3ch"))).toBe(3);
   });
@@ -144,6 +150,21 @@ describe("Encoding", () => {
       [0, 0, 255],
     );
     expect(encode(rgb, {})).toEqual([0, 0, 0]);
+  });
+
+  it("centres a moving head at rest and spreads pan and tilt over their bytes", () => {
+    expect(encode(mover8, {})).toEqual([128, 128, 0, 0, 0, 0, 0, 0]);
+    expect(encode(mover10, {}).slice(0, 4)).toEqual([128, 0, 128, 0]);
+    const bytes = encode(mover10, {
+      root: {
+        pan: 270,
+        tilt: -135,
+        dimmer: 1,
+        strobe: 15,
+        color: [1, 0, 0, 1],
+      },
+    });
+    expect(bytes).toEqual([255, 255, 0, 0, 255, 128, 255, 0, 0, 0]);
   });
 
   it("lays the strobe's 32 channels out as 8 × RGB then 8 × white", () => {

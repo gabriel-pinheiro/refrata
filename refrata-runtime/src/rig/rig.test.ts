@@ -1,10 +1,15 @@
-import { createBuiltInRegistry, type ParameterValues } from "@refrata/core";
+import {
+  createBuiltInRegistry,
+  parseFixtureType,
+  type ParameterValues,
+} from "@refrata/core";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import strobeJson from "../../../refrata-core/test-fixtures/atomic-like-panel.json" with { type: "json" };
 import { DocumentStore } from "../documents/document-store.ts";
 import { ResolvedStream } from "../live/resolved-streams.ts";
 import { createDrivers } from "../output/drivers.ts";
@@ -32,6 +37,9 @@ beforeEach(async () => {
   });
   library = new FixtureLibrary(() => undefined);
   await library.load(libraryDir);
+  const strobe = parseFixtureType(strobeJson);
+  if (!strobe.ok) throw new Error(strobe.error);
+  library.add(strobe.type);
 });
 
 afterEach(async () => {
@@ -61,18 +69,19 @@ async function stageStrobe(): Promise<{
 }
 
 describe("FixtureLibrary", () => {
-  it("lists the bundled types with their Modes and footprints", () => {
+  it("lists the bundled types and an added one with their Modes and footprints", () => {
     const entries = library.list();
     expect(entries.map((entry) => entry.key)).toEqual([
       "generic/atomic-like-panel",
       "generic/dimmer-1ch",
+      "generic/moving-head",
       "generic/rgb-3ch",
       "generic/rgb-7ch",
       "generic/rgbw-4ch",
     ]);
-    expect(entries.at(0)?.modes).toEqual([
-      { key: "3ch", name: "3ch", footprint: 3 },
-      { key: "32ch", name: "32ch", footprint: 32 },
+    expect(entries.at(2)?.modes).toEqual([
+      { key: "8ch", name: "8ch", footprint: 8 },
+      { key: "10ch", name: "10ch", footprint: 10 },
     ]);
     expect(library.get("nope")).toBeUndefined();
   });

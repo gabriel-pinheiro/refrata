@@ -11,7 +11,7 @@ the shape of the file and the reasons for it.
 `refrata-library/<manufacturer>/<model>.json`, loaded by the Runtime at startup,
 read again whenever a file under the folder changes, and listed by `refrata
 library`. A file is identified by its `key` (`generic/rgb-3ch`,
-`generic/atomic-like-panel`). When a Fixture uses a type, the type is copied
+`generic/moving-head`). When a Fixture uses a type, the type is copied
 into the Installation under that key and dropped again when the last Fixture
 using it goes, so an Installation opens the same on another machine. Editing a library
 file never changes an Installation by itself: Studio and `refrata library`
@@ -102,8 +102,9 @@ that needs them.
 
 ## A multi-Element excerpt
 
-The Atomic-like Panel's `32ch` Mode, from the LL960S chart until verified on
-the unit: channels 1 to 24 are red, green and blue per RGB panel 1 to 8, channels
+The Atomic-like Panel's `32ch` Mode, a zoned strobe that is not in the
+library and serves the tests as their multi-Element type
+(`refrata-core/test-fixtures/atomic-like-panel.json`): channels 1 to 24 are red, green and blue per RGB panel 1 to 8, channels
 25 to 32 are white sections 1 to 8. No master dimmer and no strobe channel, so
 the Mode has no `strobe` Parameter and strobing is a Visual's job.
 

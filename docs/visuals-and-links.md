@@ -141,9 +141,10 @@ productivity feature and it lands naturally here, later.
 
 Blackout is a switch: every `dimmer` to 0 after Resolve, nothing else touched,
 released at once. Master is a number: every `dimmer` scaled after Resolve.
-Both are Installation-level Addresses, so a hub's button and fader reach them without
-a Layer. The review's worry, "how to control all dimmer Attributes, or all
-colour Attributes, easily", has one answer for everything else: a Look Layer
+Both are Installation-level Addresses, so a hub reaches them without a Layer:
+Blackout through a Macro, Master through a Controller linked to it. The
+review's worry, "how to control all dimmer Attributes, or all colour
+Attributes, easily", has one answer for everything else: a Look Layer
 or a Filter Layer targeting a Set of every Fixture (a rule Set whose one Rule
 has no Tags; there is no built-in one). A "tint everything" is a Look Layer
 on that `All` with a `color` row at low alpha; a "dim the floor" is a

@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 import rgbJson from "../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import strobeJson from "../../refrata-core/test-fixtures/atomic-like-panel.json" with { type: "json" };
 import { formatFixtures, formatLibrary } from "./rig-lines.ts";
 
 const registry = createBuiltInRegistry();

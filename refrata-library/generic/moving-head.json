@@ -1,0 +1,98 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "generic/moving-head",
+  "manufacturer": "Generic",
+  "model": "Moving Head",
+  "notes": "LED wash moving head: pan 540 degrees, tilt 270 degrees, a master dimmer, a strobe channel and red, green, blue and white emitters. The 8ch Mode has one byte for pan and for tilt, the 10ch Mode two. The strobe channel is taken as linear from off to 30 Hz; check a real unit's chart before trusting the rate.",
+  "modes": {
+    "8ch": {
+      "name": "8ch",
+      "channels": [
+        { "key": "pan", "element": "root" },
+        { "key": "tilt", "element": "root" },
+        { "key": "dimmer", "element": "root" },
+        { "key": "strobe", "element": "root" },
+        { "key": "red", "element": "root" },
+        { "key": "green", "element": "root" },
+        { "key": "blue", "element": "root" },
+        { "key": "white", "element": "root" }
+      ],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "Moving Head",
+          "parameters": {
+            "pan": {
+              "default": 0,
+              "encode": { "scale": "pan" }
+            },
+            "tilt": {
+              "default": 0,
+              "encode": { "scale": "tilt" }
+            },
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": { "scale": "dimmer" }
+            },
+            "strobe": {
+              "default": 0,
+              "highlight": 0,
+              "encode": { "scale": "strobe" }
+            },
+            "color": {
+              "default": [0, 0, 0, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": { "color": ["red", "green", "blue", "white"] }
+            }
+          }
+        }
+      }
+    },
+    "10ch": {
+      "name": "10ch",
+      "channels": [
+        { "key": "pan", "element": "root", "bytes": 2 },
+        { "key": "tilt", "element": "root", "bytes": 2 },
+        { "key": "dimmer", "element": "root" },
+        { "key": "strobe", "element": "root" },
+        { "key": "red", "element": "root" },
+        { "key": "green", "element": "root" },
+        { "key": "blue", "element": "root" },
+        { "key": "white", "element": "root" }
+      ],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "Moving Head",
+          "parameters": {
+            "pan": {
+              "default": 0,
+              "encode": { "scale": "pan" }
+            },
+            "tilt": {
+              "default": 0,
+              "encode": { "scale": "tilt" }
+            },
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "encode": { "scale": "dimmer" }
+            },
+            "strobe": {
+              "default": 0,
+              "highlight": 0,
+              "encode": { "scale": "strobe" }
+            },
+            "color": {
+              "default": [0, 0, 0, 1],
+              "highlight": [1, 1, 1, 1],
+              "encode": { "color": ["red", "green", "blue", "white"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

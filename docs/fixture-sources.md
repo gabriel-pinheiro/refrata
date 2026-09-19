@@ -88,8 +88,9 @@ Like both references, the library ships generic types for the fixtures that
 have no brand. Slice 1 ships five, hand-written: `generic/dimmer-1ch`,
 `generic/rgb-3ch` (virtual dimmer), `generic/rgb-7ch` (three unused channels,
 a master dimmer, then red, green and blue), `generic/rgbw-4ch` (white
-subtracted from red, green and blue) and `generic/atomic-like-panel`, the
-rig's ST-960 strobe in its `3ch` and `32ch` Modes, the last from the LL960S
-chart in docs/rig-model.md until verified.
-`RGBA`, `RGBAW`, `Pan/Tilt + Dimmer` and a generic pixel bar with the pixel
-count as a Mode choice stay planned.
+subtracted from red, green and blue) and `generic/moving-head`, an LED wash
+mover with pan, tilt, a master dimmer, a strobe channel and red, green, blue
+and white, in an `8ch` Mode with one byte for pan and for tilt and a `10ch`
+Mode with two.
+`RGBA`, `RGBAW` and a generic pixel bar with the pixel count as a Mode choice
+stay planned.
