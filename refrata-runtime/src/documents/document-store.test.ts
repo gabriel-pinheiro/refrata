@@ -20,7 +20,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 beforeEach(async () => {
   dir = await mkdtemp(path.join(tmpdir(), "refrata-"));
   store = new DocumentStore({
-    projectsDir: dir,
     registry: createBuiltInRegistry(),
     autosaveIntervalMs: 10,
   });
@@ -43,7 +42,7 @@ describe("DocumentStore", () => {
         "test",
       );
 
-    const saved = await store.save(documentId, "living");
+    const saved = await store.save(documentId, path.join(dir, "living"));
     expect(saved.ok && saved.result).toMatchObject({
       path: path.join(dir, "living.refrata"),
       dirty: false,
@@ -59,7 +58,7 @@ describe("DocumentStore", () => {
 
     expect((await store.close(documentId)).ok).toBe(true);
     expect(store.current()).toBeNull();
-    const reopened = await store.open("living");
+    const reopened = await store.open(path.join(dir, "living"));
     expect(reopened.ok && reopened.result).toMatchObject({
       name: "Living",
       dirty: false,
@@ -67,29 +66,92 @@ describe("DocumentStore", () => {
     expect(store.currentSession()?.document.controllers.energy?.name).toBe(
       "Energy",
     );
-    expect((await store.listFiles()).map((entry) => entry.name)).toEqual([
-      "living",
-    ]);
   });
 
   it("holds one document: new and open replace it, refusing to drop unsaved changes", async () => {
     const created = await store.create("X");
     const documentId = created.ok ? created.result.id : "";
+    store
+      .session(documentId)!
+      .execute(
+        "controller.create",
+        { id: "energy", kind: "number", name: "Energy" },
+        "test",
+      );
     expect((await store.close(documentId)).ok).toBe(false);
     expect((await store.create("Y")).ok).toBe(false);
     const replaced = await store.create("Y", true);
     expect(replaced.ok && replaced.result.name).toBe("Y");
     expect(store.session(documentId)).toBeUndefined();
     expect(store.current()?.name).toBe("Y");
-    await store.save(replaced.ok ? replaced.result.id : "", "y");
-    const opened = await store.open("y");
+    await store.save(
+      replaced.ok ? replaced.result.id : "",
+      path.join(dir, "y"),
+    );
+    const opened = await store.open(path.join(dir, "y"));
     expect(opened.ok && opened.result.id).toBe(store.current()?.id);
+  });
+
+  it("a new Installation is clean until something changes it, and still needs a path to save", async () => {
+    const created = await store.create("X");
+    expect(created.ok && created.result).toMatchObject({
+      dirty: false,
+      path: null,
+    });
+    const documentId = created.ok ? created.result.id : "";
+    expect(await store.save(documentId)).toEqual({
+      ok: false,
+      error: "This Installation has no file yet; supply a path.",
+    });
+    // Nothing to lose, so new and open replace it without a discard.
+    const replaced = await store.create("Y");
+    expect(replaced.ok).toBe(true);
+    store
+      .currentSession()!
+      .execute(
+        "controller.create",
+        { id: "energy", kind: "number", name: "Energy" },
+        "test",
+      );
+    expect(store.current()?.dirty).toBe(true);
+    expect((await store.create("Z")).ok).toBe(false);
+  });
+
+  it("names files by absolute path only", async () => {
+    const created = await store.create("X");
+    const documentId = created.ok ? created.result.id : "";
+    const refused = await store.save(documentId, "living");
+    expect(refused.ok).toBe(false);
+    expect(!refused.ok && refused.error).toContain("not an absolute path");
+    expect((await store.open("living")).ok).toBe(false);
+  });
+
+  it("openOrCreate writes a missing file, named after it, folders included", async () => {
+    const filePath = path.join(dir, "shows", "tour", "living.refrata");
+    const opened = await store.openOrCreate(filePath);
+    expect(opened.ok && opened.result).toMatchObject({
+      name: "living",
+      path: filePath,
+      dirty: false,
+      recovered: false,
+    });
+    const parsed = parseDocumentFile(await readFile(filePath, "utf8"));
+    expect(parsed.ok && parsed.document.installation.name).toBe("living");
+
+    // An existing file is opened as it is.
+    store
+      .currentSession()!
+      .execute("installation.rename", { name: "Living Room" }, "test");
+    await store.save(opened.ok ? opened.result.id : "");
+    store = new DocumentStore({ registry: createBuiltInRegistry() });
+    const reopened = await store.openOrCreate(filePath);
+    expect(reopened.ok && reopened.result.name).toBe("Living Room");
   });
 
   it("discarding a dirty document also drops its autosaves", async () => {
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
-    await store.save(documentId, "living");
+    await store.save(documentId, path.join(dir, "living"));
     store
       .session(documentId)!
       .execute("installation.rename", { name: "Changed" }, "test");
@@ -103,7 +165,7 @@ describe("DocumentStore", () => {
   it("autosaves dirty documents, recovers on open, and reverts to the file", async () => {
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
-    await store.save(documentId, "living");
+    await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
     store
       .session(documentId)!
@@ -117,17 +179,13 @@ describe("DocumentStore", () => {
     // Make the sidecar unambiguously newer than the file.
     const later = new Date(Date.now() + 5_000);
     await utimes(sidecars[0]!, later, later);
-    const listed = await store.listFiles();
-    expect(listed.map((entry) => entry.name)).toEqual(["living"]);
-    expect(listed[0]?.recoveryAvailable).toBe(true);
 
     // A runtime that died leaves the sidecar behind; the next one recovers it.
     store = new DocumentStore({
-      projectsDir: dir,
       registry: createBuiltInRegistry(),
       autosaveIntervalMs: 10,
     });
-    const recovered = await store.open("living");
+    const recovered = await store.open(path.join(dir, "living"));
     expect(recovered.ok && recovered.result).toMatchObject({
       name: "Living 2",
       dirty: true,
@@ -173,7 +231,7 @@ describe("DocumentStore", () => {
   it("keeps the sidecar at most one delay behind the last of several changes", async () => {
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
-    await store.save(documentId, "living");
+    await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
     const session = store.session(documentId)!;
     for (const name of ["Living 1", "Living 2", "Living 3"])
@@ -194,7 +252,7 @@ describe("DocumentStore", () => {
   it("flush writes what changed since the last sidecar, and nothing otherwise", async () => {
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
-    await store.save(documentId, "living");
+    await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
     const session = store.session(documentId)!;
     session.execute("installation.rename", { name: "Living 2" }, "test");
@@ -217,14 +275,13 @@ describe("DocumentStore", () => {
 
   it("writes by the max wait while changes keep coming", async () => {
     store = new DocumentStore({
-      projectsDir: dir,
       registry: createBuiltInRegistry(),
       autosaveIntervalMs: 60,
       autosaveMaxWaitMs: 120,
     });
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
-    await store.save(documentId, "living");
+    await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
     const session = store.session(documentId)!;
     for (let step = 1; step <= 20; step += 1) {

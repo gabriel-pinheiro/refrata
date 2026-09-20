@@ -5,12 +5,7 @@ import {
   type CommandDefinition,
   type FixtureType,
 } from "@refrata/core";
-import {
-  PROTOCOL_VERSION,
-  type ClientMessage,
-  type ServerMessage,
-} from "@refrata/protocol";
-import { EventEmitter } from "node:events";
+import { PROTOCOL_VERSION } from "@refrata/protocol";
 
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import { mkdtemp, rm } from "node:fs/promises";
@@ -21,63 +16,9 @@ import type { WebSocket } from "ws";
 import { z } from "zod";
 
 import { DocumentStore } from "../documents/document-store.ts";
-import { createDrivers } from "../output/drivers.ts";
-import { OutputManager } from "../output/output-manager.ts";
-import { fakeSerialFactory } from "../output/serial/fake-serial.ts";
-import { FixtureLibrary } from "../rig/library.ts";
-import { OutputLoop } from "../rig/output-loop.ts";
 import { buildRuntime, type Runtime } from "../server.ts";
-import { LiveServer } from "./live-server.ts";
-
-/** A LiveServer over `store` with an idle output loop and an empty library. */
-function liveServer(
-  store: DocumentStore,
-  log: (message: string) => void,
-): LiveServer {
-  const outputs = new OutputManager({
-    drivers: createDrivers({
-      serial: () => Promise.resolve(fakeSerialFactory([]).factory),
-    }),
-    log,
-  });
-  return new LiveServer({
-    store,
-    runtimeName: "test",
-    runtimeVersion: "0",
-    log,
-    library: new FixtureLibrary(log),
-    loop: new OutputLoop({ store, outputs }),
-    outputs,
-  });
-}
-
-/** A `ws` socket as the LiveServer sees it, driven from the test. */
-class FakeSocket extends EventEmitter {
-  readonly OPEN = 1;
-  readyState = this.OPEN;
-  readonly sent: ServerMessage[] = [];
-
-  send(data: string): void {
-    this.sent.push(JSON.parse(data) as ServerMessage);
-  }
-
-  close(): void {
-    this.readyState = 3;
-    this.emit("close");
-  }
-
-  receive(message: ClientMessage): void {
-    this.emit("message", Buffer.from(JSON.stringify(message)));
-  }
-
-  reply(requestId: string): Extract<ServerMessage, { type: "reply" }> {
-    const found = this.sent.find(
-      (message) => message.type === "reply" && message.requestId === requestId,
-    );
-    if (found?.type !== "reply") throw new Error(`No reply to ${requestId}.`);
-    return found;
-  }
-}
+import { FakeSocket } from "./fake-socket.ts";
+import { idleLiveServer } from "./idle-live-server.ts";
 
 let dir: string;
 let runtime: Runtime;
@@ -106,7 +47,7 @@ beforeEach(async () => {
   runtime = await buildRuntime({
     host: "127.0.0.1",
     port: 0,
-    projectsDir: dir,
+    documents: "free",
     openPath: undefined,
     studioDist: undefined,
     libraryDir: path.join(dir, "no-library"),
@@ -298,6 +239,12 @@ describe("live protocol", () => {
     const first = await studio.request<{ id: string }>("documents.new", {
       name: "First",
     });
+    // An untouched new Installation has nothing to lose; a changed one does.
+    await studio.command(first.id, "controller.create", {
+      id: "energy",
+      kind: "number",
+      name: "Energy",
+    });
     await expect(
       studio.request("documents.new", { name: "Second" }),
     ).rejects.toThrow("unsaved changes");
@@ -373,13 +320,13 @@ describe("live protocol", () => {
         },
       }) as unknown as CommandDefinition<never>,
     );
-    const store = new DocumentStore({ projectsDir: dir, registry });
+    const store = new DocumentStore({ registry });
     const logged: string[] = [];
-    const live = liveServer(store, (message) => logged.push(message));
+    const live = idleLiveServer(store, (message) => logged.push(message));
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
     const socket = new FakeSocket();
-    live.accept(socket as unknown as WebSocket);
+    live.accept(socket as unknown as WebSocket, "127.0.0.1");
     socket.receive({
       type: "hello",
       protocolVersion: PROTOCOL_VERSION,
@@ -420,15 +367,12 @@ describe("live protocol", () => {
   });
 
   it("replies with every payload issue, for commands and requests alike", async () => {
-    const store = new DocumentStore({
-      projectsDir: dir,
-      registry: createBuiltInRegistry(),
-    });
-    const live = liveServer(store, () => undefined);
+    const store = new DocumentStore({ registry: createBuiltInRegistry() });
+    const live = idleLiveServer(store, () => undefined);
     const created = await store.create("Living");
     const documentId = created.ok ? created.result.id : "";
     const socket = new FakeSocket();
-    live.accept(socket as unknown as WebSocket);
+    live.accept(socket as unknown as WebSocket, "127.0.0.1");
     socket.receive({
       type: "hello",
       protocolVersion: PROTOCOL_VERSION,

@@ -91,8 +91,10 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts the runtime on port 4900 and Studio on 4901. Open Studio
-at http://localhost:4901/.
+`npm run dev` starts the runtime on port 4900 and Studio on 4901. The runtime
+holds `research/dev.refrata`, created on first run;
+`REFRATA_FILE=<path> npm run dev` holds another file. Open Studio at
+http://localhost:4901/.
 
 ## Production
 
@@ -102,20 +104,30 @@ node refrata-runtime/bin/refrata-runtime.mjs <file.refrata>
 ```
 
 The runtime serves the built Studio at `/studio/` (the root redirects there),
-a `/health` JSON endpoint and the live WebSocket at `/live`. It opens the file
-given on the command line, at most one, and holds one Installation at a time.
-Autosaves land next to the file and are recovered on the next open.
+a `/health` JSON endpoint and the live WebSocket at `/live`. It holds the file
+given on the command line or in `REFRATA_FILE`, creating it when it does not
+exist, and refuses to start without one. Autosaves land next to the file and
+are recovered on the next open.
+
+Started like this the runtime is **pinned**: clients save and revert its
+Installation but cannot create, open or close one, nor save it to another path.
+`--documents free` lifts that for clients on the runtime's own machine, and
+makes the file optional; clients elsewhere on the network stay pinned.
 
 Flags and their environment variables (`refrata-runtime/src/config.ts`):
 
-| Flag                   | Variable               | Default               |
-| ---------------------- | ---------------------- | --------------------- |
-| `--host <address>`     | `REFRATA_HOST`         | `0.0.0.0`             |
-| `--port <number>`      | `REFRATA_PORT`         | `4900`                |
-| `--projects-dir <dir>` | `REFRATA_PROJECTS_DIR` | `~/Refrata`           |
-| `--osc-port <number>`  | `REFRATA_OSC_PORT`     | `9100`                |
-| `--no-osc`             | `REFRATA_NO_OSC=1`     | OSC on                |
-|                        | `REFRATA_STUDIO_DIST`  | `refrata-studio/dist` |
+| Flag                  | Variable              | Default               |
+| --------------------- | --------------------- | --------------------- |
+| `--host <address>`    | `REFRATA_HOST`        | `0.0.0.0`             |
+| `--port <number>`     | `REFRATA_PORT`        | `4900`                |
+| `<file.refrata>`      | `REFRATA_FILE`        | required when pinned  |
+| `--documents <mode>`  |                       | `pinned`              |
+| `--osc-port <number>` | `REFRATA_OSC_PORT`    | `9100`                |
+| `--no-osc`            | `REFRATA_NO_OSC=1`    | OSC on                |
+|                       | `REFRATA_STUDIO_DIST` | `refrata-studio/dist` |
+
+File paths in requests are absolute paths on the runtime's machine; the CLI
+resolves a relative one against the shell's directory first.
 
 ## Show control
 

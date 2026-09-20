@@ -1,12 +1,24 @@
-// Runs the runtime and the Studio dev server together.
+// Runs the runtime and the Studio dev server together. The runtime is pinned
+// to research/dev.refrata, which it creates when missing; REFRATA_FILE names
+// another file, relative to the repository root.
 import { spawn } from "node:child_process";
+import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+// Workspace scripts run inside their package, so the path goes down absolute.
+const file = path.resolve(
+  root,
+  process.env.REFRATA_FILE || "research/dev.refrata",
+);
 
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const workspaces = ["@refrata/runtime", "@refrata/studio"];
 const children = workspaces.map((workspace) =>
   spawn(npm, ["run", "dev", `--workspace=${workspace}`], {
     stdio: "inherit",
+    env: { ...process.env, REFRATA_FILE: file },
     detached: process.platform !== "win32",
   }),
 );

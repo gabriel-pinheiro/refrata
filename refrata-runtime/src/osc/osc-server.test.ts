@@ -21,7 +21,6 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 beforeEach(async () => {
   dir = await mkdtemp(path.join(tmpdir(), "refrata-osc-"));
   store = new DocumentStore({
-    projectsDir: dir,
     registry: createBuiltInRegistry(),
     autosaveIntervalMs: 60_000,
     log: () => undefined,

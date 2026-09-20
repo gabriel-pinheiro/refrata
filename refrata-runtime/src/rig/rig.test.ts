@@ -32,7 +32,6 @@ let library: FixtureLibrary;
 beforeEach(async () => {
   dir = await mkdtemp(path.join(tmpdir(), "refrata-rig-"));
   store = new DocumentStore({
-    projectsDir: dir,
     registry: createBuiltInRegistry(),
   });
   library = new FixtureLibrary(() => undefined);

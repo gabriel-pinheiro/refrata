@@ -6,6 +6,7 @@ import {
   RuntimeRequestSchemas,
   type ClientMessage,
   type CommandResult,
+  type DocumentsMode,
   type LiveState,
   type OscLive,
   type ServerMessage,
@@ -23,6 +24,7 @@ import type { DocumentStore } from "../documents/document-store.ts";
 import type { OutputManager } from "../output/output-manager.ts";
 import type { FixtureLibrary } from "../rig/library.ts";
 import type { OutputLoop } from "../rig/output-loop.ts";
+import { documentsModeFor, pinnedRefusal } from "./documents-mode.ts";
 import { ResolvedStream } from "./resolved-streams.ts";
 
 function decodeRawData(data: RawData): string {
@@ -34,6 +36,8 @@ function decodeRawData(data: RawData): string {
 interface ClientSession {
   readonly id: string;
   readonly socket: WebSocket;
+  /** What this connection may do with the document, told in `welcome`. */
+  readonly documents: DocumentsMode;
   identified: boolean;
   /** Owner of undo entries; the session id unless hello supplied an actor. */
   actor: string;
@@ -53,6 +57,8 @@ export interface LiveServerOptions {
   readonly store: DocumentStore;
   readonly runtimeName: string;
   readonly runtimeVersion: string;
+  /** How the runtime was started; each connection's mode derives from it. */
+  readonly documents: DocumentsMode;
   readonly log: (message: string) => void;
   /** The OSC door's state, part of the live state Studio shows. */
   readonly osc?:
@@ -145,10 +151,12 @@ export class LiveServer {
     for (const session of this.#sessions) session.socket.close();
   }
 
-  accept(socket: WebSocket): void {
+  /** `remoteAddress` is the peer's, as the accepted socket reports it. */
+  accept(socket: WebSocket, remoteAddress: string | undefined): void {
     const session: ClientSession = {
       id: generateId("session"),
       socket,
+      documents: documentsModeFor(this.#options.documents, remoteAddress),
       identified: false,
       actor: "",
       subscriptions: new Map(),
@@ -325,6 +333,7 @@ export class LiveServer {
           name: this.#options.runtimeName,
           version: this.#options.runtimeVersion,
         },
+        documents: session.documents,
       });
       this.#send(session, {
         type: "document",
@@ -463,6 +472,14 @@ export class LiveServer {
     }
     const store = this.#options.store;
     const payload = parsed.data as never;
+    const refusal =
+      session.documents === "pinned"
+        ? pinnedRefusal(store, message.name, payload)
+        : undefined;
+    if (refusal !== undefined) {
+      reply({ ok: false, error: refusal });
+      return;
+    }
     try {
       switch (message.name) {
         case "documents.new": {
@@ -502,15 +519,6 @@ export class LiveServer {
           reply(await store.close(documentId, discard ?? false));
           break;
         }
-        case "files.list":
-          reply({
-            ok: true,
-            result: {
-              items: await store.listFiles(),
-              projectsDir: store.projectsDir,
-            },
-          });
-          break;
         case "library.list":
           reply({
             ok: true,

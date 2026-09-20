@@ -385,6 +385,14 @@ timeline function).
 
 **Elsewhere:** grandMA3 "show file", QLC+ "workspace".
 
+### Document Mode
+
+What a connection may do with the Runtime's `.refrata` file, decided by how the
+Runtime was started. **Pinned**: the Runtime holds the one file it was started
+with; clients save and revert it, and cannot create, open or close an
+Installation nor save it to another path. **Free**: clients on the Runtime's own
+machine can do all of those; a client on another machine is still pinned.
+
 ### Rig
 
 The physical half of an Installation: its Universes, Outputs, Fixtures with their
