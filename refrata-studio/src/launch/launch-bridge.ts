@@ -1,0 +1,60 @@
+/**
+ * What Refrata Desktop hands its launch page as `window.refrataLaunch`: the
+ * choice of where Studio comes from. Desktop's side of it, and the reason it
+ * is apart from `window.refrataDesktop`, is
+ * `refrata-desktop/src/launch-contract.ts`; keep the two in step.
+ */
+
+/** A runtime found on the network right now. */
+export interface LaunchRuntime {
+  /** The announced instance, "Refrata on <hostname>". */
+  readonly name: string;
+  readonly host: string;
+  /** `address:port`, which is also what `connect` takes. */
+  readonly address: string;
+  readonly version: string | null;
+  /** The open Installation's name; null when nothing is open. */
+  readonly document: string | null;
+}
+
+/** A runtime Desktop connected to before, found on the network or not. */
+export interface LaunchRemembered {
+  readonly address: string;
+  /** The name it announced when it was picked from the list; null for a typed address. */
+  readonly name: string | null;
+}
+
+/** What Desktop is showing while this page is open over it: this computer's runtime, or the one at `address`. */
+export type LaunchCurrent =
+  | { readonly kind: "local" }
+  | { readonly kind: "remote"; readonly address: string };
+
+export type LaunchResult =
+  { readonly ok: true } | { readonly ok: false; readonly reason: string };
+
+export interface RefrataLaunch {
+  /** Why Desktop shows this page instead of resuming, or null. */
+  problem(): Promise<string | null>;
+  /** The runtime in use, marked instead of offered; null when this page is all Desktop shows. */
+  current(): Promise<LaunchCurrent | null>;
+  /** Starts a runtime on this computer; resolves once it is up, or with why it is not. */
+  runLocal(): Promise<LaunchResult>;
+  /** Opens the Studio of the runtime at `host`, `host:port` or a URL. */
+  connect(address: string): Promise<LaunchResult>;
+  runtimes(): Promise<LaunchRuntime[]>;
+  /** Calls back with the whole list whenever it changes. Returns the unsubscribe. */
+  onRuntimesChanged(callback: (runtimes: LaunchRuntime[]) => void): () => void;
+  remembered(): Promise<LaunchRemembered[]>;
+  /** Forgets one; resolves with who is still remembered. */
+  forget(address: string): Promise<LaunchRemembered[]>;
+}
+
+declare global {
+  interface Window {
+    readonly refrataLaunch?: RefrataLaunch;
+  }
+}
+
+export function launchBridge(): RefrataLaunch | undefined {
+  return window.refrataLaunch;
+}

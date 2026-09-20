@@ -99,22 +99,41 @@ http://localhost:4901/.
 ## Desktop
 
 ```sh
-npm run desktop                     # reopens the last Installation, or starts an untitled one
-npm run desktop -- show.refrata     # opens that file
+npm run desktop                     # the launch page first, then whatever was chosen last time
+npm run desktop -- show.refrata     # opens that file on this computer
 ```
 
-Refrata Desktop is the Electron application (`refrata-desktop`): it starts a
-runtime of its own on port 4900 with `--documents free`, shows its Studio in a
-window, and opens and saves Installations with the operating system's file
-dialogs. The script builds Studio and Desktop, then launches the build; stop
+Refrata Desktop is the Electron application (`refrata-desktop`). Its launch
+page asks once where Studio should come from, and later launches resume that
+choice. File ▸ Connect to... in the menu bar opens the page again over what is
+running, and nothing stops until another target is chosen there. Studio's File
+and Edit menus are in the native menu bar, and the window title names the
+Installation and its file, or the runtime it is open in.
+
+- **Run on this computer** starts a runtime of Desktop's own on port 4900 with
+  `--documents free`, shows its Studio in a window, and opens and saves
+  Installations with the operating system's file dialogs. Its Outputs are
+  driven from this computer. Opening a `.refrata` file always does this.
+- **Connect to a Runtime** shows the Studio of a runtime that is already
+  running, such as a mini-PC's next to the DMX interfaces: pick it from the list of
+  runtimes found on the network, or type `host`, `host:port` or a URL when the
+  network hides them. Runtimes connected to before stay listed. The
+  Installation and its Outputs stay on that machine, so there are no file
+  dialogs and closing the window asks nothing.
+
+The script builds Studio and Desktop, then launches the build; stop
 `npm run dev` first, since both want port 4900, or move Desktop with
-`REFRATA_PORT`. The build carries the runtime's native modules (`serialport`,
-`usb`) and the Fixture Library next to the bundled runtime, so the USB DMX
-widgets work as they do from a checkout; `REFRATA_LIBRARY_DIR` points Desktop
-at a Fixture Library of your own. The runtime's log is under Help ▸ Show
-Runtime Log. On a Linux that restricts unprivileged user namespaces (Ubuntu
-23.10 and later) the script explains how to give Electron its sandbox helper,
-or to run this development build with `-- --no-sandbox`.
+`REFRATA_PORT` (or connect Desktop to the dev runtime instead of running one).
+To work on Studio inside Desktop with hot reload, keep `npm run dev` running and
+start `npm run desktop -- --studio-url http://127.0.0.1:4901/studio/`: Desktop
+forks no runtime and treats that dev server as this computer's Studio. The build
+carries the runtime's native modules (`serialport`, `usb`) and the Fixture
+Library next to the bundled runtime, so the USB DMX widgets work as they do from
+a checkout; `REFRATA_LIBRARY_DIR` points Desktop at a Fixture Library of your
+own. The runtime's log is under Help ▸ Show Runtime Log. On a Linux that
+restricts unprivileged user namespaces (Ubuntu 23.10 and later) the script
+explains how to give Electron its sandbox helper, or to run this development
+build with `-- --no-sandbox`.
 
 ## Production
 
@@ -205,5 +224,9 @@ npm run build
 ```
 
 `npm run test:desktop` launches the built Desktop through Playwright and needs
-a display (`xvfb-run -a npm run test:desktop` without one); run `npm run build`
-first.
+a display; run `npm run build` first. To keep its windows off your screen, or
+without a screen, run it under Xvfb:
+`env -u WAYLAND_DISPLAY XDG_SESSION_TYPE=x11 xvfb-run -a npm run test:desktop`.
+With `WAYLAND_DISPLAY` set Electron would open its windows on the real Wayland
+session; the suite drops it by itself inside `xvfb-run`, and the long form says
+the same by hand.

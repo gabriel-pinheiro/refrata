@@ -1,21 +1,25 @@
 import { RefrataClient } from "@refrata/client";
-import { settings } from "@refrata/core";
 import type { DocumentSummary } from "@refrata/protocol";
 
+import { liveUrl } from "./runtime-address.ts";
+
 /**
- * Main's own connection to the runtime it started, as one more
+ * Main's own connection to the runtime it shows, as one more
  * `@refrata/client` next to Studio and the CLI. Through it main knows which
- * file is open and whether it has unsaved changes (the document summary every
- * client receives), and sends the few requests it makes itself: a first
- * Installation at start-up, Save and Don't Save when the window closes. It
- * connects over loopback, so the free runtime lets it.
+ * Installation is open and whether it has unsaved changes (the document
+ * summary every client receives). To the runtime on this computer it also
+ * sends the few requests main makes itself: a first Installation at start-up,
+ * Save and Don't Save when the window closes; it connects over loopback, so
+ * the free runtime lets it. A connection that drops is retried by the client
+ * for as long as the link is open.
  */
 export class RuntimeLink {
   readonly #client: RefrataClient;
 
-  constructor(port: number) {
+  /** `origin` is the runtime's, `http://host:port`. */
+  constructor(origin: string) {
     this.#client = new RefrataClient({
-      url: `ws://127.0.0.1:${String(port)}${settings.runtime.livePath}`,
+      url: liveUrl(origin),
       kind: "desktop",
       name: "Refrata Desktop",
       // No animation frames in a Node process; main sends no inputs anyway.
@@ -26,6 +30,12 @@ export class RuntimeLink {
   /** The open document's summary, or null. */
   document(): DocumentSummary | null {
     return this.#client.document.get();
+  }
+
+  /** Calls back now and whenever the summary changes; null while nothing is open or known. */
+  onDocumentChange(listener: (summary: DocumentSummary | null) => void): void {
+    listener(this.#client.document.get());
+    this.#client.document.subscribe(listener);
   }
 
   /** Calls back with the open file's path whenever it becomes another one. */

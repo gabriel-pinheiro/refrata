@@ -1,85 +1,31 @@
-import { RefrataClient } from "@refrata/client";
-import { emptyDocument } from "@refrata/core";
-import type { CommandResult } from "@refrata/protocol";
-import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { createServer, type AddressInfo } from "node:net";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
+import { createServer } from "node:net";
+import { homedir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
 import {
-  _electron as electron,
-  type ElectronApplication,
-  type Page,
-} from "playwright";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+  LAUNCH_PAGE,
+  app,
+  clickMenu,
+  env,
+  eventually,
+  installationFile,
+  launch,
+  launchToPage,
+  menuItems,
+  quit,
+  renameFromElsewhere,
+  secondLaunch,
+  standaloneRuntime,
+  stopStandalone,
+  studioTitle,
+  userData,
+  windowAfter,
+  useDesktop,
+} from "./harness.ts";
 
-import { serializeDocument } from "../../refrata-runtime/src/documents/document-file.ts";
-
-const packageDir = fileURLToPath(new URL("..", import.meta.url));
-
-/** A port nothing uses, so the suite never meets a runtime already on 4900. */
-async function sparePort(): Promise<number> {
-  const server = createServer();
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
-  await new Promise((resolve) => server.close(resolve));
-  return port;
-}
-
-async function eventually<T>(
-  read: () => Promise<T>,
-  wanted: (value: T) => boolean,
-) {
-  const deadline = Date.now() + 20_000;
-  for (;;) {
-    const value = await read().catch(() => undefined);
-    if (value !== undefined && wanted(value)) return value;
-    if (Date.now() > deadline) throw new Error("Waited too long.");
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-}
-
-let dir: string;
-let userData: string;
-let env: Record<string, string>;
-let app: ElectronApplication | undefined;
-
-/** The app's arguments: its folder, a user data folder of its own, maybe a file. */
-const launchArguments = (file?: string): string[] => [
-  packageDir,
-  `--user-data-dir=${userData}`,
-  ...(file === undefined ? [] : [file]),
-];
-
-async function launch(file?: string): Promise<Page> {
-  app = await electron.launch({ args: launchArguments(file), env });
-  return app.firstWindow();
-}
-
-async function installationFile(name: string): Promise<string> {
-  const file = path.join(dir, `${name}.refrata`);
-  await writeFile(file, serializeDocument(emptyDocument(name)));
-  return file;
-}
-
-beforeEach(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), "refrata-desktop-e2e-"));
-  userData = path.join(dir, "user-data");
-  env = {
-    ...(process.env as Record<string, string>),
-    REFRATA_PORT: String(await sparePort()),
-    // Nothing of a test run belongs on the network.
-    REFRATA_NO_OSC: "1",
-    REFRATA_NO_DISCOVERY: "1",
-  };
-});
-
-afterEach(async () => {
-  await app?.close().catch(() => undefined);
-  app = undefined;
-  await rm(dir, { recursive: true, force: true });
-});
+useDesktop();
 
 describe("Refrata Desktop", () => {
   it("opens the file it is launched with, in a Studio that has the bridge", async () => {
@@ -97,6 +43,10 @@ describe("Refrata Desktop", () => {
       bridge: ["onOpenRequest", "pickOpenPath", "pickSavePath"],
       node: "undefined",
     });
+    // Main writes the title: the file, the home directory as "~" when inside it.
+    expect(await studioTitle()).toBe(
+      `Tonight - ${file.replace(homedir(), "~")} - Refrata`,
+    );
 
     // Another of the runtime's pages opened from Studio is an app window
     // without the bridge; a link to anywhere else never replaces Studio.
@@ -107,8 +57,25 @@ describe("Refrata Desktop", () => {
       }),
     ]);
     await other?.waitForURL(/\/health$/);
-    expect(await other?.evaluate(() => typeof window.refrataDesktop)).toBe(
-      "undefined",
+    expect(
+      await other?.evaluate(() => [
+        typeof window.refrataDesktop,
+        typeof window.refrataMenu,
+      ]),
+    ).toEqual(["undefined", "undefined"]);
+    // Nor a menu bar: the native bar is Studio's menu, not that page's.
+    expect(
+      await app?.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().map((window) => [
+          new URL(window.webContents.getURL()).pathname,
+          window.isMenuBarVisible(),
+        ]),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        ["/studio/", true],
+        ["/health", false],
+      ]),
     );
     await page.evaluate(() => {
       location.href = "http://127.0.0.1:9/elsewhere";
@@ -134,20 +101,10 @@ describe("Refrata Desktop", () => {
     page = await launch();
     await page.waitForFunction(() => document.title.startsWith("First"));
 
-    // The second instance finds the lock taken, passes its file on and exits.
-    // Playwright starts Electron with --no-sandbox on Linux, where a checkout's
-    // Electron often cannot use Chromium's sandbox; this launch does the same.
-    const other = spawn(
-      (await import("electron")).default as unknown as string,
-      [
-        ...(process.platform === "linux" ? ["--no-sandbox"] : []),
-        ...launchArguments(second),
-      ],
-      { env, stdio: "ignore" },
-    );
-    const exited = new Promise((resolve) => other.once("exit", resolve));
-    await page.waitForFunction(() => document.title.startsWith("Second"));
-    await exited;
+    await Promise.all([
+      secondLaunch(second),
+      page.waitForFunction(() => document.title.startsWith("Second")),
+    ]);
   });
 
   it("asks about unsaved changes when its window closes, and Save saves", async () => {
@@ -155,20 +112,7 @@ describe("Refrata Desktop", () => {
     const page = await launch(file);
     await page.waitForFunction(() => document.title.startsWith("Before"));
 
-    // A change from another client, as the CLI would make it.
-    const client = new RefrataClient({
-      url: `ws://127.0.0.1:${env.REFRATA_PORT}/live`,
-      kind: "cli",
-      reconnect: false,
-    });
-    const summary = await eventually(
-      () => Promise.resolve(client.document.get()),
-      (document) => document !== null,
-    );
-    await client.command(summary?.id ?? "", "installation.rename", {
-      name: "After",
-    });
-    client.close();
+    await renameFromElsewhere(env.REFRATA_PORT, "After");
     await page.waitForFunction(() => document.title.startsWith("After*"));
 
     // A native dialog cannot be clicked from here, so main's is answered for it.
@@ -189,54 +133,62 @@ describe("Refrata Desktop", () => {
     );
   });
 
-  it("loads the runtime's native modules in the runtime it forks", async () => {
-    const page = await launch();
-    await page.waitForFunction(() => document.title.startsWith("Untitled"));
-
-    // An Output naming a widget that does not exist makes its driver load the
-    // native module and list the devices, and nothing is ever opened. A module
-    // that loaded says the device is missing; one that did not is an error.
-    const client = new RefrataClient({
-      url: `ws://127.0.0.1:${env.REFRATA_PORT}/live`,
-      kind: "cli",
-      reconnect: false,
+  it("asks where to run on the first launch, and runs on this computer", async () => {
+    const launchPage = await launchToPage();
+    expect(
+      await launchPage.evaluate(() => ({
+        launch: Object.keys(window.refrataLaunch ?? {}).sort(),
+        desktop: typeof window.refrataDesktop,
+        node: typeof (globalThis as { require?: unknown }).require,
+      })),
+    ).toEqual({
+      launch: [
+        "connect",
+        "current",
+        "forget",
+        "onRuntimesChanged",
+        "problem",
+        "remembered",
+        "runLocal",
+        "runtimes",
+      ],
+      desktop: "undefined",
+      node: "undefined",
     });
-    const summary = await eventually(
-      () => Promise.resolve(client.document.get()),
-      (document) => document !== null,
-    );
-    const documentId = summary?.id ?? "";
-    const universe = await client.command<CommandResult>(
-      documentId,
-      "universe.create",
-    );
-    for (const kind of ["enttec-usb-pro", "anyma-udmx"])
-      await client.command(documentId, "output.create", {
-        universeId: universe.created?.[0]?.id,
-        kind,
-        device: "no-such-widget",
-      });
-    const log = await eventually(
-      () => readFile(path.join(userData, "logs", "runtime.log"), "utf8"),
-      (text) => (text.match(/Output output_\w+: /g) ?? []).length >= 2,
-    );
-    expect(log).toContain("No widget with serial number no-such-widget");
-    expect(log).toContain("No uDMX with serial number or port location");
-    expect(log).not.toMatch(/Output output_\w+: error/);
+    // The scheme serves the launch page, not the rest of what is in dist/.
+    expect(
+      await launchPage.evaluate(async () =>
+        Promise.all(
+          [
+            "/studio/index.html",
+            "/main.js",
+            "/studio/assets/..%2F..%2Fmain.js",
+          ].map(async (url) => (await fetch(url)).status),
+        ),
+      ),
+    ).toEqual([404, 404, 404]);
 
-    // Closed as discarded, so quitting has nothing to ask about.
-    await client.request("documents.close", { documentId, discard: true });
-    client.close();
-  });
-
-  it("starts with an untitled Installation, and stops its runtime on quit", async () => {
-    const page = await launch();
+    const page = await windowAfter(() =>
+      launchPage.getByRole("button", { name: "Run on this computer" }).click(),
+    );
     await page.waitForFunction(() => document.title.startsWith("Untitled"));
+    expect(page.url()).toBe(`http://127.0.0.1:${env.REFRATA_PORT}/studio/`);
     // Untouched, so not dirty: no asterisk, and quitting asks nothing.
     expect(await page.title()).toBe("Untitled – Refrata Studio");
+    expect(
+      await page.evaluate(() => ({
+        desktop: typeof window.refrataDesktop,
+        launch: typeof window.refrataLaunch,
+      })),
+    ).toEqual({ desktop: "object", launch: "undefined" });
+    expect(await studioTitle()).toBe("Untitled - Refrata");
+    await eventually(
+      () => Promise.resolve(launchPage.isClosed()),
+      (closed) => closed,
+    );
 
-    await app?.close();
-    app = undefined;
+    // Quitting stops the runtime.
+    await quit();
     const log = await readFile(
       path.join(userData, "logs", "runtime.log"),
       "utf8",
@@ -245,5 +197,153 @@ describe("Refrata Desktop", () => {
     await expect(
       fetch(`http://127.0.0.1:${env.REFRATA_PORT}/health`),
     ).rejects.toThrow();
+
+    // The next launch runs on this computer again, without asking.
+    const resumed = await launch();
+    await resumed.waitForFunction(() => document.title.startsWith("Untitled"));
+    expect(resumed.url()).toContain(`:${env.REFRATA_PORT}/studio/`);
+  });
+
+  it("connects to a runtime by address, resumes it, and marks it on the launch page", async () => {
+    const port = await standaloneRuntime(await installationFile("Elsewhere"));
+    const launchPage = await launchToPage();
+    const address = launchPage.getByRole("textbox");
+
+    await address.fill("not an address");
+    await address.press("Enter");
+    await launchPage
+      .getByRole("alert")
+      .filter({ hasText: "not an address" })
+      .waitFor();
+
+    // A runtime elsewhere shows its own Studio, which gets the menu bridge for
+    // its menu and nothing that reaches this computer's disk or Desktop itself.
+    await address.fill(`127.0.0.1:${port}`);
+    let page = await windowAfter(() => address.press("Enter"));
+    await page.waitForFunction(() => document.title.startsWith("Elsewhere"));
+    expect(page.url()).toBe(`http://127.0.0.1:${port}/studio/`);
+    expect(
+      await page.evaluate(() => ({
+        menu: Object.keys(window.refrataMenu ?? {}).sort(),
+        desktop: typeof window.refrataDesktop,
+        launch: typeof window.refrataLaunch,
+        node: typeof (globalThis as { require?: unknown }).require,
+      })),
+    ).toEqual({
+      menu: ["onFullScreenChange", "onMenuCommand", "setMenu"],
+      desktop: "undefined",
+      launch: "undefined",
+      node: "undefined",
+    });
+    // Main names the runtime in the title, from its own link to it, and that
+    // Studio's menu is in the native bar: a pinned runtime's, so no Open.
+    await eventually(
+      studioTitle,
+      (title) => title === `Elsewhere - 127.0.0.1:${port} - Refrata`,
+    );
+    await eventually(
+      () => menuItems("file"),
+      (items) => items.some(([id]) => id === "page:save"),
+    );
+    expect((await menuItems("file")).map(([id]) => id)).not.toContain(
+      "page:open",
+    );
+    expect((await menuItems("help")).map(([id]) => id)).not.toContain(
+      "help:runtime-log",
+    );
+    // No runtime was started on this computer for it.
+    await expect(
+      fetch(`http://127.0.0.1:${env.REFRATA_PORT}/health`),
+    ).rejects.toThrow();
+
+    // The next launch goes straight back to it.
+    await app?.close();
+    page = await launch();
+    await page.waitForFunction(() => document.title.startsWith("Elsewhere"));
+    expect(page.url()).toBe(`http://127.0.0.1:${port}/studio/`);
+
+    // File ▸ Connect to... opens the launch page over the session, with the
+    // runtime in use marked; closing it changes nothing.
+    const again = await windowAfter(() => clickMenu("desktop:connect-to"));
+    await again.waitForURL(LAUNCH_PAGE);
+    await again.getByText("Connected", { exact: true }).waitFor();
+    expect(
+      await again
+        .getByLabel("Runtimes")
+        .getByRole("button", { name: "Connect" })
+        .isDisabled(),
+    ).toBe(true);
+    await again.close();
+    expect(page.isClosed()).toBe(false);
+    expect(await studioTitle()).toBe(`Elsewhere - 127.0.0.1:${port} - Refrata`);
+
+    // A remembered runtime that is gone sends the next launch here, saying why.
+    await app?.close();
+    await stopStandalone();
+    const fallback = await launchToPage();
+    await fallback
+      .getByRole("alert")
+      .filter({ hasText: `No Runtime answered at 127.0.0.1:${port}` })
+      .waitFor();
+  });
+
+  it("asks before a file from the OS takes it away from a runtime elsewhere", async () => {
+    const port = await standaloneRuntime(await installationFile("Elsewhere"));
+    const file = await installationFile("Here");
+    const launchPage = await launchToPage();
+    const address = launchPage.getByRole("textbox");
+    await address.fill(`http://127.0.0.1:${port}/studio/`);
+    const remote = await windowAfter(() => address.press("Enter"));
+    await remote.waitForFunction(() => document.title.startsWith("Elsewhere"));
+
+    // Cancel keeps the remote session; Switch and Open runs the file here.
+    for (const answer of [1, 0]) {
+      const asked = app?.evaluate(({ dialog }, response) => {
+        return new Promise<string>((resolve) => {
+          dialog.showMessageBox = (...args: unknown[]) => {
+            const options = args[1] as { message: string; buttons: string[] };
+            resolve(`${options.message} ${options.buttons.join("/")}`);
+            return Promise.resolve({ response, checkboxChecked: false });
+          };
+        });
+      }, answer);
+      if (answer === 1) {
+        await secondLaunch(file);
+        expect(await asked).toBe(
+          "Open “Here.refrata” on this computer? Switch and Open/Cancel",
+        );
+        expect(remote.isClosed()).toBe(false);
+      } else {
+        const local = await windowAfter(() => secondLaunch(file));
+        await local.waitForFunction(() => document.title.startsWith("Here"));
+        expect(local.url()).toBe(
+          `http://127.0.0.1:${env.REFRATA_PORT}/studio/`,
+        );
+        expect(await local.evaluate(() => typeof window.refrataDesktop)).toBe(
+          "object",
+        );
+      }
+    }
+  });
+
+  it("says on the launch page why this computer's runtime cannot start", async () => {
+    // Something else holds Desktop's port.
+    const blocker = createServer();
+    await new Promise<void>((resolve) =>
+      blocker.listen(Number(env.REFRATA_PORT), "0.0.0.0", resolve),
+    );
+    const launchPage = await launchToPage();
+    const run = launchPage.getByRole("button", {
+      name: "Run on this computer",
+    });
+    await run.click();
+    await launchPage
+      .getByRole("alert")
+      .filter({ hasText: "already in use" })
+      .waitFor();
+
+    await new Promise((resolve) => blocker.close(resolve));
+    const page = await windowAfter(() => run.click());
+    await page.waitForFunction(() => document.title.startsWith("Untitled"));
   });
 });

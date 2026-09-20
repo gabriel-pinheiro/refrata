@@ -28,5 +28,5 @@ export const channels = {
   openRequest: "refrata:open-request",
 } as const;
 
-/** How main tells the preload which origin may have the bridge (see `preload.ts`). */
+/** How main tells a Studio window's preload which origin may have its bridges (see `menu-expose.ts`). */
 export const BRIDGE_ORIGIN_ARGUMENT = "--refrata-bridge-origin=";

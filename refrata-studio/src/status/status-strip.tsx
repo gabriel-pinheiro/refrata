@@ -5,6 +5,8 @@ import type { LiveState } from "@refrata/protocol";
 import { useDocumentCommands } from "@/documents/document-commands";
 import { useClient, useDocumentPath, useSignal } from "@/lib/client";
 import { cn } from "@/lib/utils";
+import { BlackoutToggle } from "@/menu/blackout-toggle";
+import { useInPageBar } from "@/menu/use-in-page-bar";
 import { useSelectionIfAny } from "@/selection/selection";
 
 /** Bottom strip: runtime connection, save state, which Scene is edited versus playing, Master, the OSC door, the DMX Tester's hold and blackout at a glance. */
@@ -13,6 +15,9 @@ export function StatusStrip() {
   const phase = useSignal(client.phase);
   const { selected, view, revert } = useDocumentCommands();
   const connected = phase === "connected";
+  // Blackout lives in the in-page bar; where Refrata Desktop's native menu
+  // stands in for that bar, it stays in reach from here.
+  const inPageBar = useInPageBar();
 
   return (
     <footer className="flex h-6 shrink-0 items-center gap-3 border-t bg-sidebar px-2 text-[0.6875rem] text-muted-foreground">
@@ -46,6 +51,9 @@ export function StatusStrip() {
       </span>
       {view !== undefined && <EditingWarning view={view} />}
       {view !== undefined && <DocumentStatus view={view} />}
+      {view !== undefined && !inPageBar && (
+        <BlackoutToggle view={view} className="py-0 text-[0.6875rem]" />
+      )}
     </footer>
   );
 }
