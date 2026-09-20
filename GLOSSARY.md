@@ -393,6 +393,15 @@ with; clients save and revert it, and cannot create, open or close an
 Installation nor save it to another path. **Free**: clients on the Runtime's own
 machine can do all of those; a client on another machine is still pinned.
 
+### Desktop
+
+The installable application: a window showing Studio, with a Runtime it starts
+on the same machine and stops when it quits, native dialogs for opening and
+saving Installation files, and the operating system's ways of opening one (a
+double click, recent documents). Studio inside Desktop is the same Studio a
+browser shows, and its Runtime reaches the USB DMX widgets like any other. Do
+not call it `the app`, `the Electron app` or `the shell`.
+
 ### Rig
 
 The physical half of an Installation: its Universes, Outputs, Fixtures with their

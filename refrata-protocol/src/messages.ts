@@ -31,7 +31,7 @@ import { LiveStateSchema } from "./live.ts";
  */
 export const PROTOCOL_VERSION = 1;
 
-export const ClientKindSchema = z.enum(["studio", "cli"]);
+export const ClientKindSchema = z.enum(["studio", "cli", "desktop"]);
 export type ClientKind = z.infer<typeof ClientKindSchema>;
 
 const RequestId = z.string().min(1);

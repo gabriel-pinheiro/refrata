@@ -1,0 +1,25 @@
+{
+  "name": "@refrata/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Refrata Desktop: an Electron shell that runs a Runtime on this machine and shows its Studio.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/start.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p e2e/tsconfig.json",
+    "test:desktop": "vitest run --config e2e/vitest.config.ts"
+  },
+  "dependencies": {
+    "@refrata/client": "0.0.0",
+    "@refrata/core": "0.0.0",
+    "@refrata/protocol": "0.0.0",
+    "@refrata/runtime": "0.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "electron": "^44.4.3",
+    "playwright": "~1.61.1"
+  }
+}

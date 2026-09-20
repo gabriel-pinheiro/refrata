@@ -96,6 +96,26 @@ holds `research/dev.refrata`, created on first run;
 `REFRATA_FILE=<path> npm run dev` holds another file. Open Studio at
 http://localhost:4901/.
 
+## Desktop
+
+```sh
+npm run desktop                     # reopens the last Installation, or starts an untitled one
+npm run desktop -- show.refrata     # opens that file
+```
+
+Refrata Desktop is the Electron application (`refrata-desktop`): it starts a
+runtime of its own on port 4900 with `--documents free`, shows its Studio in a
+window, and opens and saves Installations with the operating system's file
+dialogs. The script builds Studio and Desktop, then launches the build; stop
+`npm run dev` first, since both want port 4900, or move Desktop with
+`REFRATA_PORT`. The build carries the runtime's native modules (`serialport`,
+`usb`) and the Fixture Library next to the bundled runtime, so the USB DMX
+widgets work as they do from a checkout; `REFRATA_LIBRARY_DIR` points Desktop
+at a Fixture Library of your own. The runtime's log is under Help ▸ Show
+Runtime Log. On a Linux that restricts unprivileged user namespaces (Ubuntu
+23.10 and later) the script explains how to give Electron its sandbox helper,
+or to run this development build with `-- --no-sandbox`.
+
 ## Production
 
 ```sh
@@ -133,6 +153,7 @@ Flags and their environment variables (`refrata-runtime/src/config.ts`):
 | `--no-osc`            | `REFRATA_NO_OSC=1`       | OSC on                |
 | `--no-discovery`      | `REFRATA_NO_DISCOVERY=1` | announced             |
 |                       | `REFRATA_STUDIO_DIST`    | `refrata-studio/dist` |
+|                       | `REFRATA_LIBRARY_DIR`    | `refrata-library`     |
 
 File paths in requests are absolute paths on the runtime's machine; the CLI
 resolves a relative one against the shell's directory first.
@@ -182,3 +203,7 @@ npm run lint
 npm run format:check
 npm run build
 ```
+
+`npm run test:desktop` launches the built Desktop through Playwright and needs
+a display (`xvfb-run -a npm run test:desktop` without one); run `npm run build`
+first.

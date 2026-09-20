@@ -62,6 +62,17 @@ not introduce near-synonyms.
   gestures are commands and requests, so a new one is reachable through
   `refrata run` or `refrata documents` at once; give the everyday ones a
   shortcut and check `refrata --help` reads well to an agent.
+- Desktop's preload bridge (`refrata-desktop/src/bridge-contract.ts`) carries
+  only what needs the operating system, such as a file dialog. Anything else
+  goes through the runtime as a command or request, so the CLI can do it too. In
+  `refrata-desktop`, keep what is pure apart from what needs Electron: the
+  `electron` module only exists inside the app, so a file with unit tests does
+  not import it.
+- The runtime's native modules (`serialport`, `usb`) stay outside Desktop's
+  runtime bundle and are copied next to it by
+  `refrata-desktop/scripts/native-modules.mjs`; a new native dependency of the
+  runtime is added to that list. Keep them imported on first use, never at the
+  top of a module, so a runtime whose addon will not load still starts.
 - Comments and docs describe what the code does now. Planned work belongs in a
   contributor's `research/` notes, not in "later" remarks in source.
 
@@ -69,5 +80,7 @@ not introduce near-synonyms.
 
 Node 24. `npm run dev` starts the runtime (4900) and the Studio dev server
 (4901); OSC and OSCQuery listen on 9100. `npm test`, `npm run typecheck`,
-`npm run lint`, `npm run format:check`, `npm run build`. The CLI is
+`npm run lint`, `npm run format:check`, `npm run build`. `npm run desktop`
+builds and launches Refrata Desktop; `npm run test:desktop` drives the built
+app through Playwright and needs a display. The CLI is
 `node refrata-cli/bin/refrata.mjs` (or `npx refrata` inside the repo).

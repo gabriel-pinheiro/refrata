@@ -12,16 +12,19 @@
     "refrata-client",
     "refrata-runtime",
     "refrata-studio",
-    "refrata-cli"
+    "refrata-cli",
+    "refrata-desktop"
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "desktop": "npm run build -w @refrata/studio -w @refrata/desktop && npm run start -w @refrata/desktop --",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:desktop": "npm run test:desktop -w @refrata/desktop",
     "test:watch": "vitest"
   },
   "devDependencies": {
