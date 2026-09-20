@@ -24,6 +24,7 @@ import type { DocumentStore } from "../documents/document-store.ts";
 import type { OutputManager } from "../output/output-manager.ts";
 import type { FixtureLibrary } from "../rig/library.ts";
 import type { OutputLoop } from "../rig/output-loop.ts";
+import { AttachedSession } from "./attached-session.ts";
 import { documentsModeFor, pinnedRefusal } from "./documents-mode.ts";
 import { ResolvedStream } from "./resolved-streams.ts";
 
@@ -99,15 +100,21 @@ export class LiveServer {
   readonly #unsubscribeDrift: (() => void) | undefined;
   readonly #unsubscribeLoop: () => void;
   readonly #unsubscribeResolved: () => void;
-  #unsubscribeDeltas: (() => void) | undefined;
-  #unsubscribeEvents: (() => void) | undefined;
-  #attachedDocumentId: string | undefined;
+  readonly #attached: AttachedSession;
 
   constructor(options: LiveServerOptions) {
     this.#options = options;
+    this.#attached = new AttachedSession({
+      onEvent: (event) => this.#fanOutEvent(event),
+      onDelta: (delta) => this.#fanOut(delta),
+    });
     this.#unsubscribeStore = options.store.onChange(() => {
-      this.#attachSession();
+      const followed = this.#attached.follow(options.store.currentSession());
+      // A replaced document ends every stream; clients ask again for the new one.
+      if (followed === "replaced")
+        for (const session of this.#sessions) session.stream.close();
       this.#broadcast({ type: "document", summary: options.store.current() });
+      if (followed === "swapped") this.#resnapshot();
     });
     this.#unsubscribeOsc = options.osc?.onChange((state) =>
       this.#fanOutLive([{ op: "set", path: ["osc"], value: state }]),
@@ -126,7 +133,7 @@ export class LiveServer {
     this.#unsubscribeResolved = options.loop.onResolved((resolved) => {
       for (const session of this.#sessions) session.stream.update(resolved);
     });
-    this.#attachSession();
+    this.#attached.follow(options.store.currentSession());
   }
 
   /** The whole live state, for a snapshot. */
@@ -146,8 +153,7 @@ export class LiveServer {
     this.#unsubscribeDrift?.();
     this.#unsubscribeLoop();
     this.#unsubscribeResolved();
-    this.#unsubscribeDeltas?.();
-    this.#unsubscribeEvents?.();
+    this.#attached.close();
     for (const session of this.#sessions) session.socket.close();
   }
 
@@ -165,7 +171,7 @@ export class LiveServer {
       pendingEvents: [],
       flushScheduled: false,
       stream: new ResolvedStream((message) => {
-        const documentId = this.#attachedDocumentId;
+        const documentId = this.#attached.id;
         if (documentId === undefined) return;
         this.#send(session, { type: "resolved", documentId, ...message });
       }),
@@ -203,21 +209,21 @@ export class LiveServer {
     }
   }
 
-  /** Follows the store's current document. */
-  #attachSession(): void {
-    const documentSession = this.#options.store.currentSession();
-    if (documentSession?.id === this.#attachedDocumentId) return;
-    // A replaced document ends every stream; clients ask again for the new one.
-    for (const session of this.#sessions) session.stream.close();
-    this.#unsubscribeDeltas?.();
-    this.#unsubscribeEvents?.();
-    this.#unsubscribeEvents = documentSession?.onEvent((event) => {
-      this.#fanOutEvent(event);
-    });
-    this.#unsubscribeDeltas = documentSession?.onDelta((delta) => {
-      this.#fanOut(delta);
-    });
-    this.#attachedDocumentId = documentSession?.id;
+  /**
+   * Another session took over under the id clients are subscribed to: their
+   * replicas hold the old one's state and revision, so each gets a snapshot.
+   * Their views live on, and with them the Fixtures they stream, so a stream
+   * carries on with a full message of the new session's values.
+   */
+  #resnapshot(): void {
+    const documentId = this.#attached.id;
+    if (documentId === undefined) return;
+    for (const session of this.#sessions) {
+      session.stream.restart();
+      const subscription = session.subscriptions.get(documentId);
+      if (subscription !== undefined)
+        this.#subscribe(session, documentId, subscription.live);
+    }
   }
 
   #fanOut(delta: DocumentDelta): void {
@@ -237,7 +243,7 @@ export class LiveServer {
   }
 
   #fanOutLive(patches: readonly Patch[]): void {
-    const documentId = this.#attachedDocumentId;
+    const documentId = this.#attached.id;
     if (documentId === undefined) return;
     for (const session of this.#sessions) {
       if (session.subscriptions.get(documentId)?.live !== true) continue;
@@ -280,10 +286,11 @@ export class LiveServer {
     }
     const live = session.pendingLive;
     session.pendingLive = [];
-    if (live.length > 0 && this.#attachedDocumentId !== undefined) {
+    const attachedId = this.#attached.id;
+    if (live.length > 0 && attachedId !== undefined) {
       this.#send(session, {
         type: "live",
-        documentId: this.#attachedDocumentId,
+        documentId: attachedId,
         patches: live.map((patch) => ({ ...patch, path: [...patch.path] })),
       });
     }

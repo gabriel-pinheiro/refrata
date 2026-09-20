@@ -8,6 +8,7 @@ import { registerLayers } from "./commands/layers.ts";
 import { registerRead } from "./commands/read.ts";
 import { registerRig } from "./commands/rig.ts";
 import { registerRun } from "./commands/run.ts";
+import { registerRuntimes } from "./commands/runtimes.ts";
 import { registerSets } from "./commands/sets.ts";
 import { registerStatus } from "./commands/status.ts";
 import { registerTags } from "./commands/tags.ts";
@@ -44,6 +45,7 @@ const program = new Command("refrata")
 
 const cli = new Cli(program);
 registerStatus(program, cli);
+registerRuntimes(program, cli);
 registerRig(program, cli);
 registerTester(program, cli);
 registerTags(program, cli);

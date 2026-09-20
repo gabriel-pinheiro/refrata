@@ -47,6 +47,15 @@ export class ResolvedStream {
     this.flush();
   }
 
+  /**
+   * Another session took over the document: the same Fixtures, but what was
+   * sent no longer stands, so the next message is full.
+   */
+  restart(): void {
+    this.#sent.clear();
+    this.#pendingFull = this.active;
+  }
+
   /** The loop resolved again; what changed goes out on the next flush. */
   update(latest: ResolvedDocument): void {
     this.#latest = latest;

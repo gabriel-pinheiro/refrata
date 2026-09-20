@@ -123,18 +123,26 @@ saved one back.
 
 Flags and their environment variables (`refrata-runtime/src/config.ts`):
 
-| Flag                  | Variable              | Default               |
-| --------------------- | --------------------- | --------------------- |
-| `--host <address>`    | `REFRATA_HOST`        | `0.0.0.0`             |
-| `--port <number>`     | `REFRATA_PORT`        | `4900`                |
-| `<file.refrata>`      | `REFRATA_FILE`        | required when pinned  |
-| `--documents <mode>`  |                       | `pinned`              |
-| `--osc-port <number>` | `REFRATA_OSC_PORT`    | `9100`                |
-| `--no-osc`            | `REFRATA_NO_OSC=1`    | OSC on                |
-|                       | `REFRATA_STUDIO_DIST` | `refrata-studio/dist` |
+| Flag                  | Variable                 | Default               |
+| --------------------- | ------------------------ | --------------------- |
+| `--host <address>`    | `REFRATA_HOST`           | `0.0.0.0`             |
+| `--port <number>`     | `REFRATA_PORT`           | `4900`                |
+| `<file.refrata>`      | `REFRATA_FILE`           | required when pinned  |
+| `--documents <mode>`  |                          | `pinned`              |
+| `--osc-port <number>` | `REFRATA_OSC_PORT`       | `9100`                |
+| `--no-osc`            | `REFRATA_NO_OSC=1`       | OSC on                |
+| `--no-discovery`      | `REFRATA_NO_DISCOVERY=1` | announced             |
+|                       | `REFRATA_STUDIO_DIST`    | `refrata-studio/dist` |
 
 File paths in requests are absolute paths on the runtime's machine; the CLI
 resolves a relative one against the shell's directory first.
+
+The runtime announces itself on the local network with Zeroconf as
+`_refrata._tcp`, named "Refrata on <hostname>", with its version and the open
+Installation's name. `refrata runtimes` lists the ones that answer, with the
+address to pass to `--url`; `--no-discovery` keeps a runtime out of the list,
+and one bound to a loopback `--host` (`127.0.0.1`, `::1`, `localhost`) is never
+announced, as nothing on the network could reach it.
 
 ## Show control
 

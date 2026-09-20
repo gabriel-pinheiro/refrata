@@ -38,6 +38,21 @@ describe("runtime config", () => {
     ).toBe("/shows/a.refrata");
   });
 
+  it("announces itself unless --no-discovery or REFRATA_NO_DISCOVERY=1", () => {
+    expect(configFromEnvironment(["show.refrata"], {}).discovery).toBe(true);
+    expect(
+      configFromEnvironment(["show.refrata", "--no-discovery"], {}).discovery,
+    ).toBe(false);
+    expect(
+      configFromEnvironment(["show.refrata"], { REFRATA_NO_DISCOVERY: "1" })
+        .discovery,
+    ).toBe(false);
+    // Independent of the OSC door.
+    expect(
+      configFromEnvironment(["show.refrata", "--no-osc"], {}),
+    ).toMatchObject({ oscPort: undefined, discovery: true });
+  });
+
   it("rejects an unknown mode and a second file", () => {
     expect(() => configFromEnvironment(["--documents", "open"], {})).toThrow(
       /pinned.*free/,

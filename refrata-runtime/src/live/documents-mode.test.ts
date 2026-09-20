@@ -151,6 +151,7 @@ describe("document modes", () => {
       libraryDir: path.join(dir, "no-library"),
       autosaveIntervalMs: 60_000,
       oscPort: undefined,
+      discovery: false,
     });
     const address = await runtime.listen();
     expect(runtime.store.current()).toMatchObject({
@@ -190,6 +191,7 @@ describe("document modes", () => {
       libraryDir: path.join(dir, "no-library"),
       autosaveIntervalMs: 60_000,
       oscPort: undefined,
+      discovery: false,
     });
     await expect(runtime.listen()).rejects.toThrow(/broken\.refrata/);
     await runtime.close();

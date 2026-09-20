@@ -53,6 +53,7 @@ beforeEach(async () => {
     libraryDir: path.join(dir, "no-library"),
     autosaveIntervalMs: 60_000,
     oscPort: undefined,
+    discovery: false,
   });
   const address = await runtime.listen();
   url = `${address.replace("http", "ws")}/live`;

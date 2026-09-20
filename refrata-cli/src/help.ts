@@ -9,8 +9,10 @@ Working from a shell
 
   Connect    The runtime serves its live socket at ws://<host>:${String(settings.runtime.port)}${settings.runtime.livePath}.
              --url takes that, http://<host>:${String(settings.runtime.port)} or <host>:${String(settings.runtime.port)};
-             REFRATA_URL sets the default. REFRATA_ACTOR names the owner of
-             this shell's undo history (default: user@host).
+             REFRATA_URL sets the default. "runtimes" lists the ones
+             announcing themselves on the local network, each with the
+             address:port to pass. REFRATA_ACTOR names the owner of this
+             shell's undo history (default: user@host).
 
   Read       health, library, fixtures, tags, sets, scenes, layers <scene>,
              visuals [id] (the Catalog, or one Visual of it),

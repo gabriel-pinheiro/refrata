@@ -3,8 +3,12 @@ import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
 import { access } from "node:fs/promises";
+import type { AddressInfo } from "node:net";
 
 import type { RuntimeConfig } from "./config.ts";
+import { RuntimeAdvertisement } from "./discovery/advertisement.ts";
+import { BonjourAnnouncer } from "./discovery/bonjour-announcer.ts";
+import { isLoopbackHost } from "./discovery/loopback-host.ts";
 import { registerDocumentRoutes } from "./documents/document-routes.ts";
 import { DocumentStore } from "./documents/document-store.ts";
 import { LiveServer } from "./live/live-server.ts";
@@ -86,6 +90,7 @@ export async function buildRuntime(
     tester: testerTimeout,
     drift,
   });
+  let advertisement: RuntimeAdvertisement | undefined;
 
   await app.register(fastifyWebsocket);
   app.get("/health", () => ({
@@ -93,6 +98,7 @@ export async function buildRuntime(
     version: RUNTIME_VERSION,
     document: store.current()?.name ?? null,
     osc: osc?.state() ?? { port: null, listeners: 0 },
+    discovery: advertisement !== undefined,
   }));
   app.get(settings.runtime.livePath, { websocket: true }, (socket, request) => {
     // The socket's own peer, not `request.ip`, which a proxy header can set.
@@ -146,6 +152,15 @@ export async function buildRuntime(
           log(`OSC is off: ${String(error)}`);
         }
       }
+      // A runtime bound to loopback is out of the network's reach.
+      if (config.discovery && !isLoopbackHost(config.host)) {
+        const { port } = app.server.address() as AddressInfo;
+        advertisement = new RuntimeAdvertisement({
+          store,
+          version: RUNTIME_VERSION,
+          announcer: new BonjourAnnouncer({ port, log }),
+        });
+      }
       return address;
     },
     async close() {
@@ -156,6 +171,7 @@ export async function buildRuntime(
       library.close();
       await loop.close();
       await osc?.close();
+      await advertisement?.close();
       await store.flush();
       await app.close();
     },

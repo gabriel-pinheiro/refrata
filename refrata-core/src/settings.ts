@@ -32,6 +32,16 @@ export const settings = {
     /** Rejected OSC input is logged at most once per reason within this window. */
     rejectionLogIntervalMs: 5_000,
   },
+  discovery: {
+    /** The DNS-SD service the runtime announces on its HTTP port: `_refrata._tcp`. */
+    serviceType: "refrata",
+    /** The instance is "<name> on <hostname>", like the OSC one. */
+    name: "Refrata",
+    /** A run of document changes re-announces the TXT record once, this long after the last. */
+    txtUpdateDelayMs: 1_000,
+    /** How long `refrata runtimes` listens for answers. */
+    browseMs: 1_500,
+  },
   history: {
     /** Consecutive same-key entries from one actor within this window merge into one undo step. */
     coalesceWindowMs: 1_000,
