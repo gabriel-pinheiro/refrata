@@ -70,6 +70,9 @@ export function formatVisual(definition: VisualDefinition): string[] {
           `${slot.key} (${slot.kind}) ${slot.attribute === null ? NOT_BOUND : `on ${slot.attribute}`}`,
       )
       .join(", ")}`,
+    ...(definition.blendMode === undefined
+      ? []
+      : [`  Blend Mode: a new Layer starts on ${definition.blendMode}`]),
     "  Parameters:",
     ...Object.entries(definition.parameters).map(
       ([name, parameter]) => `    ${describeParameter(name, parameter)}`,

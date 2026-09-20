@@ -12,7 +12,8 @@ import { dropLayerReferences } from "./layer.remove.ts";
  * Gives a Visual Layer another Visual of the Catalog. Parameter Values and
  * bindings start over from the new Visual's defaults, and the Links and
  * Macro actions on the old Visual's Parameters and Cues go with them;
- * Targets, opacity and Blend Mode stay.
+ * Targets and opacity stay. The Blend Mode follows the new Visual's own
+ * only while it is still the one the old Visual started with.
  */
 export const layerVisualSet = defineCommand({
   name: "layer.visual.set",
@@ -36,6 +37,14 @@ export const layerVisualSet = defineCommand({
       `layer/${layer.id}/cue/`,
     ]);
     const warnings = removalWarnings(document, patches, layer.name);
+    const before = visualDefinition(layer.visual)?.blendMode ?? "normal";
+    const after = definition.blendMode ?? "normal";
+    if (layer.blendMode === before && after !== before)
+      patches.push({
+        op: "set",
+        path: ["layers", layer.id, "blendMode"],
+        value: after,
+      });
     patches.push(
       { op: "set", path: ["layers", layer.id, "visual"], value: definition.id },
       {

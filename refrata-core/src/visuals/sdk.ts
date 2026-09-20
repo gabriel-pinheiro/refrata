@@ -1,3 +1,4 @@
+import type { BlendMode } from "../document/composition.ts";
 import type { Color, ParameterSchema, ParameterValues } from "../parameters.ts";
 import type { AttributeKey } from "../rig/attributes.ts";
 
@@ -74,6 +75,8 @@ export interface VisualDefinition {
   readonly cues: readonly CueDefinition[];
   /** Whether it does something different per Target, so one Target after Spread deserves a warning. */
   readonly distributes: boolean;
+  /** The Blend Mode a new Layer of it starts with; Normal when absent. A Visual that gates what is below asks for Multiply. */
+  readonly blendMode?: BlendMode;
   create(context: VisualContext): VisualInstance;
 }
 
@@ -107,6 +110,26 @@ export function choiceParam(
 ): string {
   const value = params[name];
   return typeof value === "string" ? value : fallback;
+}
+
+/** `from` at 0, `to` at 1, every channel alike. */
+export function mixColor(from: Color, to: Color, amount: number): Color {
+  const t = Math.min(1, Math.max(0, amount));
+  return [
+    from[0] + (to[0] - from[0]) * t,
+    from[1] + (to[1] - from[1]) * t,
+    from[2] + (to[2] - from[2]) * t,
+    from[3] + (to[3] - from[3]) * t,
+  ];
+}
+
+export function booleanParam(
+  params: ParameterValues,
+  name: string,
+  fallback: boolean,
+): boolean {
+  const value = params[name];
+  return typeof value === "boolean" ? value : fallback;
 }
 
 /** The top of every rate Parameter, in hertz, so one tempo Controller links to all of them alike. */

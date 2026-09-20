@@ -213,7 +213,11 @@ keep a par and a Strobe equalised. Opacity cannot do that; it mixes toward
 the look below and raises the floor. They never share a name: the binding
 row shows a range in the Attribute's units, never "min" and "max".
 
-**One Blend Mode per Layer**, shared by its Slots. The case it cannot do is
+**One Blend Mode per Layer**, shared by its Slots. A Visual may name the one
+a new Layer of it starts with: Shutter and Pump ask for Multiply, since on
+Normal the first one anyone adds would replace the dimmers below instead of
+gating them. Changing a Layer's Visual moves its Blend Mode to the new
+Visual's only while it is still the one the old Visual asked for. The case it cannot do is
 Shimmer's `color` on `normal` with its `level` on `max`, which differs only
 when `level` is below the look underneath; a Blend Mode per binding is the
 fix if it ever bites.
@@ -227,6 +231,57 @@ fix if it ever bites.
 | Static Number | number (`dimmer`)                  | value                                                      |                   |
 | Static Color  | color (`color`)                    | color                                                      |                   |
 | Circle        | `x` (`pan`), `y` (`tilt`)          | rate, radius, center x, center y, phase spread             | `sync`            |
+
+The second batch, for electronic music and for game show stages. Every one
+has a `color` Slot on `color` and a `level` Slot on `dimmer`, both bound,
+except Shutter and Pump, which have one number Slot on `dimmer` and ask for
+Multiply.
+
+| Visual   | Parameters                                                                   | Cues                                |
+| -------- | ---------------------------------------------------------------------------- | ----------------------------------- |
+| Strobe   | color, level, run, rate, phase spread, flash, fade out, random phase, burst  | `sync`, `flash`, `burst`            |
+| Shutter  | rate, phase spread, open, depth                                              | `sync`                              |
+| Pump     | rate, phase spread, depth, recover                                           | `hit`, `sync`                       |
+| Meter    | value, points, order, color, color end, gradient, level, arrive, arrive time |                                     |
+| Counter  | points, order, color, level, arrive, arrive time                             | `add`, `remove`, `reset`            |
+| Timer    | duration, mode, order, color, color end, level, urgent, at the end           | `start`, `pause`, `resume`, `reset` |
+| Reveal   | color, level, style, time                                                    | `reveal`, `hide`                    |
+| Roulette | color, level, duration, laps, winner, tail                                   | `spin`, `clear`                     |
+
+Strobe, Shutter and Pump share one clock: a phase advancing at `rate`, a
+pulse per Target each time its own offset phase passes a beat, and a length
+in milliseconds rather than a share of the cycle, so a flash stays as crisp
+at 2 Hz as at 12. A pulse always shows for one frame, however short. At the
+Output's 40 Hz the shortest flash is 25 ms and the fastest clean strobe is
+20 Hz; anything faster belongs to the fixture's own strobe channel, through
+a Look Layer row. Strobe with `run` off is dark until `flash` (one) or
+`burst` (that many, at the rate), which is the blinder bump and the wrong
+answer buzz. Shutter stays open at rate 0. Pump drops to `1 - depth` on the
+beat and comes back along a curve that is fast at first, as a compressor
+releases.
+
+Meter, Counter and Timer share one fill: Targets are walked in the steps a
+Chase would take (forward, backward, centre-out, ends-in), a goal says how
+many steps are lit and a fraction lights the next one partly. A step that
+comes on arrives by `cut`, `fade`, `flash` (white, settling into the color)
+or `drop` (a light falls from the far end and stacks on the ones already
+lit); going down fades over the same time. Meter's `points` snaps the value
+into equal parts, so five points read the same on five Targets or on twenty.
+Counter counts `add` and `remove` between 0 and its points, one per Target
+unless `points` says otherwise. Timer waits full (or empty, in `fill` mode)
+until `start`, turns from `color` to `color end` as the time goes, pulses
+through its last `urgent` seconds, and at the end holds, flashes or goes
+dark. It integrates the same clamped `dt` as every Visual, so a Runtime that
+stalls makes it run late against a wall clock.
+
+Reveal writes nothing until `reveal`, then brings its `color` on over `time`
+in a style: cut, fade, scatter (each Target at a moment of its own), flicker
+on, flash white, wipe, centre-out, or random, which picks one of the others
+at each `reveal`. `hide` runs the same style backwards, the two that only
+read forwards fading instead. Roulette runs `laps` whole passes and on to
+the `winner` (counted from 1, 0 for a random one), slowing all the way,
+blinks where it lands and holds until `clear` or the next `spin`, which
+starts from there.
 
 Shimmer: each firing picks `count` Targets at random, idle ones first; each
 rises over `fade in`, holds, falls over `fade out`, then releases; a Target

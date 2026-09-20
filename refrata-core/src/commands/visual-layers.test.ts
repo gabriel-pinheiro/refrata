@@ -126,6 +126,27 @@ describe("a Visual Layer", () => {
     ).toContain("not a Visual of the Catalog");
   });
 
+  it("starts on the Blend Mode its Visual asks for, and follows a new Visual unless someone chose another", () => {
+    const shutter = withVisual("shutter");
+    expect(visualLayer(shutter, "fx").blendMode).toBe("multiply");
+    const lfo = run(shutter, "layer.visual.set", {
+      layerId: "fx",
+      visual: "lfo",
+    }).document;
+    expect(visualLayer(lfo, "fx").blendMode).toBe("normal");
+    const pump = run(lfo, "layer.visual.set", {
+      layerId: "fx",
+      visual: "pump",
+    }).document;
+    expect(visualLayer(pump, "fx").blendMode).toBe("multiply");
+
+    const chosen = apply(withVisual("lfo"), [
+      ["layer.update", { layerId: "fx", blendMode: "add" }],
+      ["layer.visual.set", { layerId: "fx", visual: "shutter" }],
+    ]);
+    expect(visualLayer(chosen, "fx").blendMode).toBe("add");
+  });
+
   it("binds a Slot to an Attribute of its kind, or to none", () => {
     const document = withVisual("lfo");
     const bound = visualLayer(
@@ -207,6 +228,18 @@ describe("Resolve with Visuals", () => {
     const resolved = resolveDocument(document, player.step(document, dt));
     return (ref: string) => resolved.get(ref)?.dimmer as number;
   };
+
+  it("gates the look below with a Shutter and leaves its color alone", () => {
+    const document = withVisual("shutter", [
+      ["address.edit", { address: "layer/fx/param/rate", value: 4 }],
+    ]);
+    const player = new VisualPlayer();
+    expect(dimmer(document, player, 0)("s1/panel-1")).toBeCloseTo(0.4);
+    dimmer(document, player, 0.025);
+    const resolved = resolveDocument(document, player.step(document, 0.025));
+    expect(resolved.get("s1/panel-1")?.dimmer).toBe(0);
+    expect(resolved.get("s1/panel-1")?.color).toEqual([0, 1, 0, 1]);
+  });
 
   it("maps an LFO through its binding's range over the look below", () => {
     const document = withVisual("lfo", [

@@ -712,9 +712,11 @@ Element by nature (a mover's focus position) is one Target per Element.
 ### Visual
 
 Code in the Catalog that animates Parameters over time: LFO, Shimmer, Chase,
-Rainbow, Static Number, Static Color, Circle. A Visual declares its Slots
-with a default binding each, its Parameter Schema, the Cues it answers,
-whether it distributes across Targets, and one line saying what it is. It
+Strobe, Shutter, Pump, Rainbow, Static Number, Static Color, Circle, Meter,
+Counter, Timer, Reveal, Roulette. A Visual declares its Slots with a default
+binding each, its Parameter Schema, the Cues it answers, whether it
+distributes across Targets, the Blend Mode a new Layer of it starts with when
+that is not Normal, and one line saying what it is. It
 is written against kinds, never against a fixture. It runs in the Runtime
 only, on the Output tick and in the Output's process; Studio and the CLI never
 run one, and the Rig View shows it through the Resolved Stream.
@@ -736,11 +738,23 @@ such a Layer has one Target after Spread and offers to spread it; it is a
 hint, never a refusal, and every Visual accepts any number of Targets.
 
 Visuals come in two families. A value Visual (LFO, Rainbow, the Statics,
-Circle) writes a moving value at alpha 1. An envelope Visual (Shimmer, Chase)
-writes a fixed value, its `color` or `level` Parameter, at a moving alpha and
-says nothing about a Target outside its envelope, which is a Release: what is
+Circle, Shutter, Pump) writes a moving value at alpha 1. An envelope Visual
+(Shimmer, Chase, Strobe, Meter, Counter, Timer, Reveal, Roulette) writes a
+fixed value, its `color` or `level` Parameter, at a moving alpha and says
+nothing about a Target outside its envelope, which is a Release: what is
 below shows through, and "dark between sparkles" is a Look Layer with
 `dimmer` 0 underneath.
+
+Shutter and Pump gate what is below them: they write a number from 0 to 1 on
+`dimmer` and ask for the Multiply Blend Mode, so the colours underneath stay
+as they are. A new Layer starts on the Blend Mode its Visual asks for, and
+changing a Layer's Visual moves the Blend Mode along only while nobody has
+chosen another.
+
+What a Visual counts (a Counter's points, a Timer's elapsed time, where a
+Roulette landed) lives in its instance, so it starts over whenever the Scene
+plays. A score that has to outlive a Scene is a Controller linked to a
+Meter's `value`.
 
 Rates are in hertz everywhere (cycles, steps or firings per second), so one
 tempo Controller links to every rate and the Links' anchors carry the
@@ -752,7 +766,9 @@ A named trigger a Visual declares, Difracta's term with Difracta's meaning:
 the Address `layer/<id>/cue/<key>`, no payload, a performance event that is
 never stored, undone or replayed, fired by a Macro, OSC, the CLI or a button
 in the Layer's inspector. Chase answers `step` and `restart`, Shimmer `fire`,
-LFO and Rainbow `sync`. A Visual with an automatic rate fires its own Cue at
+LFO and Rainbow `sync`, Counter `add`, `remove` and `reset`, Reveal `reveal`
+and `hide`. A Cue carries no value, so "reveal green" is a Macro that sets
+the Reveal's `color` and then fires `reveal`. A Visual with an automatic rate fires its own Cue at
 that rate, so rate 0 leaves it to the hub and a `step` from the hub re-arms
 the timer on the beat. A Cue reaches the instance of a Layer in the playing
 Scene, enabled or not; a Layer of any other Scene has no instance and the Cue

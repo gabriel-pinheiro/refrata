@@ -1,4 +1,9 @@
-import { ATTRIBUTES, CATALOG, type SlotDefinition } from "@refrata/core";
+import {
+  ATTRIBUTES,
+  BLEND_MODE_LABELS,
+  CATALOG,
+  type SlotDefinition,
+} from "@refrata/core";
 import {
   useEffect,
   useRef,
@@ -133,6 +138,13 @@ export function VisualPicker({
                   </li>
                 ))}
               </Facts>
+              {definition.blendMode !== undefined && (
+                <Facts label="Blend Mode">
+                  <li className="text-muted-foreground">
+                    Starts on {BLEND_MODE_LABELS[definition.blendMode]}
+                  </li>
+                </Facts>
+              )}
               {definition.cues.length > 0 && (
                 <Facts label="Cues">
                   {definition.cues.map((cue) => (

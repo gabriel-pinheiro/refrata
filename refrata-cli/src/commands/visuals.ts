@@ -75,6 +75,7 @@ function describeForJson(definition: VisualDefinition) {
     name: definition.name,
     description: definition.description,
     distributes: definition.distributes,
+    blendMode: definition.blendMode ?? "normal",
     slots: definition.slots,
     parameters: definition.parameters,
     cues: definition.cues,

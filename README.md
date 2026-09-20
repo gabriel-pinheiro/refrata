@@ -13,6 +13,11 @@ a projection-mapping engine built the same way.
 
 ## Status
 
+After slice 5 the Catalog grew by eight Visuals: Strobe, Shutter and Pump
+for electronic music, Meter, Counter, Timer, Reveal and Roulette for game
+show stages. A Visual may now name the Blend Mode a new Layer of it starts
+with; Shutter and Pump ask for Multiply.
+
 Slice 5 of the build, "the hub": the OSC door carries Controllers and Macros
 only, as Difracta's does, a Macro takes any Address from Studio's picker
 (Scene play, Layer Addresses, Cues), and "Make a Macro" on a Scene or a Cue

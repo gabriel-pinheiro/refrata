@@ -71,8 +71,10 @@ Working from a shell
 
   Visuals    layers add <scene> <name> --visual <id> [--target <t>]...  a
              Visual Layer running one Visual of the Catalog (lfo, shimmer,
-             chase, rainbow, static-number, static-color, circle) over its
-             Targets, with the Visual's default Parameters and bindings.
+             chase, strobe, shutter, pump, rainbow, static-number,
+             static-color, circle, meter, counter, timer, reveal, roulette)
+             over its Targets, with the Visual's default Parameters,
+             bindings and Blend Mode (shutter and pump start on multiply).
              A Visual sees its Targets in order, a Set in the Set's order;
              a Target arrives not spread, and "layers" warns when a Chase
              or a Rainbow has one Target: spread it to step through it.
@@ -86,7 +88,8 @@ Working from a shell
              layers visual <layer> <id>  changes the Visual; Parameters
              and bindings start over.
              cue <layer> <key>  fires a Cue (chase: step, restart; shimmer:
-             fire; lfo, rainbow, circle: sync). Show control, never undone;
+             fire; counter: add, remove, reset; reveal: reveal, hide;
+             "visuals <id>" lists the rest). Show control, never undone;
              a Layer outside the playing Scene has no running Visual and
              drops it. Playing the playing Scene again restarts every
              Visual in it.

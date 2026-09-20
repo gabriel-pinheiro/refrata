@@ -159,7 +159,7 @@ export function VisualLayerBody({
       {changing && (
         <VisualPicker
           title={`Change the Visual of ${layer.name}`}
-          description="Parameters and bindings start over from the new Visual's defaults, and Links and Macro actions on the old ones go. Targets, opacity and Blend Mode stay."
+          description="Parameters and bindings start over from the new Visual's defaults, and Links and Macro actions on the old ones go. Targets and opacity stay."
           current={layer.visual}
           submitLabel="Change Visual"
           onSubmit={(visual) =>

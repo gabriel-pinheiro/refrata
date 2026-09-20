@@ -97,7 +97,7 @@ export const layerCreate = defineCommand({
     const stack = {
       targets: targets.map((ref) => ({ ref, spread: false })),
       opacity: 1,
-      blendMode: "normal",
+      blendMode: definition?.blendMode ?? "normal",
     } as const;
     const layer: Layer =
       definition !== undefined

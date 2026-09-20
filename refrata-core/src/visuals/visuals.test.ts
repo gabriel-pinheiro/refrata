@@ -1,68 +1,27 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultParameterValues, type Color } from "../parameters.ts";
-import { CATALOG, visualDefinition } from "./catalog.ts";
+import { CATALOG } from "./catalog.ts";
 import { chaseSteps } from "./chase-order.ts";
-import type { VisualDefinition, VisualTarget } from "./sdk.ts";
-
-const targetsOf = (keys: readonly string[]): VisualTarget[] =>
-  keys.map((key, index) => ({ key, index, count: keys.length }));
-
-/** A repeatable stand-in for Math.random. */
-function seeded(seed = 1): () => number {
-  let state = seed;
-  return () => {
-    state = (state * 16_807) % 2_147_483_647;
-    return state / 2_147_483_647;
-  };
-}
-
-function definitionOf(id: string): VisualDefinition {
-  const definition = visualDefinition(id);
-  if (definition === undefined) throw new Error(`No Visual ${id}.`);
-  return definition;
-}
-
-/** Runs one instance; `frame` steps it and returns what it wrote as `slot → key → [value, alpha]`. */
-function play(id: string, overrides: Record<string, number | string> = {}) {
-  const definition = definitionOf(id);
-  const instance = definition.create({ random: seeded() });
-  const params = {
-    ...defaultParameterValues(definition.parameters),
-    ...overrides,
-  };
-  return {
-    params,
-    cue: (key: string) => instance.cue?.(key),
-    frame(dt: number, keys: readonly string[]) {
-      const written: Record<
-        string,
-        Record<string, [number | Color, number]>
-      > = {};
-      instance.update(
-        { dt, params, targets: targetsOf(keys) },
-        (slot, target, value, alpha = 1) => {
-          (written[slot] ??= {})[target.key] = [value, alpha];
-        },
-      );
-      return written;
-    },
-  };
-}
-
-const lit = (written: Record<string, Record<string, unknown>>, slot: string) =>
-  Object.keys(written[slot] ?? {});
+import { lit, play } from "./visual-harness.ts";
 
 describe("the Catalog", () => {
-  it("lists the seven Visuals, each with a description and Slots", () => {
+  it("lists the Visuals in the picker's order, each with a description and Slots", () => {
     expect(CATALOG.map((definition) => definition.id)).toEqual([
       "lfo",
       "shimmer",
       "chase",
+      "strobe",
+      "shutter",
+      "pump",
       "rainbow",
       "static-number",
       "static-color",
       "circle",
+      "meter",
+      "counter",
+      "timer",
+      "reveal",
+      "roulette",
     ]);
     for (const definition of CATALOG) {
       expect(definition.description.length).toBeGreaterThan(0);
