@@ -104,15 +104,22 @@ node refrata-runtime/bin/refrata-runtime.mjs <file.refrata>
 ```
 
 The runtime serves the built Studio at `/studio/` (the root redirects there),
-a `/health` JSON endpoint and the live WebSocket at `/live`. It holds the file
-given on the command line or in `REFRATA_FILE`, creating it when it does not
-exist, and refuses to start without one. Autosaves land next to the file and
-are recovered on the next open.
+a `/health` JSON endpoint, the open Installation as a file at `/document` and
+the live WebSocket at `/live`. It holds the file given on the command line or in
+`REFRATA_FILE`, creating it when it does not exist, and refuses to start without
+one. Autosaves land next to the file and are recovered on the next open.
 
 Started like this the runtime is **pinned**: clients save and revert its
 Installation but cannot create, open or close one, nor save it to another path.
 `--documents free` lifts that for clients on the runtime's own machine, and
 makes the file optional; clients elsewhere on the network stay pinned.
+
+In both modes any client can download a copy of the Installation
+(`refrata documents download`, Studio's File menu, or `GET /document`) and
+replace its content from a file of their own
+(`refrata documents replace <file>`, or `PUT /document`). The replaced
+Installation has unsaved changes until someone saves, and reverting brings the
+saved one back.
 
 Flags and their environment variables (`refrata-runtime/src/config.ts`):
 
