@@ -8,6 +8,7 @@ import {
 } from "@refrata/core";
 import type { DmxLive } from "@refrata/protocol";
 
+import type { DocumentSession } from "../documents/document-session.ts";
 import type { DocumentStore } from "../documents/document-store.ts";
 import type { OutputManager } from "../output/output-manager.ts";
 
@@ -40,6 +41,7 @@ export class OutputLoop {
   #ticks = 0;
   #sampledAt = Date.now();
   #fps = 0;
+  #followed: DocumentSession | undefined;
   #unsubscribeStore: (() => void) | undefined;
   #unsubscribeDeltas: (() => void) | undefined;
   #unsubscribeEvents: (() => void) | undefined;
@@ -85,13 +87,25 @@ export class OutputLoop {
     this.#timer = setInterval(() => this.tick(), 1_000 / this.rateHz);
   }
 
-  /** Follows the store's current document and its Outputs. */
+  /**
+   * Follows the store's current document and its Outputs. The store also
+   * fires when only the summary changed (a save, the first edit after one),
+   * which leaves the Visuals running.
+   */
   #follow(): void {
     const session = this.#options.store.currentSession();
+    if (session === this.#followed) return;
+    this.#followed = session;
     this.#unsubscribeDeltas?.();
     this.#unsubscribeDeltas = session?.onDelta((delta) => {
       if (delta.patches.some((patch) => patch.path[0] === "outputs"))
         void this.#options.outputs.sync(session.document.outputs);
+      // Whole tables are set by a replace in place (revert, replace): new
+      // content starts its Visuals over, the way a new document does.
+      if (delta.patches.some((patch) => patch.path.length === 1)) {
+        this.#visuals.restart();
+        this.tick();
+      }
     });
     this.#unsubscribeEvents?.();
     this.#unsubscribeEvents = session?.onEvent(({ address }) => {

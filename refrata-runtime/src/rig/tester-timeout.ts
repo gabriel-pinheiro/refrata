@@ -1,5 +1,6 @@
 import { settings } from "@refrata/core";
 
+import type { DocumentSession } from "../documents/document-session.ts";
 import type { DocumentStore } from "../documents/document-store.ts";
 
 /**
@@ -14,6 +15,7 @@ export class TesterTimeout {
   readonly #timeoutMs: number;
   #touchedAt: number | undefined;
   #timer: ReturnType<typeof setInterval> | undefined;
+  #followed: DocumentSession | undefined;
   #unsubscribeStore: (() => void) | undefined;
   #unsubscribeDeltas: (() => void) | undefined;
 
@@ -40,10 +42,18 @@ export class TesterTimeout {
       this.#touchedAt = now;
   }
 
+  /**
+   * Follows the open session. The store also fires when only the summary
+   * changed (a save, the first edit after one), which keeps what is tracked;
+   * another session starts with nothing held, so the old one's range
+   * is forgotten.
+   */
   #follow(): void {
+    const session = this.#store.currentSession();
+    if (session === this.#followed) return;
+    this.#followed = session;
     this.#unsubscribeDeltas?.();
     this.#touchedAt = undefined;
-    const session = this.#store.currentSession();
     this.#unsubscribeDeltas = session?.onDelta((delta) => {
       for (const patch of delta.patches) {
         const [root, table] = patch.path;
