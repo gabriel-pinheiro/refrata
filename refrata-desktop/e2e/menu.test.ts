@@ -49,6 +49,7 @@ describe("Refrata Desktop's native menu", () => {
       ["page:close", true],
       ["-", true],
       ["desktop:connect-to", true],
+      ["desktop:startup", true],
       ["-", true],
       ["desktop:quit", true],
     ]);

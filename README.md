@@ -101,6 +101,7 @@ http://localhost:4901/.
 ```sh
 npm run desktop                     # the launch page first, then whatever was chosen last time
 npm run desktop -- show.refrata     # opens that file on this computer
+npm run desktop -- --no-studio      # the runtime on this computer, with nothing on screen
 ```
 
 Refrata Desktop is the Electron application (`refrata-desktop`). Its launch
@@ -120,6 +121,29 @@ Installation and its file, or the runtime it is open in.
   network hides them. Runtimes connected to before stay listed. The
   Installation and its Outputs stay on that machine, so there are no file
   dialogs and closing the window asks nothing.
+
+A venue's mini-PC runs Desktop as an appliance next to the DMX interfaces,
+reached from a laptop whose Desktop connects to it. Two checkboxes under
+File ▸ Startup set that up, and both apply from the next start:
+
+| Setting                     | Flag                         | What it does                                                                                                                                                                                                                                                                                                         |
+| --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start Without Studio Window | `--no-studio` for one launch | Local mode starts the runtime and shows nothing. The runtime listens on every interface, is announced on the network and drives its Outputs as always. Starting Refrata again while it runs shows Studio; closing that window leaves the runtime running, and File ▸ Quit quits. In remote mode the flag is ignored. |
+| Start at Login              |                              | The operating system starts Desktop at login: a login item on macOS and Windows, `~/.config/autostart/refrata-desktop.desktop` on Linux. The checkbox shows what the operating system has, so it is right after the entry was removed by other means.                                                                |
+
+Leaving the runtime on this computer (quitting, closing Studio, choosing another
+target under Connect to...) asks about unsaved changes first, and then warns
+when Outputs are delivering from it, since they stop with the runtime: "2
+Outputs are delivering DMX from this computer. Quitting stops them." It only
+warns. Stopped by SIGTERM or the end of the OS session with no window open,
+Desktop asks nothing and stops the runtime cleanly, unsaved changes autosaved.
+
+If the runtime crashes or the OS kills it, Desktop starts it again with the
+Installation that was open; the autosave brings unsaved changes back, the new
+runtime opens the Installation's Outputs again, and Studio and the CLI
+reconnect by themselves. An Installation that was never saved has no autosave
+to come back from. Three restarts within a minute and Desktop stops trying and
+says where `runtime.log` is.
 
 The script builds Studio and Desktop, then launches the build; stop
 `npm run dev` first, since both want port 4900, or move Desktop with
@@ -229,4 +253,7 @@ without a screen, run it under Xvfb:
 `env -u WAYLAND_DISPLAY XDG_SESSION_TYPE=x11 xvfb-run -a npm run test:desktop`.
 With `WAYLAND_DISPLAY` set Electron would open its windows on the real Wayland
 session; the suite drops it by itself inside `xvfb-run`, and the long form says
-the same by hand.
+the same by hand. The suite never opens a DMX widget: its Outputs name a
+widget no computer has, and where a test needs Outputs that are delivering it
+sets `REFRATA_TEST_DELIVERING_OUTPUTS` to their number, which only a Desktop
+run from a checkout reads.
