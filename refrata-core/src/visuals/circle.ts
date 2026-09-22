@@ -1,4 +1,4 @@
-import { defineVisual, numberParam, RATE_MAX_HZ } from "./sdk.ts";
+import { defineVisual, numberParam } from "./sdk.ts";
 
 const unit = (value: number): number => Math.min(1, Math.max(0, value));
 
@@ -16,7 +16,8 @@ export const circle = defineVisual({
       label: "Rate",
       description: "Turns per second.",
       min: 0,
-      max: RATE_MAX_HZ,
+      max: 1,
+      step: 0.05,
       unit: "Hz",
       default: 0.25,
     },
