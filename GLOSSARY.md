@@ -222,15 +222,25 @@ Library "pixel" of a "matrix".
 One entry of the project's fixed vocabulary of controllable things: a key, a
 Parameter kind, a unit and a default. Examples: `dimmer` (number, percent),
 `color` (color), `pan` and `tilt` (number, degrees), `strobe` (number, hertz),
-`shutter` (choice), `gobo1` (choice), `gobo1-rotation` (number, rpm), `zoom`,
-`focus`, `iris`, `color-temperature` (number, kelvin), `control` (choice). A
-repeated thing gets an ordinal in its key (`gobo1`, `gobo2`). Each Attribute
+`shutter` (choice), `gobo1` (choice), `gobo1-shake` (number, 0 to 1),
+`gobo1-rotation` (number, rpm), `prism` (boolean), `prism-rotation` (number,
+0 to 1), `zoom`, `focus`, `iris`, `color-temperature` (number, kelvin),
+`control` (choice). A repeated thing gets an ordinal in its key (`gobo1`,
+`gobo2`). Each Attribute
 also carries a family tag (Intensity, Color, Position, Beam, Gobo, Control)
 used only to group rows in Studio; it is a field, not a concept.
 
 There is one `color` Attribute for every fixture, mixing or not. A colour wheel
 fixture has a `color` Parameter with a discrete gamut (see Parameter); there is
 no separate wheel Attribute to program.
+
+A choice Attribute is closed or open. Closed, its options are the
+vocabulary's on every fixture (`shutter`: closed, open), so "open" means one
+thing everywhere. Open, the Fixture Type declares the options (`gobo1`: the
+wheel's slots; `control`: the functions this device has), each with a key
+and a label, so a Look Layer row over several wheels offers the union of
+their options by key and a member without the chosen key stays at its
+Default.
 
 Attributes exist so that programming can say "the dimmer of everything
 selected" and mean the same across brands. A Fixture Type may declare a custom
@@ -263,10 +273,15 @@ optionally a swatch or image, such as gobo slots or control functions.
 A color Parameter declares a gamut: continuous for mixing fixtures, or discrete
 for a colour wheel, a list of swatches with the wheel's real colours (and
 half-positions when the wheel allows them). A continuous colour landing on a
-discrete gamut snaps to the nearest swatch, the way the APC mini module's
-hardware palette snaps to the pad's native colours, and Studio shows both the
-colour asked for and the swatch chosen. Brightness stays with `dimmer`; a
-colour never drives intensity.
+discrete gamut snaps to the swatch nearest in hue, the way the APC mini
+module's hardware palette snaps to the pad's native colours, and Studio shows
+the swatch chosen beside the colour asked. Brightness is set aside before the
+match: it is the colour's largest component, what a mixing fixture drives its
+emitter at, and on a wheel it multiplies the dimmer at Encoding, so a dim red
+is a dim red on both and a fading Rainbow keeps its slot. Black and grey have
+no hue and land on the white slot, dark, which is how the vocabulary's black
+Default rests on a wheel. Brightness stays with `dimmer` in the model; a
+colour never drives intensity on its own.
 
 A Parameter may feed zero, one or many Channels, and a Channel may be fed by
 several Parameters; see Encoding.
@@ -334,6 +349,25 @@ alone.
 selection while the Highlight key is on; QLC+ has no equivalent beyond flashing
 an intensity channel.
 
+### Action
+
+A byte a Mode holds on one Channel for a stated time, for what a fixture does
+on command rather than in a look: a reset, a lamp strike. The Mode declares
+each with a name, a Channel, a byte and seconds. An Action is a trigger
+Address `fixture/<fixtureId>/action/<key>` and performance input: never
+saved, never undone. Fired, the Runtime writes the byte over the Fixture's
+encoded bytes, after Resolve and Blackout, since a reset is not light, and
+drops it when the seconds are up; firing it again restarts the clock, and
+`fixture.action.end` stops it early. A Fixture's inspector draws one button
+per Action, and the CLI runs one with `refrata action`.
+
+A look never holds an Action: a `control` row in a Look Layer is for options
+that are safe to hold for as long as a Scene plays, and a function that must
+end on its own is an Action instead.
+
+**Elsewhere:** GDTF "Maintenance" attributes and QLC+ "Maintenance" presets
+name the family; both leave holding and releasing to the operator.
+
 ### Encoding
 
 The Mode's rules that compute each Channel's bytes from the Parameter Values of
@@ -354,9 +388,13 @@ The rules cover every shape that real fixtures have:
   the same byte as `gobo1-angle` and a `gobo1-mode` choice decides which rule
   applies;
 - a choice mapped to byte ranges: gobo slot 3 is byte 40, a control function
-  "reset" is byte 12;
-- a colour on a discrete gamut: the nearest swatch's byte range, and on a CMY
-  fixture the inverted components.
+  "lamp on" is byte 12; a boolean mapped to two ranges: prism in or out;
+- a number that shares a byte with a choice or a boolean and only speaks
+  above zero: gobo shake over the chosen slot's shake range, prism rotation
+  over the spin range once the prism is in;
+- a colour on a discrete gamut: the nearest swatch's byte range, its
+  brightness multiplying the dimmer, and on a CMY fixture the inverted
+  components.
 
 Importers from OFL, GDTF and `.qxf` produce Encoding rules; a person authoring a
 Fixture Type composes them from a small set of primitives. Studio never shows

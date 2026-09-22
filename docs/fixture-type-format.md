@@ -83,22 +83,40 @@ Field by field:
   unit and range otherwise come from the Attribute vocabulary, which is a
   TypeScript table in core, not a JSON file, because Encoding switches on it
   and importers map onto it in code.
+- An open choice (`gobo1`, `control`) lists its `options`, each a `value`
+  key, a `label` and the `bytes` that select it, low to high. A closed choice
+  (`shutter`) cannot. A colour on a wheel lists its `swatches`, each a
+  `label`, an RGB `color` 0 to 1 and its `bytes`.
+- `actions` is keyed by Action key; each has a `name`, the `channel` it
+  holds, the `byte` and how many `seconds` the Runtime holds it.
 - `notes` on the type or a Mode is free text for what the Encoding cannot say,
   such as "verify against the unit".
 
 ## Encoding primitives
 
-Slice 1 has the three the bundled types need:
+| Primitive  | Reads                                | Writes                                                                                                                                                                                                            |
+| ---------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scale`    | a number Parameter                   | one Channel, the Parameter's range spread across the Channel's bytes                                                                                                                                              |
+| `color`    | a color Parameter                    | the listed Channels in order red, green, blue and optionally white; white is the minimum of the three and is subtracted from them; alpha is ignored                                                               |
+| `multiply` | a number Parameter without a Channel | scales the bytes of the listed Channels, the virtual dimmer                                                                                                                                                       |
+| `wheel`    | a color Parameter with `swatches`    | the start of the nearest swatch's `bytes` on one Channel; the colour's brightness (its largest component) multiplies the Channels in `multiply`, usually the dimmer                                               |
+| `range`    | an open choice with `options`        | the start of the chosen option's `bytes` on one Channel                                                                                                                                                           |
+| `switch`   | a boolean Parameter                  | the start of `on` or `off` on one Channel                                                                                                                                                                         |
+| `spread`   | a number Parameter                   | above zero, the number placed low to high along the range in `ranges` keyed by the current value of the sibling Parameter `by` (an option value, or `on` and `off`), on the Channel `by` writes; at zero, nothing |
 
-| Primitive  | Reads                                | Writes                                                                                                                                              |
-| ---------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scale`    | a number Parameter                   | one Channel, the Parameter's range spread across the Channel's bytes                                                                                |
-| `color`    | a color Parameter                    | the listed Channels in order red, green, blue and optionally white; white is the minimum of the three and is subtracted from them; alpha is ignored |
-| `multiply` | a number Parameter without a Channel | scales the bytes of the listed Channels, the virtual dimmer                                                                                         |
+A Channel takes its rest byte, then `scale`, `color`, `wheel`, `range` and
+`switch` write, then `spread` overwrites, then `multiply` scales. A byte
+range on a two-byte Channel lands in the high byte. A range writes its
+start, the value the chart names and what grandMA3 and GDTF send for a
+channel set; the middle was tried and put a prism in at 49 of an "off" band
+of 0 to 99. Precedence on one byte (a strobe rate beating an open
+shutter) is designed in the glossary and waits for a type that needs it.
 
-Precedence (shutter and strobe on one byte) and conditional (gobo angle or
-rotation chosen by a mode) are designed in the glossary and wait for a type
-that needs them.
+`generic/beam-moving-head` shows the four new ones together: `color` is a
+`wheel` of eleven swatches multiplying `dimmer`, `gobo1` a `range` over
+fifteen options, `gobo1-shake` a `spread` by `gobo1` over each slot's shake
+range, `prism` a `switch` and `prism-rotation` a `spread` by `prism` over
+the spin range, with a `reset` Action on the control channel.
 
 ## A multi-Element excerpt
 

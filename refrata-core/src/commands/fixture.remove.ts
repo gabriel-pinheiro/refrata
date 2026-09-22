@@ -9,7 +9,7 @@ import { parseElementRef } from "../rig/elements.ts";
 import { dropElementReferences } from "./rig-removal.ts";
 
 /**
- * Removing a Fixture drops its held highlights, its Elements from every
+ * Removing a Fixture drops its held highlights and running Actions, its Elements from every
  * Fixture Set and Look Layer, and, when it was the last of its type, the
  * type's copy; a Group goes with its contents.
  */
@@ -39,11 +39,12 @@ export const fixtureRemove = defineCommand({
       fixture.name,
       references.warnings,
     );
-    for (const ref of Object.keys(document.operational.highlight)) {
-      const fixtureId = ref.slice(0, ref.lastIndexOf("/"));
-      if (leaving.has(fixtureId))
-        patches.push({ op: "remove", path: ["operational", "highlight", ref] });
-    }
+    for (const table of ["highlight", "actions"] as const)
+      for (const ref of Object.keys(document.operational[table])) {
+        const fixtureId = ref.slice(0, ref.lastIndexOf("/"));
+        if (leaving.has(fixtureId))
+          patches.push({ op: "remove", path: ["operational", table, ref] });
+      }
     const typeKeys = new Set(
       removed.flatMap((row) => (row.kind === "fixture" ? [row.typeKey] : [])),
     );

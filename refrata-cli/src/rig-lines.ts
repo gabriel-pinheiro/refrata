@@ -2,6 +2,7 @@ import {
   declaredTags,
   fixtureElements,
   fixtureFootprint,
+  fixtureModeOf,
   personTags,
   type Document,
   type Element,
@@ -50,7 +51,9 @@ function describeFixture(document: Document, fixture: Fixture): string {
     (element) => element.parentKey === null,
   );
   const tags = root === undefined ? "" : `  ${describeTags(fixture, root)}`;
-  return `Fixture ${head}  ${fixture.typeKey}  ${describePatch(document, fixture)}${tags}`;
+  const actions = Object.keys(fixtureModeOf(document, fixture)?.actions ?? {});
+  const runs = actions.length === 0 ? "" : `  actions: ${actions.join(", ")}`;
+  return `Fixture ${head}  ${fixture.typeKey}  ${describePatch(document, fixture)}${tags}${runs}`;
 }
 
 /** Fixtures in their Groups, each Fixture followed by its Element tree. */

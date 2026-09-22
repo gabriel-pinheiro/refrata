@@ -183,7 +183,32 @@ export function rowDefinition(
   attribute: AttributeKey,
 ): ParameterDefinition {
   const own = locateElement(document, ref)?.element.parameters[attribute];
-  return own?.definition ?? attributeDefinition(attribute);
+  if (own !== undefined) return own.definition;
+  const definition = attributeDefinition(attribute);
+  if (definition.kind !== "choice") return definition;
+  const options = unionOptions(document, ref, attribute);
+  return options.length === 0 ? definition : { ...definition, options };
+}
+
+/**
+ * The options a choice row offers over several Elements: the union of what
+ * they declare, by value, in the order met, a wheel's slots after the
+ * vocabulary's. A member without the chosen value stays at its default.
+ */
+function unionOptions(
+  document: TargetSource,
+  ref: string,
+  attribute: AttributeKey,
+): readonly { readonly value: string; readonly label: string }[] {
+  const seen = new Map<string, string>();
+  for (const located of targetElements(document, ref))
+    for (const element of subtreeOf(located.elements, located.element.key)) {
+      const definition = element.parameters[attribute]?.definition;
+      if (definition?.kind !== "choice") continue;
+      for (const option of definition.options)
+        if (!seen.has(option.value)) seen.set(option.value, option.label);
+    }
+  return [...seen].map(([value, label]) => ({ value, label }));
 }
 
 /** "Strobe › Panel 3", "Par", or the Set's name; the ref itself when nothing has it. */

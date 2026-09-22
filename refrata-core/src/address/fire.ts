@@ -41,7 +41,19 @@ function fireResolved(
   const [kind, id = ""] = address.split("/");
   if (kind === "macro") return runMacro(document, id, ran);
   if (kind === "scene") return playScene(document, id, address);
+  if (kind === "fixture") return runAction(document, address);
   return { patches: [], events: [address], warnings: [] };
+}
+
+/** Firing an Action marks it running; the Runtime writes its byte while it is and clears it when its seconds are up. Firing it again restarts the clock. */
+function runAction(document: Document, address: string): Fired {
+  const resolved = resolveAddress(document, address);
+  if (resolved === undefined) return { patches: [], events: [], warnings: [] };
+  return {
+    patches: [{ op: "set", path: resolved.path, value: true }],
+    events: [address],
+    warnings: [],
+  };
 }
 
 /** Playing a Scene is a cut: the active Scene changes and the Outputs render it from the next frame. */

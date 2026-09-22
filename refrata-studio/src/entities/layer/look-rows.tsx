@@ -117,7 +117,7 @@ function LookLine({
         />
         <span
           className={cn(
-            "w-16 shrink-0 truncate text-xs",
+            "min-w-16 shrink-0 text-xs whitespace-nowrap",
             !present && "text-muted-foreground",
           )}
           title={label}

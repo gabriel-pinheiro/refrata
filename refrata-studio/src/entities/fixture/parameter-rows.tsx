@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import type { Color, Element, ParameterValues } from "@refrata/core";
+import {
+  nearestSwatch,
+  type Color,
+  type Element,
+  type ParameterValues,
+} from "@refrata/core";
 import { Sun } from "lucide-react";
 import { useRef } from "react";
 
@@ -10,10 +15,13 @@ import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { useClient } from "@/lib/client";
 import { useResolved } from "@/lib/use-resolved";
 
+import { ActionButtons } from "./action-buttons";
+
 /**
  * An Element's Parameters with their resolved values from the Resolved
- * Stream, read-only until Layers exist, plus the Highlight button: held
- * down, the Element takes its Highlight values on the real fixture.
+ * Stream, read-only until Layers exist, plus the Highlight button (held
+ * down, the Element takes its Highlight values on the real fixture) and,
+ * on a root, one button per Action its Mode declares.
  */
 export function ParameterRows({
   view,
@@ -30,7 +38,12 @@ export function ParameterRows({
     <InspectorSection
       storageKey="parameters"
       label="Parameters"
-      actions={<HighlightButton view={view} elementId={elementId} />}
+      actions={
+        <span className="flex items-center gap-1">
+          <ActionButtons view={view} elementId={elementId} />
+          <HighlightButton view={view} elementId={elementId} />
+        </span>
+      }
     >
       {parameters.length === 0 ? (
         <p className="text-[0.6875rem]/relaxed text-muted-foreground">
@@ -67,6 +80,11 @@ function Readout({
       );
     case "color": {
       const color = (Array.isArray(shown) ? shown : [0, 0, 0, 1]) as Color;
+      // On a wheel the resolved colour is already the swatch at its brightness; name it.
+      const swatch =
+        parameter.swatches === undefined
+          ? undefined
+          : nearestSwatch(color, parameter.swatches);
       return (
         <span className="flex items-center gap-1.5 text-xs">
           <span
@@ -76,6 +94,7 @@ function Readout({
           <span className="font-mono text-[0.6875rem] text-muted-foreground uppercase">
             {colorToHex(color)}
           </span>
+          {swatch !== undefined && <span>{swatch.label}</span>}
         </span>
       );
     }

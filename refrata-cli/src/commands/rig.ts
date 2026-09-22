@@ -220,6 +220,37 @@ export function registerRig(program: Command, cli: Cli): void {
     );
 
   program
+    .command("action <fixture> <action>")
+    .description(
+      "Run an Action its Mode declares, such as reset: the runtime holds the byte for the declared seconds. --stop ends one early.",
+    )
+    .option("--stop", "end the Action now", false)
+    .action((fixture: string, key: string, local: { stop: boolean }) =>
+      cli.withDocument(async (client, summary) => {
+        const { document } = await cli.replica(client, summary.id);
+        const fixtureId = resolveId(document, "fixtures", fixture);
+        const address = `fixture/${fixtureId}/action/${key}`;
+        if (local.stop) {
+          const result = await client.command<CommandResult>(
+            summary.id,
+            "fixture.action.end",
+            { fixtureId, key },
+          );
+          cli.print(result, () =>
+            formatCommandResult(result, "fixture.action.end"),
+          );
+          return;
+        }
+        const result = await client.command<CommandResult>(
+          summary.id,
+          "address.trigger",
+          { address },
+        );
+        cli.print(result, () => formatCommandResult(result, "address.trigger"));
+      }),
+    );
+
+  program
     .command("dmx <universe>")
     .description(
       "Print the DMX Frame a Universe is sending now: 512 bytes, runs of one value grouped as <Nx value>.",

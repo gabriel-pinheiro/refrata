@@ -72,6 +72,7 @@ import { setRulesRemove } from "./set.rules.remove.ts";
 import { setRulesUpdate } from "./set.rules.update.ts";
 import { setUngroup } from "./set.ungroup.ts";
 import { tagRename } from "./tag.rename.ts";
+import { fixtureActionEnd } from "./fixture.action.end.ts";
 import { testerHold } from "./tester.hold.ts";
 import { testerRelease, testerSet, testerZero } from "./tester.set.ts";
 import { universeCreate } from "./universe.create.ts";
@@ -141,6 +142,7 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   linkCreate,
   linkUpdate,
   linkRemove,
+  fixtureActionEnd,
   testerHold,
   testerSet,
   testerZero,

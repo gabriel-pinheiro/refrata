@@ -24,7 +24,9 @@ have it) with Parameters:
 | `color-temperature`                           | number                 | K       | when a CTO exists                                    |
 | `gobo1`                                       | choice                 |         | swatches are images                                  |
 | `gobo1-mode`, `gobo1-angle`, `gobo1-rotation` | choice, number, number |         | one byte, three Parameters                           |
-| `zoom`, `focus`, `iris`, `frost`, `prism`     | number or choice       | 0..1    |                                                      |
+| `gobo1-shake`                                 | number                 | 0..1    | shares the gobo byte, speaks above zero              |
+| `prism`, `prism-rotation`                     | boolean, number        | 0..1    | one byte; rotation ignored while the prism is out    |
+| `zoom`, `focus`, `iris`, `frost`              | number or choice       | 0..1    |                                                      |
 | `control`                                     | choice                 |         | dangerous ranges behind a safe default               |
 
 Nothing here needed a term the Rig did not already have. The Encoding cases
@@ -70,7 +72,9 @@ and steps the wheel ones. Nothing special is needed for the mixed Set, which
 is the point of one `color` Attribute.
 
 **Dangerous channels.** `control` rows in a Look Layer default to released, so
-the Mode's safe default holds unless someone means it.
+the Mode's safe default holds unless someone means it. A function that must
+end on its own, a reset held for five seconds, is an Action of the Mode: a
+button on the Fixture, a trigger Address, and the Runtime lets go.
 
 Verdict: the mover fits without a new concept. Its cost is in Encoding data
 (the library carries it) and in the two Filters, Smooth and Limit, which are

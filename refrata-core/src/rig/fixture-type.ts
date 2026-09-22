@@ -1,15 +1,23 @@
 import { z } from "zod";
 
 import { ParameterValueSchema } from "../parameters.ts";
-import { ATTRIBUTES, isAttributeKey } from "./attributes.ts";
+import { ByteRangeSchema, EncodeSchema } from "./encode-rules.ts";
+import { modeProblems } from "./fixture-type-problems.ts";
+
+export {
+  EncodeSchema,
+  ByteRangeSchema,
+  encodedChannels,
+} from "./encode-rules.ts";
+export type { Encode, ByteRange } from "./encode-rules.ts";
 
 /**
  * The Fixture Type file: the project's own JSON format, the form every
  * importer targets. A Mode declares its Channel Layout (flat, wire order,
  * each Channel naming its Element), its Element tree (keyed, `root` at the
- * top), each Element's Parameters and how they encode into Channels, and a
- * Shape Template for the Rig View. Nothing here holds a value; an
- * Installation does.
+ * top), each Element's Parameters and how they encode into Channels, its
+ * Actions, and a Shape Template for the Rig View. Nothing here holds a
+ * value; an Installation does.
  */
 export const FIXTURE_TYPE_FILE_KIND = "refrata-fixture-type";
 export const FIXTURE_TYPE_FORMAT_VERSION = 1;
@@ -31,19 +39,31 @@ export const FixtureTypeKeySchema = z
     "must look like manufacturer/model",
   );
 
-/**
- * How a Parameter reaches Channels. `scale` writes a number across one
- * Channel's bytes; `color` writes a color to red, green and blue Channels and
- * an optional fourth white Channel (white extracted as the minimum and
- * subtracted from the three); `multiply` scales the bytes of other Channels
- * by a number that has no Channel of its own (a virtual dimmer).
- */
-export const EncodeSchema = z.union([
-  z.object({ scale: ChannelKey }).strict(),
-  z.object({ color: z.array(ChannelKey).min(3).max(4) }).strict(),
-  z.object({ multiply: z.array(ChannelKey).min(1) }).strict(),
+/** One option of an open choice, with the bytes that select it. */
+export const DeclaredOptionSchema = z
+  .object({
+    value: Key,
+    label: z.string().trim().min(1),
+    bytes: ByteRangeSchema,
+  })
+  .strict();
+export type DeclaredOption = z.infer<typeof DeclaredOptionSchema>;
+
+const Rgb = z.tuple([
+  z.number().min(0).max(1),
+  z.number().min(0).max(1),
+  z.number().min(0).max(1),
 ]);
-export type Encode = z.infer<typeof EncodeSchema>;
+
+/** One slot of a colour wheel: the colour it shows and the bytes that select it. */
+export const SwatchSchema = z
+  .object({
+    label: z.string().trim().min(1),
+    color: Rgb,
+    bytes: ByteRangeSchema,
+  })
+  .strict();
+export type Swatch = z.infer<typeof SwatchSchema>;
 
 export const ParameterDeclarationSchema = z
   .object({
@@ -53,6 +73,10 @@ export const ParameterDeclarationSchema = z
     min: z.number().optional(),
     max: z.number().optional(),
     unit: z.string().optional(),
+    /** The options of an open choice Attribute, in wheel order. */
+    options: z.array(DeclaredOptionSchema).min(1).optional(),
+    /** The discrete gamut of a colour on a wheel, in wheel order. */
+    swatches: z.array(SwatchSchema).min(1).optional(),
     encode: EncodeSchema,
     notes: z.string().optional(),
   })
@@ -79,6 +103,22 @@ export const ChannelSchema = z
   })
   .strict();
 export type Channel = z.infer<typeof ChannelSchema>;
+
+/**
+ * An Action: a byte a Mode holds on one Channel for a time, for what a
+ * fixture does on command rather than in a look (a reset, a lamp strike).
+ * The Runtime writes it over the encoded frame while it runs and drops it
+ * when `seconds` are up.
+ */
+export const ActionSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    channel: ChannelKey,
+    byte: z.number().int().min(0).max(255),
+    seconds: z.number().positive(),
+  })
+  .strict();
+export type Action = z.infer<typeof ActionSchema>;
 
 export const ShapeSchema = z.discriminatedUnion("template", [
   z.object({ template: z.literal("single") }).strict(),
@@ -113,6 +153,7 @@ export const ModeSchema = z
     channels: z.array(ChannelSchema).min(1),
     shape: ShapeSchema.default({ template: "single" }),
     elements: z.record(ElementKey, ElementDeclarationSchema),
+    actions: z.record(Key, ActionSchema).default({}),
     notes: z.string().optional(),
   })
   .strict();
@@ -152,76 +193,17 @@ export function footprintOf(mode: Mode): number {
   return mode.channels.reduce((total, channel) => total + channel.bytes, 0);
 }
 
-/** Every reference a Mode makes must land: Channels on Elements, Encoding on Channels of the same Element, the tree on `root`. */
-function modeProblems(mode: Mode): string[] {
-  const problems: string[] = [];
-  const channelKeys = new Set<string>();
+/** Where a Channel starts within the Mode's Footprint, and how wide it is; undefined for an unknown key. */
+export function channelSlot(
+  mode: Mode,
+  key: string,
+): { readonly offset: number; readonly width: number } | undefined {
+  let offset = 0;
   for (const channel of mode.channels) {
-    if (channelKeys.has(channel.key))
-      problems.push(`Channel “${channel.key}” is declared twice`);
-    channelKeys.add(channel.key);
-    if (!(channel.element in mode.elements))
-      problems.push(
-        `Channel “${channel.key}” names unknown Element “${channel.element}”`,
-      );
+    if (channel.key === key) return { offset, width: channel.bytes };
+    offset += channel.bytes;
   }
-  if (!(ROOT_ELEMENT_KEY in mode.elements))
-    problems.push(`Element “${ROOT_ELEMENT_KEY}” is missing`);
-  const parents = new Map<string, string>();
-  for (const [key, element] of Object.entries(mode.elements)) {
-    for (const child of element.children) {
-      if (!(child in mode.elements))
-        problems.push(`Element “${key}” lists unknown child “${child}”`);
-      else if (child === ROOT_ELEMENT_KEY)
-        problems.push(`Element “${ROOT_ELEMENT_KEY}” cannot be a child`);
-      else if (parents.has(child))
-        problems.push(`Element “${child}” has two parents`);
-      else parents.set(child, key);
-    }
-    for (const [attribute, parameter] of Object.entries(element.parameters)) {
-      if (!isAttributeKey(attribute)) {
-        problems.push(
-          `Element “${key}” declares unknown Attribute “${attribute}”`,
-        );
-        continue;
-      }
-      const kind = ATTRIBUTES[attribute].kind;
-      const encoded =
-        "scale" in parameter.encode
-          ? [parameter.encode.scale]
-          : "color" in parameter.encode
-            ? parameter.encode.color
-            : parameter.encode.multiply;
-      if ("color" in parameter.encode && kind !== "color")
-        problems.push(
-          `“${attribute}” of “${key}” is not a color and cannot encode as one`,
-        );
-      if (!("color" in parameter.encode) && kind !== "number")
-        problems.push(
-          `“${attribute}” of “${key}” is not a number and cannot scale or multiply`,
-        );
-      for (const channelKey of encoded) {
-        const channel = mode.channels.find(
-          (candidate) => candidate.key === channelKey,
-        );
-        if (channel === undefined)
-          problems.push(
-            `“${attribute}” of “${key}” encodes into unknown Channel “${channelKey}”`,
-          );
-        else if (channel.element !== key)
-          problems.push(
-            `“${attribute}” of “${key}” encodes into Channel “${channelKey}” of another Element`,
-          );
-      }
-    }
-  }
-  for (const key of Object.keys(mode.elements)) {
-    if (key !== ROOT_ELEMENT_KEY && !parents.has(key))
-      problems.push(
-        `Element “${key}” is not reachable from “${ROOT_ELEMENT_KEY}”`,
-      );
-  }
-  return problems;
+  return undefined;
 }
 
 export type ParsedFixtureType =

@@ -15,6 +15,8 @@ import { ResolvedStream } from "../live/resolved-streams.ts";
 import { createDrivers } from "../output/drivers.ts";
 import { OutputManager } from "../output/output-manager.ts";
 import { fakeSerialFactory, FTDI_PORT } from "../output/serial/fake-serial.ts";
+import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
+import { ActionTimeout } from "./action-timeout.ts";
 import { HighlightTimeout } from "./highlight-timeout.ts";
 import { TesterTimeout } from "./tester-timeout.ts";
 import { FixtureTypeDriftTracker } from "./fixture-type-drift.ts";
@@ -72,13 +74,14 @@ describe("FixtureLibrary", () => {
     const entries = library.list();
     expect(entries.map((entry) => entry.key)).toEqual([
       "generic/atomic-like-panel",
+      "generic/beam-moving-head",
       "generic/dimmer-1ch",
       "generic/moving-head",
       "generic/rgb-3ch",
       "generic/rgb-7ch",
       "generic/rgbw-4ch",
     ]);
-    expect(entries.at(2)?.modes).toEqual([
+    expect(entries.at(3)?.modes).toEqual([
       { key: "8ch", name: "8ch", footprint: 8 },
       { key: "10ch", name: "10ch", footprint: 10 },
     ]);
@@ -226,6 +229,38 @@ describe("HighlightTimeout", () => {
     expect(session.document.operational.highlight["strobe/root"]).toBe(true);
     timeout.sweep(since + 1_500);
     expect(session.document.operational.highlight["strobe/root"]).toBe(false);
+    timeout.close();
+  });
+});
+
+describe("ActionTimeout", () => {
+  it("ends an Action once its Mode's seconds have passed", async () => {
+    const created = await store.create("Club");
+    const documentId = created.ok ? created.result.id : "";
+    const session = store.session(documentId)!;
+    session.execute(
+      "fixture.create",
+      {
+        id: "beam",
+        typeKey: "generic/beam-moving-head",
+        modeKey: "12ch",
+        fixtureType: beamJson,
+        name: "Beam",
+      },
+      "test",
+    );
+    const timeout = new ActionTimeout(store);
+    timeout.start();
+    session.execute(
+      "address.trigger",
+      { address: "fixture/beam/action/reset" },
+      "test",
+    );
+    const since = Date.now();
+    timeout.sweep(since + 5_000);
+    expect(session.document.operational.actions["beam/reset"]).toBe(true);
+    timeout.sweep(since + 6_100);
+    expect(session.document.operational.actions["beam/reset"]).toBeUndefined();
     timeout.close();
   });
 });

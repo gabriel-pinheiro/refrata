@@ -5,6 +5,7 @@ import type { Color, ParameterKind } from "../parameters.ts";
  * Type names one of these and inherits its kind, unit, range and default,
  * so "the dimmer of everything selected" means one thing across brands.
  * The family only groups rows in Studio. Encoding switches on the key.
+ * Order is the order rows appear in, family by family.
  */
 export type AttributeFamily =
   "intensity" | "color" | "position" | "beam" | "gobo" | "control";
@@ -36,6 +37,12 @@ export interface ChoiceAttribute extends AttributeBase {
     readonly label: string;
   }[];
   readonly default: string;
+  /**
+   * An open choice takes its options from the Fixture Type (a gobo wheel's
+   * slots, a control channel's functions); a closed one offers the
+   * vocabulary's list on every fixture, so "open" means one thing.
+   */
+  readonly open?: boolean;
 }
 
 export interface BooleanAttribute extends AttributeBase {
@@ -85,6 +92,23 @@ export const ATTRIBUTES = {
     ],
     default: "open",
   },
+  prism: {
+    key: "prism",
+    label: "Prism",
+    family: "beam",
+    kind: "boolean",
+    default: false,
+  },
+  "prism-rotation": {
+    key: "prism-rotation",
+    label: "Prism rotation",
+    family: "beam",
+    kind: "number",
+    min: 0,
+    max: 1,
+    percent: true,
+    default: 0,
+  },
   pan: {
     key: "pan",
     label: "Pan",
@@ -105,6 +129,25 @@ export const ATTRIBUTES = {
     unit: "°",
     default: 0,
   },
+  gobo1: {
+    key: "gobo1",
+    label: "Gobo",
+    family: "gobo",
+    kind: "choice",
+    options: [{ value: "open", label: "Open" }],
+    default: "open",
+    open: true,
+  },
+  "gobo1-shake": {
+    key: "gobo1-shake",
+    label: "Gobo shake",
+    family: "gobo",
+    kind: "number",
+    min: 0,
+    max: 1,
+    percent: true,
+    default: 0,
+  },
   control: {
     key: "control",
     label: "Control",
@@ -112,6 +155,7 @@ export const ATTRIBUTES = {
     kind: "choice",
     options: [{ value: "none", label: "No function" }],
     default: "none",
+    open: true,
   },
 } as const satisfies Record<string, AttributeDefinition>;
 

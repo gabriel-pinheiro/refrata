@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import strobeJson from "../../test-fixtures/atomic-like-panel.json" with { type: "json" };
 import { listAddresses, resolveAddress } from "../address/address.ts";
@@ -9,6 +10,7 @@ import { orderedEntries } from "../document/order.ts";
 import { applyPatches } from "../document/patch.ts";
 import type { PatchedFixture } from "../document/rig.ts";
 import { resolveDocument } from "../composition/resolve.ts";
+import { rowDefinition } from "../document/targets.ts";
 import { formatFrame, universeFrame } from "../rig/frames.ts";
 import { createBuiltInRegistry } from "./index.ts";
 
@@ -284,5 +286,90 @@ describe("Highlight and frames", () => {
 
   it("formats a frame with grouped runs", () => {
     expect(formatFrame([0, 0, 127, 127, 12, 0])).toBe("<2x 0> <2x 127> 12 0");
+  });
+});
+
+describe("A wheel head", () => {
+  function withBeam(): Document {
+    return run(stage(), "fixture.create", {
+      id: "beam",
+      typeKey: "generic/beam-moving-head",
+      modeKey: "12ch",
+      fixtureType: beamJson,
+      name: "Beam",
+    }).document;
+  }
+
+  it("runs an Action from its Address until it is ended, and forgets it with the Fixture", () => {
+    let document = withBeam();
+    const universe = universeId(document);
+    const start = fixture(document, "beam").patch?.address ?? 0;
+    expect(listAddresses(document).map((a) => a.address)).toContain(
+      "fixture/beam/action/reset",
+    );
+    expect(resolveAddress(document, "fixture/beam/action/reset")?.type).toBe(
+      "trigger",
+    );
+    expect(
+      resolveAddress(document, "fixture/beam/action/lamp"),
+    ).toBeUndefined();
+    document = run(document, "address.trigger", {
+      address: "fixture/beam/action/reset",
+    }).document;
+    expect(document.operational.actions["beam/reset"]).toBe(true);
+    let frame = universeFrame(document, universe, resolveDocument(document));
+    expect(frame[start - 1 + 11]).toBe(255);
+    document = run(document, "address.set", {
+      address: "installation/blackout",
+      value: true,
+    }).document;
+    frame = universeFrame(document, universe, resolveDocument(document));
+    expect(frame[start - 1 + 11]).toBe(255);
+    document = run(document, "fixture.action.end", {
+      fixtureId: "beam",
+      key: "reset",
+    }).document;
+    expect(document.operational.actions["beam/reset"]).toBeUndefined();
+    frame = universeFrame(document, universe, resolveDocument(document));
+    expect(frame[start - 1 + 11]).toBe(0);
+    document = run(document, "address.trigger", {
+      address: "fixture/beam/action/reset",
+    }).document;
+    const gone = run(document, "fixture.remove", {
+      fixtureId: "beam",
+    }).document;
+    expect(gone.operational.actions["beam/reset"]).toBeUndefined();
+  });
+
+  it("resolves a colour to its swatch at the asked brightness, and a Set row offers every wheel's options", () => {
+    let document = withBeam();
+    document = run(document, "scene.create", {
+      id: "s",
+      name: "Show",
+    }).document;
+    document = run(document, "layer.create", {
+      id: "l",
+      sceneId: "s",
+      name: "Look",
+      targets: ["beam/root"],
+    }).document;
+    document = run(document, "layer.row.set", {
+      layerId: "l",
+      targets: ["beam/root"],
+      attribute: "color",
+      value: [0.5, 0.2, 0, 1],
+    }).document;
+    expect(resolveDocument(document).get("beam/root")?.color).toEqual([
+      0.5, 0.25, 0, 1,
+    ]);
+    document = run(document, "set.create", {
+      id: "all",
+      name: "All",
+      members: ["par/root", "beam/root"],
+    }).document;
+    const row = rowDefinition(document, "set:all", "gobo1");
+    expect(row.kind).toBe("choice");
+    if (row.kind === "choice")
+      expect(row.options.map((option) => option.value)).toContain("flower");
   });
 });

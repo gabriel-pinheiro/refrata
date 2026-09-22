@@ -5,7 +5,11 @@ import {
   type ParameterValue,
 } from "../parameters.ts";
 import type { Controller, Document } from "../document/document.ts";
-import { allFixtures, fixtureElements } from "../document/fixtures.ts";
+import {
+  allFixtures,
+  fixtureElements,
+  fixtureModeOf,
+} from "../document/fixtures.ts";
 import { targetedLayers } from "../document/layers.ts";
 import { orderedEntries } from "../document/order.ts";
 import {
@@ -256,6 +260,28 @@ const patterns: readonly AddressPattern[] = [
           fixture.id,
           element.key,
         ]),
+      ),
+  },
+  {
+    // An Action of a Fixture's Mode: fired, the Runtime holds its byte for the declared seconds. Never saved.
+    pattern: ["fixture", "*", "action", "*"],
+    resolve: (document, [fixtureId = "", key = ""]) => {
+      const fixture = document.fixtures[fixtureId];
+      if (fixture?.kind !== "fixture") return undefined;
+      const action = fixtureModeOf(document, fixture)?.actions[key];
+      if (action === undefined) return undefined;
+      return {
+        label: action.name,
+        owner: fixture.name,
+        path: ["operational", "actions", `${fixtureId}/${key}`],
+        type: "trigger",
+      };
+    },
+    list: (document) =>
+      allFixtures(document.fixtures).flatMap((fixture) =>
+        Object.keys(fixtureModeOf(document, fixture)?.actions ?? {}).map(
+          (key) => [fixture.id, key],
+        ),
       ),
   },
   {

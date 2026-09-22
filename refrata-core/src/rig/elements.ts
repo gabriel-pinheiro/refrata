@@ -13,9 +13,11 @@ import {
 } from "./attributes.ts";
 import {
   ROOT_ELEMENT_KEY,
+  type DeclaredOption,
   type Encode,
   type FixtureType,
   type Mode,
+  type Swatch,
 } from "./fixture-type.ts";
 
 /**
@@ -30,6 +32,10 @@ export interface ElementParameter {
   readonly definition: ParameterDefinition;
   readonly highlight: ParameterValue | undefined;
   readonly encode: Encode;
+  /** An open choice's options with their bytes, as the type declared them. */
+  readonly options?: readonly DeclaredOption[];
+  /** A colour's discrete gamut, when it sits on a wheel. */
+  readonly swatches?: readonly Swatch[];
 }
 
 export interface Element {
@@ -99,6 +105,12 @@ function parametersOf(
       definition: definitionOf(attribute, parameter),
       highlight: parameter.highlight,
       encode: parameter.encode,
+      ...(parameter.options === undefined
+        ? {}
+        : { options: parameter.options }),
+      ...(parameter.swatches === undefined
+        ? {}
+        : { swatches: parameter.swatches }),
     };
   }
   return result;
@@ -132,16 +144,26 @@ function definitionOf(
           ? (parameter.default as Color)
           : attribute.default,
       };
-    case "choice":
+    case "choice": {
+      // An open choice offers what the type declared; its default is the
+      // type's, else the first option, so a wheel rests on its first slot.
+      const declared =
+        attribute.open === true && parameter.options !== undefined
+          ? parameter.options.map(({ value, label }) => ({ value, label }))
+          : undefined;
+      const options = declared ?? attribute.options;
+      const fallback = declared?.[0]?.value ?? attribute.default;
       return {
         kind: "choice",
         label: attribute.label,
-        options: attribute.options,
+        options,
         default:
-          typeof parameter.default === "string"
+          typeof parameter.default === "string" &&
+          options.some((option) => option.value === parameter.default)
             ? parameter.default
-            : attribute.default,
+            : fallback,
       };
+    }
     case "boolean":
       return {
         kind: "boolean",

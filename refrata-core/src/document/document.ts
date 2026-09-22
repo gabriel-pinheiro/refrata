@@ -216,6 +216,8 @@ export const OperationalSchema = z
     blackout: z.boolean(),
     /** Held highlights by Element reference (`<fixtureId>/<key>`); true while held. */
     highlight: z.record(z.string(), z.boolean()),
+    /** Running Actions by `<fixtureId>/<actionKey>`; true while the Runtime holds the byte. */
+    actions: z.record(z.string(), z.boolean()),
     tester: TesterSchema.nullable(),
   })
   .strict();
@@ -320,6 +322,7 @@ export function siblingsOf<TEntity extends { readonly id: string }>(
 export const defaultOperational: Operational = {
   blackout: false,
   highlight: {},
+  actions: {},
   tester: null,
 };
 

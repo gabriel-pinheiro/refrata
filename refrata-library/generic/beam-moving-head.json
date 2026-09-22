@@ -1,0 +1,160 @@
+{
+  "kind": "refrata-fixture-type",
+  "formatVersion": 1,
+  "key": "generic/beam-moving-head",
+  "manufacturer": "Generic",
+  "model": "Beam Moving Head",
+  "notes": "Beam moving head with a colour wheel, a gobo wheel with shake, a prism and a reset: pan 540 degrees and tilt 180 degrees over two bytes each. Channel 5 (motor speed, 0 fastest), channel 7 (strobe, 0 to 15 open then 16 to 255 slow to fast) and channel 11 (automatic modes) rest at 0 and are not mapped. Swatch colours are standard names, not measured; the wheel's two reds are one swatch. Colour and gobo cycling ranges are not mapped.",
+  "modes": {
+    "12ch": {
+      "name": "12ch",
+      "channels": [
+        { "key": "pan", "element": "root", "bytes": 2 },
+        { "key": "tilt", "element": "root", "bytes": 2 },
+        { "key": "speed", "element": "root" },
+        { "key": "dimmer", "element": "root" },
+        { "key": "strobe", "element": "root" },
+        { "key": "color", "element": "root" },
+        { "key": "gobo", "element": "root" },
+        { "key": "prism", "element": "root" },
+        { "key": "auto", "element": "root" },
+        { "key": "control", "element": "root" }
+      ],
+      "shape": { "template": "single" },
+      "elements": {
+        "root": {
+          "name": "Beam Moving Head",
+          "parameters": {
+            "pan": {
+              "default": 0,
+              "encode": { "scale": "pan" }
+            },
+            "tilt": {
+              "default": 0,
+              "min": -90,
+              "max": 90,
+              "encode": { "scale": "tilt" }
+            },
+            "dimmer": {
+              "default": 0,
+              "highlight": 1,
+              "notes": "0 to 9 is off on the unit; 10 to 255 is dark to bright.",
+              "encode": { "scale": "dimmer" }
+            },
+            "color": {
+              "default": [0, 0, 0, 1],
+              "highlight": [1, 1, 1, 1],
+              "swatches": [
+                { "label": "White", "color": [1, 1, 1], "bytes": [0, 9] },
+                { "label": "Red", "color": [1, 0, 0], "bytes": [10, 19] },
+                { "label": "Amber", "color": [1, 0.75, 0], "bytes": [20, 29] },
+                { "label": "Azure", "color": [0, 0.5, 1], "bytes": [30, 39] },
+                { "label": "Green", "color": [0, 1, 0], "bytes": [40, 49] },
+                { "label": "Orange", "color": [1, 0.5, 0], "bytes": [50, 59] },
+                { "label": "Magenta", "color": [1, 0, 1], "bytes": [60, 69] },
+                {
+                  "label": "Warm White",
+                  "color": [1, 0.9, 0.8],
+                  "bytes": [70, 79]
+                },
+                { "label": "Cyan", "color": [0, 1, 1], "bytes": [80, 89] },
+                { "label": "Pink", "color": [1, 0.4, 0.8], "bytes": [90, 99] },
+                { "label": "Blue", "color": [0, 0, 1], "bytes": [110, 119] }
+              ],
+              "encode": { "wheel": "color", "multiply": ["dimmer"] }
+            },
+            "gobo1": {
+              "default": "open",
+              "highlight": "open",
+              "options": [
+                { "value": "open", "label": "Open", "bytes": [0, 5] },
+                { "value": "medium", "label": "Medium", "bytes": [6, 11] },
+                { "value": "small", "label": "Small", "bytes": [12, 17] },
+                { "value": "tiny", "label": "Tiny", "bytes": [18, 23] },
+                { "value": "line", "label": "Line", "bytes": [24, 29] },
+                {
+                  "value": "snowflake",
+                  "label": "Snowflake",
+                  "bytes": [30, 35]
+                },
+                {
+                  "value": "triple-cross",
+                  "label": "Triple Cross",
+                  "bytes": [36, 41]
+                },
+                { "value": "signal", "label": "Signal", "bytes": [42, 47] },
+                { "value": "shutter", "label": "Shutter", "bytes": [48, 53] },
+                {
+                  "value": "concave-triangle",
+                  "label": "Concave Triangle",
+                  "bytes": [54, 59]
+                },
+                { "value": "clover", "label": "Clover", "bytes": [60, 65] },
+                {
+                  "value": "broken-square",
+                  "label": "Broken Square",
+                  "bytes": [66, 71]
+                },
+                {
+                  "value": "ring-of-dots",
+                  "label": "Ring of Dots",
+                  "bytes": [72, 77]
+                },
+                { "value": "pinwheel", "label": "Pinwheel", "bytes": [78, 83] },
+                { "value": "flower", "label": "Flower", "bytes": [84, 89] }
+              ],
+              "encode": { "range": "gobo" }
+            },
+            "gobo1-shake": {
+              "default": 0,
+              "highlight": 0,
+              "encode": {
+                "spread": "gobo",
+                "by": "gobo1",
+                "ranges": {
+                  "flower": [90, 95],
+                  "pinwheel": [96, 101],
+                  "ring-of-dots": [102, 107],
+                  "broken-square": [108, 113],
+                  "clover": [114, 119],
+                  "concave-triangle": [120, 125],
+                  "shutter": [126, 131],
+                  "signal": [132, 137],
+                  "triple-cross": [138, 143],
+                  "snowflake": [144, 149],
+                  "line": [150, 155],
+                  "tiny": [156, 161],
+                  "small": [162, 167],
+                  "medium": [168, 173],
+                  "open": [174, 179]
+                }
+              }
+            },
+            "prism": {
+              "default": false,
+              "highlight": false,
+              "encode": { "switch": "prism", "off": [0, 99], "on": [100, 127] }
+            },
+            "prism-rotation": {
+              "default": 0,
+              "highlight": 0,
+              "encode": {
+                "spread": "prism",
+                "by": "prism",
+                "ranges": { "on": [128, 255] }
+              }
+            }
+          }
+        }
+      },
+      "actions": {
+        "reset": {
+          "name": "Reset",
+          "channel": "control",
+          "byte": 255,
+          "seconds": 6
+        }
+      }
+    }
+  }
+}

@@ -30,6 +30,9 @@ Working from a shell
              highlight <fixture>[/<element>] [--on|--off]  lights it at its
              Highlight values (${String(settings.cli.highlightHoldMs / 1000)} s unless held). Elements are
              <fixtureId>/<key>, listed by "fixtures".
+             action <fixture> <action> [--stop]  runs an Action the Mode
+             declares (reset); the runtime holds its byte for the declared
+             seconds. "fixtures" lists them per Fixture.
              tester <universe> <address> <byte...>  holds raw channels at
              those bytes for ${String(settings.cli.testerHoldMs / 1000)} s (--hold <s>; 0 keeps them until the
              runtime's ${String(settings.tester.timeoutMs / 1000)} s timeout) to learn what a device does before
@@ -132,6 +135,7 @@ Working from a shell
   Addresses  controller/<id|name>/value       macro/<id|name>/run
              installation/blackout            installation/master
              scene/<id|name>/play             element/<fixture>/<key>/highlight
+             fixture/<id|name>/action/<key>
              layer/<id|name>/opacity          layer/<id|name>/enabled
              layer/<id|name>/row/<target|all>/<attribute>
              layer/<id|name>/param/<name>     layer/<id|name>/cue/<key>

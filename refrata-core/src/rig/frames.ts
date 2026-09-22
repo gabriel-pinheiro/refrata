@@ -3,7 +3,7 @@ import { fixtureModeOf, patchedIn } from "../document/fixtures.ts";
 import type { ParameterValues } from "../parameters.ts";
 import { elementRef, elementsOf } from "./elements.ts";
 import { encodeMode } from "./encoding.ts";
-import { footprintOf } from "./fixture-type.ts";
+import { channelSlot, footprintOf } from "./fixture-type.ts";
 import { testerBytes } from "./tester.ts";
 
 /** The 512 slots of a Universe. */
@@ -14,8 +14,10 @@ export type ResolvedValuesByRef = ReadonlyMap<string, ParameterValues>;
 
 /**
  * The DMX Frame of one Universe from resolved values: 512 bytes, unpatched
- * slots at 0. The DMX Tester's held channels are written over the encoded
- * bytes last, and Blackout zeroes them like everything else.
+ * slots at 0. A running Action's byte is written over its Fixture's bytes,
+ * then the DMX Tester's held channels over everything, and Blackout zeroes
+ * the Tester like everything else but leaves an Action alone: a reset is
+ * not light.
  */
 export function universeFrame(
   document: Document,
@@ -31,6 +33,12 @@ export function universeFrame(
     const bytes = encodeMode(mode, elementsOf(mode), (key) =>
       resolved.get(elementRef(fixture.id, key)),
     );
+    for (const [key, action] of Object.entries(mode.actions)) {
+      if (document.operational.actions[`${fixture.id}/${key}`] !== true)
+        continue;
+      const slot = channelSlot(mode, action.channel);
+      if (slot !== undefined) bytes[slot.offset] = action.byte;
+    }
     frame.set(bytes, start);
   }
   const tester = document.operational.tester;

@@ -12,6 +12,7 @@ import type {
 import type { AttributeKey } from "../rig/attributes.ts";
 import { elementRef, type Element } from "../rig/elements.ts";
 import { defaultsOf } from "../rig/encoding.ts";
+import { snapToGamut } from "../rig/gamut.ts";
 import { blendValue } from "./blend.ts";
 import { lookContributions } from "./contributions.ts";
 import {
@@ -28,8 +29,9 @@ export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
  * opacity and Blend Mode (a Look Layer from its rows, a Visual Layer from
  * what its Visual wrote this frame, handed in as `visuals` by whoever steps
  * the instances), then Master scales every `dimmer`, Blackout
- * forces `dimmer` 0 and `shutter` closed, and a held Highlight overrides.
- * Links are read here, so a Controller on a Layer's opacity or row is seen
+ * forces `dimmer` 0 and `shutter` closed, a held Highlight overrides, and a
+ * colour on a wheel snaps to its swatch, so Studio and Encoding both see
+ * what the fixture will show. Links are read here, so a Controller on a Layer's opacity or row is seen
  * at the output rate. Nothing below the Element level is touched: bytes are
  * Encoding's business.
  */
@@ -98,6 +100,8 @@ export function resolveDocument(
       if (attribute === "shutter" && blackout) value = "closed";
       if (highlighted.get(ref) === true && parameter.highlight !== undefined)
         value = parameter.highlight;
+      if (parameter.swatches !== undefined && Array.isArray(value))
+        value = snapToGamut(value as Color, parameter.swatches);
       own[attribute] = value;
     }
   }

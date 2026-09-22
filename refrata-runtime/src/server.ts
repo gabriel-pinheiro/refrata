@@ -16,6 +16,7 @@ import { OscServer } from "./osc/osc-server.ts";
 import { createDrivers, type OutputDrivers } from "./output/drivers.ts";
 import { OutputManager } from "./output/output-manager.ts";
 import { FixtureTypeDriftTracker } from "./rig/fixture-type-drift.ts";
+import { ActionTimeout } from "./rig/action-timeout.ts";
 import { HighlightTimeout } from "./rig/highlight-timeout.ts";
 import { TesterTimeout } from "./rig/tester-timeout.ts";
 import { FixtureLibrary } from "./rig/library.ts";
@@ -75,6 +76,7 @@ export async function buildRuntime(
   });
   const loop = new OutputLoop({ store, outputs });
   const highlightTimeout = new HighlightTimeout(store);
+  const actionTimeout = new ActionTimeout(store);
   const testerTimeout = new TesterTimeout(store);
   const drift = new FixtureTypeDriftTracker(store, library);
   const live = new LiveServer({
@@ -142,6 +144,7 @@ export async function buildRuntime(
       });
       loop.start();
       highlightTimeout.start();
+      actionTimeout.start();
       testerTimeout.start();
       drift.start();
       library.watch(config.libraryDir);
@@ -166,6 +169,7 @@ export async function buildRuntime(
     async close() {
       live.close();
       highlightTimeout.close();
+      actionTimeout.close();
       testerTimeout.close();
       drift.close();
       library.close();
