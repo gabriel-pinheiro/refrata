@@ -109,8 +109,9 @@ pad per Scene, each a Macro that plays it.
   Linear now; an easing choice on the Scene later.
 - **Tracking.** Nothing carries over between Scenes except through the
   Transition's blend, which ends. Scene B is complete on its own.
-- **Blackout with a fade.** Blackout snaps; it is the panic button. A graceful
-  end is a Transition to a `Dark` Scene or the Master ridden down by the hub.
+- **Blackout with a fade.** Blackout snaps every address to 0; it is the kill
+  switch. A graceful end is a Transition to a `Dark` Scene or the Master
+  ridden down by the hub, which keeps positions.
 - **Transitions between Layers inside a Scene** (Resolume's clip
   transitions). A Layer is not swapped for another; it is enabled or disabled
   with a Layer Fade, or its Visual changes and the Visual swap is a cut.

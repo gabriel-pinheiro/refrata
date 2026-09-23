@@ -471,7 +471,7 @@ describe("Fixture Sets", () => {
 });
 
 describe("Resolve", () => {
-  it("composes the active Scene bottom to top with fan-down, the Target rule, opacity, Master, Blackout and Highlight", () => {
+  it("composes the active Scene bottom to top with fan-down, the Target rule, opacity, Master and Highlight, and Blackout kills the frame", () => {
     let document = stage();
     document = apply(document, [
       [
@@ -585,7 +585,7 @@ describe("Resolve", () => {
     ]);
     expect(resolved(htp, "strobe/panel-3")?.dimmer).toBe(0.4);
 
-    // Master scales dimmer only; Blackout zeroes it and keeps colour; Highlight overrides both.
+    // Master scales dimmer only; Highlight overrides it; Blackout leaves the composition alone and kills the frame.
     const master = run(document, "address.edit", {
       address: "installation/master",
       value: 0.5,
@@ -599,10 +599,13 @@ describe("Resolve", () => {
       value: true,
     }).document;
     expect(resolved(dark, "par/root")).toEqual({
-      dimmer: 0,
+      dimmer: 0.4,
       color: [0, 1, 0, 1],
     });
-    const lit = run(dark, "address.set", {
+    expect(
+      formatFrame(universeFrame(dark, universe, resolveDocument(dark))),
+    ).toBe("<512x 0>");
+    const lit = run(document, "address.set", {
       address: "element/par/root/highlight",
       value: true,
     }).document;

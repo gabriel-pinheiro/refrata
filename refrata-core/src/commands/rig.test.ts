@@ -300,7 +300,7 @@ describe("A wheel head", () => {
     }).document;
   }
 
-  it("runs an Action from its Address until it is ended, and forgets it with the Fixture", () => {
+  it("runs an Action from its Address until it is ended, killed by Blackout, and forgets it with the Fixture", () => {
     let document = withBeam();
     const universe = universeId(document);
     const start = fixture(document, "beam").patch?.address ?? 0;
@@ -324,7 +324,11 @@ describe("A wheel head", () => {
       value: true,
     }).document;
     frame = universeFrame(document, universe, resolveDocument(document));
-    expect(frame[start - 1 + 11]).toBe(255);
+    expect(frame[start - 1 + 11]).toBe(0);
+    document = run(document, "address.set", {
+      address: "installation/blackout",
+      value: false,
+    }).document;
     document = run(document, "fixture.action.end", {
       fixtureId: "beam",
       key: "reset",

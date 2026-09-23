@@ -24,7 +24,8 @@ import { testerChannels } from "./tester-channels";
  * Fixture Type. Pick a Universe, a start address and a count, hold: every
  * channel starts at 0. One fader per channel, named after the Fixture
  * patched over it when there is one; a channel can be released alone so
- * the show shows through it. Blackout zeroes the held channels. The range
+ * the show shows through it. Blackout kills the whole frame, held channels
+ * included. The range
  * lives while this Studio holds it and never reaches the file.
  */
 export function TesterView({ view }: { readonly view: DocumentView }) {
@@ -131,8 +132,8 @@ export function TesterView({ view }: { readonly view: DocumentView }) {
         <div className="min-h-0 flex-1 overflow-auto p-3">
           {blackout && (
             <p className="mb-2 text-xs text-destructive">
-              Blackout: every held channel is sending 0. The faders keep their
-              values for when it lifts.
+              Blackout: every address is sending 0, held channels included. The
+              faders keep their values for when it lifts.
             </p>
           )}
           <p className="mb-2 text-xs text-muted-foreground">

@@ -47,7 +47,7 @@ Slice 2, "one Look", underneath: Scenes as ordered stacks of Layers, Look
 Layers with rows per Target under "All Targets" rows every Target takes
 unless its own overrides, Contributions (alpha stored, read as 1 for now),
 the five Blend Modes, Resolve bottom to top from Defaults with fan-down and
-the Target rule, Master and Blackout after Resolve, Scene play as a cut,
+the Target rule, Master after Resolve and Blackout on the frame, Scene play as a cut,
 Layer Addresses linkable to Controllers, one ordered selection across the Rig View and the
 navigator with Targets outlined and a picker to fill Layers and Sets, a DMX
 Tester holding raw channels over the show, a Universe View of one Universe's

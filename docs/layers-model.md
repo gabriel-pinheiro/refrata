@@ -207,12 +207,17 @@ in Difracta, but in Node. Studio needs a live stream of resolved values for
 what it shows (a fixture's current colour, a Look Layer's effective row),
 subscribed per view rather than for the whole rig.
 
-### Blackout is a dimmer, not a colour
+### Blackout is the frame, not the composition
 
-Blackout forces `dimmer` to 0 (and `shutter` closed where a fixture has one)
-after resolution and leaves position, colour and everything else in place, so
-releasing it restores the look and movers have not drifted. Difracta's
-"replace output with black" translates to that.
+Blackout sends 0 on every address of every Universe. It is applied to the
+encoded frame, after Resolve and Encoding, so it does not depend on the
+patch being right: a fixture with the wrong Mode, where `dimmer` names the
+wrong channel, still goes dark, since nearly every fixture is dark at all
+zeros. The composition is untouched, so Studio keeps showing the look and
+releasing Blackout restores it. What all zeros does not do is keep a mover
+still: pan and tilt at 0 drive it to its end stops, and back when Blackout
+lifts. The dark that keeps positions, and can fade, is Master at 0.
+Difracta's "replace output with black" translates to Blackout.
 
 ## 5. Where it breaks, or costs
 

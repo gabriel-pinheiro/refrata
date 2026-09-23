@@ -195,7 +195,7 @@ export type RunnableMacro = Extract<Macro, { kind: "macro" }>;
 
 /**
  * The DMX Tester: raw bytes held over one range of one Universe, written
- * onto the encoded frame after everything but Blackout, to learn what a
+ * onto the encoded frame after everything, to learn what a
  * device's channels do before its Fixture Type exists. `values` has one
  * entry per channel from `address` up; null means that channel is released
  * and shows the frame underneath. Held by a client and dropped by the

@@ -143,8 +143,10 @@ productivity feature and it lands naturally here, later.
 
 ## 4. Blackout and Master, stated simply
 
-Blackout is a switch: every `dimmer` to 0 after Resolve, nothing else touched,
-released at once. Master is a number: every `dimmer` scaled after Resolve.
+Blackout is a switch: every address of every Universe sends 0, the
+composition untouched, released at once; it is the kill switch, and does not
+trust the patch. Master is a number: every `dimmer` scaled after Resolve,
+positions kept, so Master at 0 is the dark that restores the look at once.
 Both are Installation-level Addresses, so a hub reaches them without a Layer:
 Blackout through a Macro, Master through a Controller linked to it. The
 review's worry, "how to control all dimmer Attributes, or all colour

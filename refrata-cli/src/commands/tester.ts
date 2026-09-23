@@ -23,7 +23,7 @@ export function registerTester(program: Command, cli: Cli): void {
   tester
     .command("hold <universe> <address> <byte...>", { isDefault: true })
     .description(
-      `Hold channels from <address> at the bytes given (0 to 255, "-" leaves one released) for ${String(settings.cli.testerHoldMs / 1000)} s, touching them so the runtime keeps them, then release. Blackout wins over the tester.`,
+      `Hold channels from <address> at the bytes given (0 to 255, "-" leaves one released) for ${String(settings.cli.testerHoldMs / 1000)} s, touching them so the runtime keeps them, then release. Blackout kills the tester with the rest of the frame.`,
     )
     .option(
       "--hold <seconds>",

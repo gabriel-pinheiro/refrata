@@ -140,7 +140,7 @@ export function registerComposition(program: Command, cli: Cli): void {
   program
     .command("blackout <state>")
     .description(
-      "Blackout on or off: every dimmer to 0 after Resolve, colours and positions kept. Never undone.",
+      "Blackout on or off: every DMX address of every Universe sends 0, whatever the patch says. The composition is kept, so releasing it restores the show. Never undone.",
     )
     .action((state: string) =>
       cli.withDocument(async (client, summary) => {

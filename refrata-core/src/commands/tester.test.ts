@@ -30,7 +30,7 @@ function frame(document: Document): string {
 }
 
 describe("DMX Tester", () => {
-  it("holds a range at 0 over the encoded frame, sets and releases channels, and goes dark under Blackout", () => {
+  it("holds a range at 0 over the encoded frame, sets and releases channels, and is killed by Blackout", () => {
     let document = run(emptyDocument("Club"), "fixture.create", {
       id: "par",
       typeKey: "generic/rgb-3ch",
@@ -78,12 +78,12 @@ describe("DMX Tester", () => {
       count: 4,
     });
     expect(same.ok && same.patches).toEqual([]);
-    // Blackout zeroes every held channel; the released one keeps the highlight underneath.
+    // Blackout kills the whole frame, held channels and highlight alike.
     const dark = run(document, "address.set", {
       address: "installation/blackout",
       value: true,
     });
-    expect(frame(dark)).toBe("<2x 255> <510x 0>");
+    expect(frame(dark)).toBe("<512x 0>");
     document = run(document, "tester.zero", {});
     expect(frame(document)).toBe("255 <511x 0>");
     document = run(document, "tester.release", {});

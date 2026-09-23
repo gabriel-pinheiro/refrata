@@ -29,15 +29,14 @@ export function testerHolds(tester: Tester, channel: number): boolean {
   );
 }
 
-/** The bytes the tester writes onto a frame, by 0-based slot; every held channel reads 0 under Blackout. */
+/** The bytes the tester writes onto a frame, by 0-based slot. */
 export function testerBytes(
   tester: Tester,
-  blackout: boolean,
 ): readonly (readonly [slot: number, byte: number])[] {
   const result: [number, number][] = [];
   tester.values.forEach((value, index) => {
     if (value === null) return;
-    result.push([tester.address - 1 + index, blackout ? 0 : value]);
+    result.push([tester.address - 1 + index, value]);
   });
   return result;
 }

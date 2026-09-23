@@ -360,8 +360,8 @@ on command rather than in a look: a reset, a lamp strike. The Mode declares
 each with a name, a Channel, a byte and seconds. An Action is a trigger
 Address `fixture/<fixtureId>/action/<key>` and performance input: never
 saved, never undone. Fired, the Runtime writes the byte over the Fixture's
-encoded bytes, after Resolve and Blackout, since a reset is not light, and
-drops it when the seconds are up; firing it again restarts the clock, and
+encoded bytes after Resolve, Blackout kills it with the rest of the frame, and
+the Runtime drops it when the seconds are up; firing it again restarts the clock, and
 `fixture.action.end` stops it early. A Fixture's inspector draws one button
 per Action, and the CLI runs one with `refrata action`.
 
@@ -922,18 +922,26 @@ a Controller linked to the opacity of the Layers it should ride.
 
 ### Blackout
 
-A Runtime switch that forces every `dimmer` to 0 (and `shutter` closed where
-one exists) after Resolve, leaving colour, position and everything else as the
-stack left them, so releasing it restores the look at once. Not saved. It is
-an Address, so a hub's button reaches it through a Macro; it is not linkable
-to a Controller.
+The kill switch: a Runtime switch under which every address of every
+Universe sends 0, whatever the patch, a running Action or the DMX Tester
+says. It works on the encoded frame, not on the composition, so it does not
+depend on a Fixture Type being right: a fixture patched wrong still goes
+dark, since nearly every fixture is dark at all zeros. Resolve is untouched,
+so Studio keeps showing the look and releasing Blackout restores it. All
+zeros is not "stopped": a mover's pan and tilt at 0 drive it to its end
+stops, and back when Blackout lifts. The dark that keeps positions and can
+fade is Master at 0. Not saved. It is an Address, so a hub's button reaches
+it through a Macro; it is not linkable to a Controller.
+
+**Elsewhere:** QLC+ Blackout (all channels to 0). grandMA3's Blackout key is
+intensity only, which here is Master at 0.
 
 ### DMX Tester
 
 A probe for a device that has no Fixture Type yet: up to 64 raw channels of
 one Universe held at bytes set by hand, written onto the encoded frame after
-Resolve, Master and Highlight, so they win over the show; Blackout still
-zeroes them. Every channel starts at 0 when the range is held, so probes
+Resolve, Master and Highlight, so they win over the show; Blackout kills
+them with the rest of the frame. Every channel starts at 0 when the range is held, so probes
 never mix with show output, and a channel can be released alone to show the
 frame underneath. The range is held by whoever set it and released by the
 Runtime when nobody touches it for a while, so a closed tab, a closed Studio

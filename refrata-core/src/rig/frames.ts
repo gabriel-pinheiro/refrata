@@ -15,9 +15,9 @@ export type ResolvedValuesByRef = ReadonlyMap<string, ParameterValues>;
 /**
  * The DMX Frame of one Universe from resolved values: 512 bytes, unpatched
  * slots at 0. A running Action's byte is written over its Fixture's bytes,
- * then the DMX Tester's held channels over everything, and Blackout zeroes
- * the Tester like everything else but leaves an Action alone: a reset is
- * not light.
+ * then the DMX Tester's held channels over everything. Under Blackout the
+ * frame is all zeros, whatever the patch, the Tester or an Action says: it
+ * is the kill switch, and it must not depend on a Fixture Type being right.
  */
 export function universeFrame(
   document: Document,
@@ -25,6 +25,7 @@ export function universeFrame(
   resolved: ResolvedValuesByRef,
 ): Uint8Array {
   const frame = new Uint8Array(UNIVERSE_SIZE);
+  if (document.operational.blackout) return frame;
   for (const fixture of patchedIn(document, universeId)) {
     const mode = fixtureModeOf(document, fixture);
     if (mode === undefined || fixture.patch === null) continue;
@@ -43,11 +44,7 @@ export function universeFrame(
   }
   const tester = document.operational.tester;
   if (tester?.universeId === universeId)
-    for (const [slot, byte] of testerBytes(
-      tester,
-      document.operational.blackout,
-    ))
-      frame[slot] = byte;
+    for (const [slot, byte] of testerBytes(tester)) frame[slot] = byte;
   return frame;
 }
 

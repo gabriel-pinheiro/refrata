@@ -28,12 +28,13 @@ export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
  * Mode's Defaults, apply the active Scene's Layers bottom to top with their
  * opacity and Blend Mode (a Look Layer from its rows, a Visual Layer from
  * what its Visual wrote this frame, handed in as `visuals` by whoever steps
- * the instances), then Master scales every `dimmer`, Blackout
- * forces `dimmer` 0 and `shutter` closed, a held Highlight overrides, and a
- * colour on a wheel snaps to its swatch, so Studio and Encoding both see
- * what the fixture will show. Links are read here, so a Controller on a Layer's opacity or row is seen
- * at the output rate. Nothing below the Element level is touched: bytes are
- * Encoding's business.
+ * the instances), then Master scales every `dimmer`, a held Highlight
+ * overrides, and a colour on a wheel snaps to its swatch, so Studio and
+ * Encoding both see what the fixture will show. Blackout is not here: it
+ * kills the encoded frame (rig/frames.ts) and leaves the composition as it
+ * is, so Studio still shows the look. Links are read here, so a Controller
+ * on a Layer's opacity or row is seen at the output rate. Nothing below the
+ * Element level is touched: bytes are Encoding's business.
  */
 export function resolveDocument(
   document: Document,
@@ -88,7 +89,6 @@ export function resolveDocument(
     document.installation.master,
   );
   const scale = typeof master === "number" ? master : 1;
-  const blackout = document.operational.blackout;
   for (const [ref, own] of values) {
     const element = elements.get(ref);
     if (element === undefined) continue;
@@ -96,8 +96,7 @@ export function resolveDocument(
       const attribute = key as AttributeKey;
       let value = clamp(parameter.definition, own[attribute]);
       if (attribute === "dimmer" && typeof value === "number")
-        value = blackout ? 0 : value * scale;
-      if (attribute === "shutter" && blackout) value = "closed";
+        value = value * scale;
       if (highlighted.get(ref) === true && parameter.highlight !== undefined)
         value = parameter.highlight;
       if (parameter.swatches !== undefined && Array.isArray(value))

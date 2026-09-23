@@ -38,7 +38,7 @@ Working from a shell
              those bytes for ${String(settings.cli.testerHoldMs / 1000)} s (--hold <s>; 0 keeps them until the
              runtime's ${String(settings.tester.timeoutMs / 1000)} s timeout) to learn what a device does before
              it has a Fixture Type; tester release lets go. Never saved;
-             Blackout wins.
+             Blackout kills it with the rest.
 
   Tags       tag <fixture>[/<key>] <tag...>  adds a person's Tags to a
              Fixture (its root Element) or to one Element; untag removes
@@ -72,8 +72,9 @@ Working from a shell
              into its members, an Element into its children); "layers"
              prints the expansion. A Look Layer ignores it.
              play <scene> cuts the Outputs to it; master <0..1> scales every
-             dimmer; blackout on|off forces them to 0. play and blackout are
-             show control (never undone); the rest is authoring.
+             dimmer, positions kept; blackout on|off sends 0 on every address
+             of every Universe, whatever the patch, the kill switch. play and
+             blackout are show control (never undone); the rest is authoring.
 
   Visuals    layers add <scene> <name> --visual <id> [--target <t>]...  a
              Visual Layer running one Visual of the Catalog (lfo, shimmer,
