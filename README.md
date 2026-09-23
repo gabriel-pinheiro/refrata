@@ -303,12 +303,12 @@ reach all of them.
 ## Quality
 
 ```sh
-npm test
-npm run typecheck
-npm run lint
-npm run format:check
+npm run check   # npm test, npm run typecheck, npm run lint, npm run format:check, in parallel
 npm run build
 ```
+
+Typecheck is incremental (`*.tsbuildinfo`) and lint and format are cached
+(`node_modules/.cache/`), so a second run costs seconds.
 
 `npm run test:desktop` launches the built Desktop through Playwright and needs
 a display; run `npm run build` first. To keep its windows off your screen, or

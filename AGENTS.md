@@ -96,8 +96,15 @@ not introduce near-synonyms.
 ## Commands
 
 Node 24. `npm run dev` starts the runtime (4900) and the Studio dev server
-(4901); OSC and OSCQuery listen on 9100. `npm test`, `npm run typecheck`,
-`npm run lint`, `npm run format:check`, `npm run build`. `npm run desktop`
+(4901); OSC and OSCQuery listen on 9100. `npm run check` runs `npm test`,
+`npm run typecheck`, `npm run lint` and `npm run format:check` at once, in
+parallel; `npm run build` is separate. While iterating, run only what you
+touched (`npx vitest run <file>`, `npm run typecheck -w <package>`); run
+`npm run check` and, for a Desktop change, `npm run test:desktop` once, before
+reporting. Typecheck is incremental and lint and format are cached, so a second
+run costs seconds; the caches live in `node_modules/.cache/` and
+`*.tsbuildinfo`, and a stale one is never the cause of a failure that a cold
+run does not show. `npm run desktop`
 builds and launches Refrata Desktop; `npm run test:desktop` drives the built
 app through Playwright and needs a display. `npm run package:desktop`
 packages Desktop for the current OS into `refrata-desktop/release/`
