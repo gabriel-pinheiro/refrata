@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import strobeJson from "../../../refrata-core/test-fixtures/atomic-like-panel.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 import { serializeDocument } from "../documents/document-file.ts";
 import type { DocumentSession } from "../documents/document-session.ts";
 import { DocumentStore } from "../documents/document-store.ts";

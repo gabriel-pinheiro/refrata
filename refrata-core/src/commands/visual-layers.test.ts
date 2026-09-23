@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import strobeJson from "../../test-fixtures/atomic-like-panel.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 import { listAddresses, resolveAddress } from "../address/address.ts";
 import { executeCommand } from "../command/execute.ts";
 import { resolveDocument } from "../composition/resolve.ts";

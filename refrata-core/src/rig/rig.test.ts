@@ -5,7 +5,7 @@ import beamJson from "../../../refrata-library/generic/beam-moving-head.json" wi
 import moverJson from "../../../refrata-library/generic/moving-head.json" with { type: "json" };
 import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import rgbwJson from "../../../refrata-library/generic/rgbw-4ch.json" with { type: "json" };
-import strobeJson from "../../test-fixtures/atomic-like-panel.json" with { type: "json" };
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
 
 import {
   elementsOf,

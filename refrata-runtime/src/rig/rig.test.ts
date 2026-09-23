@@ -1,15 +1,10 @@
-import {
-  createBuiltInRegistry,
-  parseFixtureType,
-  type ParameterValues,
-} from "@refrata/core";
+import { createBuiltInRegistry, type ParameterValues } from "@refrata/core";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import strobeJson from "../../../refrata-core/test-fixtures/atomic-like-panel.json" with { type: "json" };
 import { DocumentStore } from "../documents/document-store.ts";
 import { ResolvedStream } from "../live/resolved-streams.ts";
 import { createDrivers } from "../output/drivers.ts";
@@ -38,9 +33,6 @@ beforeEach(async () => {
   });
   library = new FixtureLibrary(() => undefined);
   await library.load(libraryDir);
-  const strobe = parseFixtureType(strobeJson);
-  if (!strobe.ok) throw new Error(strobe.error);
-  library.add(strobe.type);
 });
 
 afterEach(async () => {
@@ -70,7 +62,7 @@ async function stageStrobe(): Promise<{
 }
 
 describe("FixtureLibrary", () => {
-  it("lists the bundled types and an added one with their Modes and footprints", () => {
+  it("lists the bundled types with their Modes and footprints", () => {
     const entries = library.list();
     expect(entries.map((entry) => entry.key)).toEqual([
       "generic/atomic-like-panel",

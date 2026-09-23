@@ -120,17 +120,16 @@ the spin range, with a `reset` Action on the control channel.
 
 ## A multi-Element excerpt
 
-The Atomic-like Panel's `32ch` Mode, a zoned strobe that is not in the
-library and serves the tests as their multi-Element type
-(`refrata-core/test-fixtures/atomic-like-panel.json`): channels 1 to 24 are red, green and blue per RGB panel 1 to 8, channels
-25 to 32 are white sections 1 to 8. No master dimmer and no strobe channel, so
+The Atomic-like Panel's `32ch` Mode (`generic/atomic-like-panel`, a zoned
+strobe and the tests' multi-Element type): channels 1 to 24 are red, green
+and blue per RGB panel 1 to 8, channels 25 to 32 are white sections 1 to 8. No master dimmer and no strobe channel, so
 the Mode has no `strobe` Parameter and strobing is a Visual's job.
 
 ```json
 {
   "32ch": {
     "name": "32ch",
-    "notes": "Chart from the LL960S manual; verify against the unit.",
+    "notes": "Verify against the unit.",
     "channels": [
       { "key": "panel-1-red", "element": "panel-1" },
       { "key": "panel-1-green", "element": "panel-1" },

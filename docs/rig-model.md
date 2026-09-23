@@ -447,13 +447,13 @@ What the example exercises:
 Whether Beam is the root itself or a child is the library author's call. With
 FX macros driving both arrays, a neutral root reads best.
 
-### The zoned strobe in the rig (ST-960P9 class)
+### The zoned strobe in the rig (Atomic-like Panel)
 
-The rig's zoned strobe is a ShowTech ST-960P9-class panel: 864 RGB 5050 LEDs
-in eight segments and 96 white 5050 LEDs in eight segments, modes of 3, 9, 24
-and 32 channels, strobe 1 to 30 Hz, PowerCon in and out. The 32ch chart below
-is taken from the matching LL960S manual, whose LED counts are identical, and
-is marked **verify against the unit** until the paper manual is read:
+The rig's zoned strobe is a 960-LED panel, `generic/atomic-like-panel`: 864
+RGB 5050 LEDs in eight segments and 96 white 5050 LEDs in eight segments,
+modes of 3, 9, 24 and 32 channels, strobe 1 to 30 Hz, PowerCon in and out.
+The 32ch chart below is marked **verify against the unit** until the paper
+manual is read:
 
 | Ch       | Function                                               |
 | -------- | ------------------------------------------------------ |
@@ -466,7 +466,8 @@ Mode declares no `strobe` Parameter. The 3ch Mode is red, green, blue with a
 virtual dimmer. The 9ch and 24ch Modes are unknown until the manual is read.
 
 ```text
-ST-960 (root)          no Parameters of its own
+Atomic-like Panel (root)
+                       no Parameters of its own
 ├── Backlight
 │   ├── Panel 1        color, dimmer (virtual)
 │   ├── ...

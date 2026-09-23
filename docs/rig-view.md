@@ -56,8 +56,8 @@ deferred until one does.
 
 Why templates rather than free geometry: a fixture author writes one word and
 two Tags, an importer needs no layout algorithm, and a custom "Atomic-like"
-type reuses `strobe-backlight` by naming it. The rig's ST-960 strobe in its
-32ch Mode is `strobe-backlight(8, 8)`: eight white Sections over eight RGB
+type reuses `strobe-backlight` by naming it. The rig's Atomic-like Panel in
+its 32ch Mode is `strobe-backlight(8, 8)`: eight white Sections over eight RGB
 Panels.
 
 The view is drawn with SVG: click, hover and drag come with the elements, and

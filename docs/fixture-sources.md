@@ -85,12 +85,13 @@ from the Attribute vocabulary in core.
 ## Bundled generics
 
 Like both references, the library ships generic types for the fixtures that
-have no brand. Slice 1 ships five, hand-written: `generic/dimmer-1ch`,
-`generic/rgb-3ch` (virtual dimmer), `generic/rgb-7ch` (three unused channels,
-a master dimmer, then red, green and blue), `generic/rgbw-4ch` (white
-subtracted from red, green and blue) and `generic/moving-head`, an LED wash
-mover with pan, tilt, a master dimmer, a strobe channel and red, green, blue
-and white, in an `8ch` Mode with one byte for pan and for tilt and a `10ch`
-Mode with two.
+have no brand, hand-written: `generic/dimmer-1ch`, `generic/rgb-3ch`
+(virtual dimmer), `generic/rgb-7ch` (three unused channels, a master dimmer,
+then red, green and blue), `generic/rgbw-4ch` (white subtracted from red,
+green and blue), `generic/atomic-like-panel`, a zoned LED strobe with eight
+RGB backlight panels and eight white strobe sections in `3ch` and `32ch`
+Modes, and `generic/moving-head`, an LED wash mover with pan, tilt, a master
+dimmer, a strobe channel and red, green, blue and white, in an `8ch` Mode
+with one byte for pan and for tilt and a `10ch` Mode with two.
 `RGBA`, `RGBAW` and a generic pixel bar with the pixel count as a Mode choice
 stay planned.
