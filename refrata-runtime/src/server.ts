@@ -22,7 +22,7 @@ import { TesterTimeout } from "./rig/tester-timeout.ts";
 import { FixtureLibrary } from "./rig/library.ts";
 import { OutputLoop } from "./rig/output-loop.ts";
 
-export const RUNTIME_VERSION = "0.0.0";
+export const RUNTIME_VERSION = "0.1.0";
 
 export interface Runtime {
   readonly app: FastifyInstance;

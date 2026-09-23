@@ -82,6 +82,59 @@ The design the rest is built against is in `GLOSSARY.md` and `docs/`.
 - [docs/rig-view.md](docs/rig-view.md), the schematic front view of the rig
   in Studio, Positions and Shape Templates.
 
+## Install
+
+Refrata Desktop is on the repository's
+[Releases](https://github.com/gabriel-pinheiro/refrata/releases) page. The
+packages are not signed, so each operating system asks once before it runs
+one.
+
+**Linux**: `Refrata-<version>-x86_64.AppImage`, or
+`Refrata-<version>-arm64.AppImage` for a 64-bit ARM computer. Make it
+executable and run it:
+
+```sh
+chmod +x Refrata-*-x86_64.AppImage
+./Refrata-*-x86_64.AppImage
+```
+
+An AppImage mounts itself with FUSE 2; Ubuntu 24.04 and later lack it until
+`sudo apt install libfuse2t64` (`libfuse2` on older releases). Where the
+kernel keeps Chromium's sandbox from running (Ubuntu 23.10 and later), the
+AppImage starts without it by itself.
+
+To open a USB DMX widget without root, install the udev rules in
+[`refrata-desktop/linux/99-refrata.rules`](refrata-desktop/linux/99-refrata.rules)
+(Enttec DMX USB Pro and its FTDI clones, `0403:6001`; uDMX, `16c0:05dc`) and
+add yourself to the `dialout` and `plugdev` groups, then log out and in again.
+An AppImage cannot install anything outside itself, but it carries the rules
+file: `./Refrata-*-x86_64.AppImage --appimage-extract resources/99-refrata.rules`
+puts it at `squashfs-root/resources/99-refrata.rules`.
+
+```sh
+sudo cp 99-refrata.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger
+sudo usermod -aG dialout,plugdev "$USER"
+```
+
+**macOS**: `Refrata-<version>-arm64.dmg` for Apple silicon,
+`Refrata-<version>-x64.dmg` for an Intel Mac. Drag Refrata to Applications.
+macOS refuses an unsigned app the first time: right-click it and choose Open,
+or, where macOS no longer offers that (macOS 15 and later), allow it under
+System Settings ▸ Privacy & Security ▸ Open Anyway. If macOS says the app is
+damaged, clear the quarantine it put on the download:
+`xattr -cr /Applications/Refrata.app`.
+
+**Windows**: `Refrata-Setup-<version>.exe` installs Refrata for your user, in
+a folder you choose, without asking for an administrator. SmartScreen stops an
+unsigned installer: More info ▸ Run anyway.
+
+Desktop keeps what it remembers (where Studio came from last time, the
+runtimes connected to before, Start Without Studio Window) in its user data
+folder: `~/.config/Refrata` on Linux, `~/Library/Application Support/Refrata`
+on macOS, `%APPDATA%\Refrata` on Windows. A Desktop run from a checkout uses
+the same folder. Help ▸ Show Runtime Log shows where the runtime's log is.
+
 ## Run locally
 
 Node 24.
@@ -126,10 +179,10 @@ A venue's mini-PC runs Desktop as an appliance next to the DMX interfaces,
 reached from a laptop whose Desktop connects to it. Two checkboxes under
 File ▸ Startup set that up, and both apply from the next start:
 
-| Setting                     | Flag                         | What it does                                                                                                                                                                                                                                                                                                         |
-| --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start Without Studio Window | `--no-studio` for one launch | Local mode starts the runtime and shows nothing. The runtime listens on every interface, is announced on the network and drives its Outputs as always. Starting Refrata again while it runs shows Studio; closing that window leaves the runtime running, and File ▸ Quit quits. In remote mode the flag is ignored. |
-| Start at Login              |                              | The operating system starts Desktop at login: a login item on macOS and Windows, `~/.config/autostart/refrata-desktop.desktop` on Linux. The checkbox shows what the operating system has, so it is right after the entry was removed by other means.                                                                |
+| Setting                     | Flag                         | What it does                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start Without Studio Window | `--no-studio` for one launch | Local mode starts the runtime and shows nothing. The runtime listens on every interface, is announced on the network and drives its Outputs as always. Starting Refrata again while it runs shows Studio; closing that window leaves the runtime running, and File ▸ Quit quits. In remote mode the flag is ignored.                                                                     |
+| Start at Login              |                              | The operating system starts Desktop at login: a login item on macOS and Windows, `~/.config/autostart/refrata-desktop.desktop` on Linux. From an AppImage that entry starts the AppImage file, so keep it where it is or turn the setting off and on again after moving it. The checkbox shows what the operating system has, so it is right after the entry was removed by other means. |
 
 Leaving the runtime on this computer (quitting, closing Studio, choosing another
 target under Connect to...) asks about unsaved changes first, and then warns
@@ -158,6 +211,15 @@ own. The runtime's log is under Help ▸ Show Runtime Log. On a Linux that
 restricts unprivileged user namespaces (Ubuntu 23.10 and later) the script
 explains how to give Electron its sandbox helper, or to run this development
 build with `-- --no-sandbox`.
+
+`npm run package:desktop` builds Studio and Desktop and packages them for the
+operating system it runs on, into `refrata-desktop/release/`: both AppImages
+on Linux, both dmgs on macOS, the installer on Windows
+(`refrata-desktop/electron-builder.yml`). The packages carry package.json's
+version unless given one: `npm run package:desktop -- -c.extraMetadata.version=1.2.3`.
+`.github/workflows/release.yml` does this on each OS for every push to `main`
+and every tag `v*`, and a tag becomes a GitHub Release with the packages
+attached.
 
 ## Production
 
@@ -257,3 +319,11 @@ the same by hand. The suite never opens a DMX widget: its Outputs name a
 widget no computer has, and where a test needs Outputs that are delivering it
 sets `REFRATA_TEST_DELIVERING_OUTPUTS` to their number, which only a Desktop
 run from a checkout reads.
+
+The same suite drives a packaged Desktop when `REFRATA_DESKTOP_EXECUTABLE`
+names its executable, such as the AppImage `npm run package:desktop` wrote:
+`REFRATA_DESKTOP_EXECUTABLE=$PWD/refrata-desktop/release/Refrata-0.1.0-x86_64.AppImage xvfb-run -a npm run test:desktop`.
+The test that needs delivering Outputs is skipped there, since a package
+ignores that variable. CI (`.github/workflows/ci.yml`) runs every check above
+on each push and pull request, and the release workflow runs the suite against
+the x86_64 AppImage it packaged.

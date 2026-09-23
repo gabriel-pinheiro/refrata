@@ -17,6 +17,17 @@ import { serializeDocument } from "../../refrata-runtime/src/documents/document-
 
 const packageDir = fileURLToPath(new URL("..", import.meta.url));
 
+/**
+ * A packaged Desktop to drive instead of the checkout's build: the path of its
+ * executable, such as an AppImage, in `REFRATA_DESKTOP_EXECUTABLE`. Unset, the
+ * suite runs `node_modules/electron` with this package's folder.
+ */
+export const packagedExecutable =
+  process.env.REFRATA_DESKTOP_EXECUTABLE === ""
+    ? undefined
+    : process.env.REFRATA_DESKTOP_EXECUTABLE;
+export const packaged = packagedExecutable !== undefined;
+
 /** A port nothing uses, so the suite never meets a runtime already on 4900. */
 export async function sparePort(): Promise<number> {
   const server = createServer();
@@ -45,31 +56,42 @@ export let env: Record<string, string>;
 export let app: ElectronApplication | undefined;
 export let standalone: ChildProcess | undefined;
 
-/** The app's arguments: its folder, a user data folder of its own, maybe a file, maybe switches. */
+/**
+ * The app's arguments: its folder (a packaged one knows its own), a user data
+ * folder of its own, maybe a file, maybe switches.
+ */
 export const launchArguments = (
   file?: string,
   switches: readonly string[] = [],
 ): string[] => [
-  packageDir,
+  ...(packaged ? [] : [packageDir]),
   `--user-data-dir=${userData}`,
   ...switches,
   ...(file === undefined ? [] : [file]),
 ];
 
+/** Playwright's launch options: the packaged executable, or else the checkout's Electron. */
+const launchOptions = (args: string[]) => ({
+  ...(packagedExecutable === undefined
+    ? {}
+    : { executablePath: packagedExecutable }),
+  args,
+  env,
+});
+
 export async function launch(
   file?: string,
   switches: readonly string[] = [],
 ): Promise<Page> {
-  app = await electron.launch({ args: launchArguments(file, switches), env });
+  app = await electron.launch(launchOptions(launchArguments(file, switches)));
   return app.firstWindow();
 }
 
 /** A launch that shows nothing, so there is no first window to wait for: `/health` says when it is up. */
 export async function launchWithoutStudio(file: string): Promise<void> {
-  app = await electron.launch({
-    args: launchArguments(file, ["--no-studio"]),
-    env,
-  });
+  app = await electron.launch(
+    launchOptions(launchArguments(file, ["--no-studio"])),
+  );
   await eventually(
     () => fetch(`http://127.0.0.1:${env.REFRATA_PORT ?? ""}/health`),
     (response) => response.ok,
@@ -201,14 +223,16 @@ export async function renameFromElsewhere(
 
 /**
  * A second launch: it finds the lock taken, passes its file on and exits.
- * Playwright starts Electron with --no-sandbox on Linux, where a checkout's
- * Electron often cannot use Chromium's sandbox; this launch does the same.
+ * Playwright starts a checkout's Electron with --no-sandbox on Linux, where
+ * it often cannot use Chromium's sandbox; this launch does the same. A
+ * packaged one decides for itself, as an AppImage's launcher does.
  */
 export async function secondLaunch(file?: string): Promise<void> {
   const other = spawn(
-    (await import("electron")).default as unknown as string,
+    packagedExecutable ??
+      ((await import("electron")).default as unknown as string),
     [
-      ...(process.platform === "linux" ? ["--no-sandbox"] : []),
+      ...(process.platform === "linux" && !packaged ? ["--no-sandbox"] : []),
       ...launchArguments(file),
     ],
     { env, stdio: "ignore" },

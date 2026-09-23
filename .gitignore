@@ -4,6 +4,10 @@ research/
 node_modules/
 dist/
 build/
+# Desktop's icon and packaging resources, which electron-builder reads.
+!refrata-desktop/build/
+# Desktop's packages, which electron-builder writes.
+refrata-desktop/release/
 out/
 coverage/
 *.log

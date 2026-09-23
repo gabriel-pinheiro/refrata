@@ -6,11 +6,27 @@ import {
   runtimeEnvironment,
   runtimeLocations,
   runtimePort,
+  unpackedPath,
 } from "./runtime-launch.ts";
 
 const locations = runtimeLocations("/app/dist");
 
 describe("runtime launch", () => {
+  it("reads Studio and the library from beside a packaged app's asar, and the script from inside it", () => {
+    expect(runtimeLocations("/opt/Refrata/resources/app.asar/dist")).toEqual({
+      script: "/opt/Refrata/resources/app.asar/dist/runtime.mjs",
+      studioDist: "/opt/Refrata/resources/app.asar.unpacked/dist/studio",
+      libraryDir: "/opt/Refrata/resources/app.asar.unpacked/dist/library",
+    });
+    expect(locations.studioDist).toBe("/app/dist/studio");
+    expect(unpackedPath("/shows/my.asarchive/dist")).toBe(
+      "/shows/my.asarchive/dist",
+    );
+    expect(unpackedPath("C:\\Refrata\\resources\\app.asar\\dist")).toBe(
+      "C:\\Refrata\\resources\\app.asar.unpacked\\dist",
+    );
+  });
+
   it("starts free on every interface, with the file last when there is one", () => {
     expect(runtimeArguments({ port: 4900, file: undefined })).toEqual([
       "--documents",

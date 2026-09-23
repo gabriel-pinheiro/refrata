@@ -1,0 +1,41 @@
+# Checks every push to main and every pull request: types, unit tests, lint,
+# formatting, the build, and the Desktop suite driving the built app under
+# Xvfb. A newer push to the same branch cancels the run still going.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      # The npm that reads package.json's `allowScripts`, as on a
+      # contributor's machine: no install script runs but the ones listed, so
+      # the native modules come from their prebuilt addons and nothing is
+      # compiled (no libudev-dev, no build tools).
+      - run: npm install --global npm@12
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run build
+      - name: Install Xvfb
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends xvfb
+      - name: Desktop suite
+        run: xvfb-run -a npm run test:desktop

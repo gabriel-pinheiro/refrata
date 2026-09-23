@@ -36,23 +36,45 @@ function execArgument(argument: string): string {
 /**
  * The command that starts this Desktop again: what is running now. A
  * development build is Electron's binary given the app's folder, an installed
- * one is its own executable. `--no-sandbox` travels only when this launch has
- * it, since a Desktop that needed it to start will need it at login too, and
- * one that did not must not lose its sandbox to a setting.
+ * one is its own executable. An AppImage is the exception: the executable
+ * runs from a mount that is gone once it quits, so the command is the
+ * AppImage file itself (`$APPIMAGE`).
+ *
+ * `--no-sandbox` travels only when this launch has it, since a Desktop that
+ * needed it to start will need it at login too, and one that did not must
+ * not lose its sandbox to a setting. Never for an AppImage: its launcher adds
+ * the switch itself on each start where the sandbox cannot run, so this
+ * launch having it says nothing about the next one.
  */
 export function autostartCommand(running: {
   readonly execPath: string;
   /** The app's folder, for a build that is not packaged. */
   readonly appPath: string | undefined;
+  /** The AppImage file a packaged Desktop runs from, if it runs from one. */
+  readonly appImage: string | undefined;
   readonly noSandbox: boolean;
   readonly noStudio: boolean;
 }): string[] {
+  const noStudio = running.noStudio ? ["--no-studio"] : [];
+  if (running.appImage !== undefined) return [running.appImage, ...noStudio];
   return [
     running.execPath,
     ...(running.appPath === undefined ? [] : [running.appPath]),
     ...(running.noSandbox ? ["--no-sandbox"] : []),
-    ...(running.noStudio ? ["--no-studio"] : []),
+    ...noStudio,
   ];
+}
+
+/**
+ * The AppImage a packaged Desktop runs from: its launcher says where in
+ * `APPIMAGE`. A checkout's Desktop is never one, whatever the environment says.
+ */
+export function runningAppImage(
+  env: NodeJS.ProcessEnv,
+  packaged: boolean,
+): string | undefined {
+  const file = env.APPIMAGE;
+  return packaged && file !== undefined && file !== "" ? file : undefined;
 }
 
 /** The autostart entry's text: a desktop entry whose `Exec` is `command`. */

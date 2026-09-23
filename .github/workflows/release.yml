@@ -1,0 +1,100 @@
+# Packages Refrata Desktop on Linux, macOS and Windows for every push to main
+# and every tag v*, and keeps the packages as workflow artifacts for 7 days.
+# A tag vX.Y.Z also becomes a GitHub Release of version X.Y.Z with them
+# attached. Nothing is signed or notarised; README.md says how to open an
+# unsigned package.
+#
+# The version is X.Y.Z from a vX.Y.Z tag, or package.json's version plus
+# -g<short sha> on main, and reaches the package as
+# `-c.extraMetadata.version`: electron-builder writes it into the packaged
+# package.json and the file names and leaves the checkout alone.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  # A newer push to main replaces the packages of the older one; a tag's run
+  # always finishes.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each OS packages its own targets (electron-builder.yml): both
+        # AppImages on Linux, both dmgs on macOS, the NSIS installer on Windows.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # No Developer ID to look for: the macOS packages are unsigned.
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            base="$(node -p "require('./refrata-desktop/package.json').version")"
+            version="$base-g${GITHUB_SHA::7}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # See ci.yml: the npm that reads `allowScripts`.
+      - run: npm install --global npm@12
+      - run: npm ci
+      - name: Package
+        run: npm run package:desktop -- -c.extraMetadata.version=${{ steps.version.outputs.version }}
+      # The Desktop suite against the x86_64 AppImage itself, so a package
+      # that does not start, serve Studio or load its native modules fails
+      # here. An AppImage mounts itself with FUSE 2, which the runner lacks.
+      - name: Desktop suite against the AppImage
+        if: runner.os == 'Linux'
+        env:
+          REFRATA_DESKTOP_EXECUTABLE: ${{ github.workspace }}/refrata-desktop/release/Refrata-${{ steps.version.outputs.version }}-x86_64.AppImage
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends xvfb libfuse2t64
+          xvfb-run -a npm run test:desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: refrata-${{ runner.os }}
+          path: |
+            refrata-desktop/release/*.AppImage
+            refrata-desktop/release/*.dmg
+            refrata-desktop/release/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" packages/*
+          --repo "$GITHUB_REPOSITORY"
+          --title "Refrata ${GITHUB_REF_NAME#v}"
+          --generate-notes

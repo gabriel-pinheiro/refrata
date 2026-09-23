@@ -5,6 +5,7 @@ import type { DesktopStateStore } from "./desktop-state.ts";
 import {
   autostartCommand,
   autostartDirectory,
+  runningAppImage,
   XdgAutostart,
 } from "./xdg-autostart.ts";
 
@@ -96,6 +97,7 @@ export class StartupSettings {
       autostartCommand({
         execPath: process.execPath,
         appPath: app.isPackaged ? undefined : app.getAppPath(),
+        appImage: runningAppImage(process.env, app.isPackaged),
         noSandbox: app.commandLine.hasSwitch("no-sandbox"),
         noStudio,
       }),

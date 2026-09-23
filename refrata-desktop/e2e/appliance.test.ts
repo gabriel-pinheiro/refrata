@@ -12,6 +12,8 @@ import {
   installationFile,
   launch,
   launchWithoutStudio,
+  packaged,
+  packagedExecutable,
   quit,
   renameFromElsewhere,
   secondLaunch,
@@ -103,7 +105,11 @@ describe("Refrata Desktop as an appliance", () => {
     )
       .split("\n")
       .find((line) => line.startsWith("Exec="));
-    expect(exec).toContain(path.dirname(import.meta.dirname));
+    if (packagedExecutable?.endsWith(".AppImage") === true)
+      // The AppImage file, never the mount it runs from, and no sandbox
+      // switch: its launcher decides that at each start.
+      expect(exec).toBe(`Exec=${packagedExecutable}`);
+    else expect(exec).toContain(path.dirname(import.meta.dirname));
     expect(exec).not.toContain("--no-studio");
     await eventually(
       () => menuChecked("desktop:start-at-login"),
@@ -195,7 +201,12 @@ describe("Refrata Desktop as an appliance", () => {
     await quit();
   });
 
-  it("warns before quitting stops Outputs that are delivering, and Cancel keeps everything running", async () => {
+  it("warns before quitting stops Outputs that are delivering, and Cancel keeps everything running", async ({
+    skip,
+  }) => {
+    // Only a checkout reads REFRATA_TEST_DELIVERING_OUTPUTS, and no test may
+    // make an Output deliver for real.
+    skip(packaged, "a packaged Desktop counts only real delivering Outputs");
     // An Output delivers only through a DMX widget, which a test run must
     // never open, so Desktop is told how many to take as delivering.
     env.REFRATA_TEST_DELIVERING_OUTPUTS = "1";

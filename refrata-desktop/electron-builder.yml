@@ -1,0 +1,100 @@
+# Packages the bundle scripts/build.mjs writes into dist/ as Refrata for
+# Linux, macOS and Windows. `npm run package:desktop` at the root builds
+# Studio and Desktop, then runs this for the current OS; the packages land in
+# release/. The product name, and so the user data folder (~/.config/Refrata
+# on Linux), is package.json's `productName`.
+#
+# No code signing and no update feed: a release is a GitHub Release whose
+# assets .github/workflows/release.yml uploads. The version is package.json's
+# unless the command line says otherwise
+# (`-c.extraMetadata.version=1.2.3`, which the workflow takes from the tag).
+
+appId: org.refrata.desktop
+
+directories:
+  output: release
+  buildResources: build
+
+# The bundle is the whole app: esbuild inlined every JavaScript dependency,
+# which is why the workspace packages it bundles are devDependencies (a
+# package's `dependencies` would be copied into the app, and there are none).
+# dist/node_modules holds the native modules the bundle leaves external, and
+# release/addons/ the addon packages of the platform and architecture being
+# packaged that this machine did not install (scripts/stage-addons.mjs).
+files:
+  - package.json
+  - dist/**
+  - "!dist/**/*.map"
+  - from: release/addons/${platform}-${arch}
+    to: dist/node_modules
+
+# One asar archive, with what cannot work from inside it unpacked beside it in
+# app.asar.unpacked (asarUnpack matches where a file comes from, so the staged
+# addons are named by their own folder):
+#
+# - dist/node_modules and the staged addons: the OS loads a `.node` addon from
+#   a real file, never from inside an archive. The runtime imports them from
+#   inside the archive and Electron sends each read to the unpacked copy.
+# - dist/studio and dist/library: Electron's asar support, which reaches the
+#   utility process running dist/runtime.mjs from inside the archive, does not
+#   make a folder in it one for every call. `fs.access` finds no folder there,
+#   so the runtime would serve no Studio, and `fs.watch` cannot watch the
+#   library. Desktop hands the runtime their unpacked paths
+#   (`runtimeLocations` in src/runtime-launch.ts).
+asar: true
+asarUnpack:
+  - dist/node_modules/**
+  - release/addons/**
+  - dist/studio/**
+  - dist/library/**
+
+# The addons are N-API prebuilds, the same binary for Node and for Electron,
+# so nothing is compiled against Electron's headers.
+npmRebuild: false
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+  executableName: refrata
+  # The entry is refrata.desktop, package.json's `desktopName`, which is also
+  # the app id Electron gives its windows, so the desktop matches the two.
+  syncDesktopName: true
+  category: AudioVideo
+  desktop:
+    entry:
+      Categories: AudioVideo;
+  # For someone who has only the AppImage: `--appimage-extract
+  # resources/99-refrata.rules` gives them the udev rules (see README).
+  extraResources:
+    - from: linux/99-refrata.rules
+      to: 99-refrata.rules
+appImage:
+  # The AppImage's own desktop entry, the one integration tools install,
+  # starts it bare: its AppRun adds --no-sandbox where the OS keeps Chromium
+  # from its user namespace sandbox, and only there.
+  executableArgs: []
+  # `${arch}` is x86_64 or arm64 for an AppImage.
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.music
+  # Unsigned: electron-builder looks for no Developer ID and signs nothing.
+  identity: null
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  # Installs for the person running it, so Windows asks for no administrator,
+  # and asks where to install instead of installing in one click.
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}.${ext}

@@ -7,6 +7,7 @@ import {
   autostartCommand,
   autostartDirectory,
   autostartEntry,
+  runningAppImage,
   XdgAutostart,
 } from "./xdg-autostart.ts";
 
@@ -36,6 +37,7 @@ describe("XDG autostart", () => {
       autostartCommand({
         execPath: "/opt/Refrata/refrata",
         appPath: undefined,
+        appImage: undefined,
         noSandbox: false,
         noStudio: false,
       }),
@@ -44,6 +46,7 @@ describe("XDG autostart", () => {
       autostartCommand({
         execPath: "/repo/node_modules/electron/dist/electron",
         appPath: "/repo/refrata-desktop",
+        appImage: undefined,
         noSandbox: true,
         noStudio: true,
       }),
@@ -53,6 +56,36 @@ describe("XDG autostart", () => {
       "--no-sandbox",
       "--no-studio",
     ]);
+  });
+
+  it("starts an AppImage from its file, without the sandbox switch its launcher decides on", () => {
+    // Inside the AppImage the executable sits in a mount of this run, and the
+    // launcher added --no-sandbox because this kernel keeps the sandbox out.
+    expect(
+      autostartCommand({
+        execPath: "/tmp/.mount_RefratXYZ/refrata",
+        appPath: undefined,
+        appImage: "/home/ana/Apps/Refrata-1.0.0-x86_64.AppImage",
+        noSandbox: true,
+        noStudio: true,
+      }),
+    ).toEqual(["/home/ana/Apps/Refrata-1.0.0-x86_64.AppImage", "--no-studio"]);
+    expect(
+      autostartEntry([
+        "/home/ana/My Apps/Refrata-1.0.0-x86_64.AppImage",
+        "--no-studio",
+      ]),
+    ).toContain(
+      'Exec="/home/ana/My Apps/Refrata-1.0.0-x86_64.AppImage" --no-studio\n',
+    );
+  });
+
+  it("takes the AppImage from APPIMAGE only in a packaged run", () => {
+    const env = { APPIMAGE: "/home/ana/Refrata.AppImage" };
+    expect(runningAppImage(env, true)).toBe("/home/ana/Refrata.AppImage");
+    expect(runningAppImage(env, false)).toBeUndefined();
+    expect(runningAppImage({ APPIMAGE: "" }, true)).toBeUndefined();
+    expect(runningAppImage({}, true)).toBeUndefined();
   });
 
   it("writes an entry whose Exec is the command, quoted where the format asks", () => {

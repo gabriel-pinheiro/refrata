@@ -69,3 +69,38 @@ export async function copyNativeModules({ from, to }) {
   };
   for (const name of NATIVE_MODULES) await visit(name, from, false);
 }
+
+/**
+ * The packages that hold `usb`'s addon, by the platform and architecture a
+ * package is for. `usb` names one per platform as an optional dependency and
+ * npm installs only the one of the machine it runs on, so a package for
+ * another architecture (the arm64 AppImage built on an x86_64 machine, the
+ * Intel dmg built on Apple silicon) gets its addon from `addonPackagesFor`.
+ * `serialport`'s addon needs nothing of the kind: `@serialport/bindings-cpp`
+ * carries every platform's in its `prebuilds/` folder.
+ */
+const USB_ADDONS = {
+  "linux-x64": "@node-usb/usb-linux-x64-gnu",
+  "linux-arm64": "@node-usb/usb-linux-arm64-gnu",
+  "darwin-x64": "@node-usb/usb-darwin-x64",
+  "darwin-arm64": "@node-usb/usb-darwin-arm64",
+  "win32-x64": "@node-usb/usb-win32-x64-msvc",
+};
+
+/**
+ * The addon packages a package for `platform`-`arch` needs, each with the
+ * version the installed `usb` asks for, so `npm pack` fetches the very
+ * binary npm would have installed on that machine.
+ */
+export async function addonPackagesFor(platform, arch, fromDir) {
+  const name = USB_ADDONS[`${platform}-${arch}`];
+  if (name === undefined)
+    throw new Error(`No usb addon is known for ${platform}-${arch}.`);
+  const usb = await packageDir("usb", fromDir);
+  if (usb === undefined)
+    throw new Error("usb is not installed. Run npm install first.");
+  const manifest = JSON.parse(
+    await readFile(path.join(usb, "package.json"), "utf8"),
+  );
+  return [{ name, version: manifest.optionalDependencies[name] }];
+}

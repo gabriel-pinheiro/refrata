@@ -1,0 +1,11 @@
+# Lets the person logged in, and members of plugdev, open the USB DMX widgets
+# Refrata drives, without root. Install it with:
+#
+#   sudo cp 99-refrata.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# FTDI FT232R: the Enttec DMX USB Pro and its clones.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+# Anyma uDMX and its clones (the shared V-USB id).
+SUBSYSTEM=="usb", ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="05dc", MODE="0660", GROUP="plugdev", TAG+="uaccess"

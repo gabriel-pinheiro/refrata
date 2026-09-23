@@ -10,11 +10,22 @@ export interface RuntimeLocations {
   readonly libraryDir: string;
 }
 
+/**
+ * In a packaged Desktop `distDir` is inside the app's asar archive, where the
+ * runtime's script loads fine but a folder does not behave as one: Node's
+ * `access` does not find it and `fs.watch` cannot watch it. So Studio and the
+ * Fixture Library are unpacked next to the archive (electron-builder.yml's
+ * `asarUnpack`), and read from there. A checkout's `dist/` is left as it is.
+ */
+export function unpackedPath(file: string): string {
+  return file.replace(/\.asar(?=[\\/]|$)/, ".asar.unpacked");
+}
+
 export function runtimeLocations(distDir: string): RuntimeLocations {
   return {
     script: path.join(distDir, "runtime.mjs"),
-    studioDist: path.join(distDir, "studio"),
-    libraryDir: path.join(distDir, "library"),
+    studioDist: unpackedPath(path.join(distDir, "studio")),
+    libraryDir: unpackedPath(path.join(distDir, "library")),
   };
 }
 
