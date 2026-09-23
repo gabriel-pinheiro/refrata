@@ -114,8 +114,11 @@ describe("DocumentStore.replaceContent", () => {
     expect((await store.replaceContent(copy, true)).ok).toBe(true);
     expect(session.document.controllers.strobe).toBeUndefined();
     expect(await listAutosaves(file)).toEqual([]);
-    // Dirty like any other change: the sidecar follows.
-    await sleep(60);
+    // Dirty like any other change: the sidecar follows, on a timer that a
+    // busy machine runs late.
+    const deadline = Date.now() + 5_000;
+    while ((await listAutosaves(file)).length === 0 && Date.now() < deadline)
+      await sleep(10);
     expect(await listAutosaves(file)).toHaveLength(1);
   });
 
