@@ -19,7 +19,8 @@ Working from a shell
              controllers, macros, osc, get [path|Address], addresses,
              commands, describe <command> (its payload fields; --json for
              the schema), dmx <universe> (the 512 bytes going out, runs
-             grouped as <Nx value>), master.
+             grouped as <Nx value>; --map lists what each Fixture is
+             patched over and the free gaps between), master.
 
   Rig        fixtures add <typeKey> <modeKey> [--name] [--universe]
              [--address] [--unpatched]  copies the type in and patches at
@@ -162,6 +163,7 @@ Working from a shell
              play Verse
              cue Breathe sync
              dmx "Universe 1"
+             dmx "Universe 1" --map
              run controller.create '{"kind":"number","name":"Fader",
                  "addresses":["layer/Base/row/Par/dimmer"]}'
              run controller.create '{"kind":"number","name":"Energy"}'

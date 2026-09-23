@@ -367,8 +367,10 @@ Fixtures with their Element trees; `refrata fixtures add <type> <mode>
 <address>`; `refrata highlight <fixture-or-element> [--on|--off]`;
 `refrata tags`, `refrata tag <fixture-or-element> <tag>...` and `refrata
 untag`;
-`refrata dmx <universe>` prints the DMX Frame with runs grouped. Names resolve
-to ids the way Controller names do.
+`refrata dmx <universe>` prints the DMX Frame with runs grouped, and with
+`--map` one line per patched Fixture and per free gap with the bytes over
+each, the CLI's form of the Studio's Universe View. Names resolve to ids the
+way Controller names do.
 
 ## 3. Worked examples
 

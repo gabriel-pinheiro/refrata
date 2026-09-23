@@ -50,7 +50,8 @@ the five Blend Modes, Resolve bottom to top from Defaults with fan-down and
 the Target rule, Master and Blackout after Resolve, Scene play as a cut,
 Layer Addresses linkable to Controllers, one ordered selection across the Rig View and the
 navigator with Targets outlined and a picker to fill Layers and Sets, a DMX
-Tester holding raw channels over the show, a watched library with a reload
+Tester holding raw channels over the show, a Universe View of one Universe's
+addresses with what is patched over each and the bytes going out, a watched library with a reload
 of the Installation's Fixture Type copies, and the CLI's `scenes`, `play`,
 `layers`, `look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig
 (Universes, Enttec-compatible and uDMX USB Outputs, Fixture Types from

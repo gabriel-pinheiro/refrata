@@ -1,6 +1,6 @@
 import {
-  fixtureModeOf,
-  patchedIn,
+  channelLabel,
+  universeMap,
   type Document,
   type Tester,
 } from "@refrata/core";
@@ -20,23 +20,17 @@ export function testerChannels(
   document: Document,
   tester: Tester,
 ): readonly TesterChannel[] {
-  const names = new Map<number, string>();
-  for (const fixture of patchedIn(document, tester.universeId)) {
-    const mode = fixtureModeOf(document, fixture);
-    if (mode === undefined || fixture.patch === null) continue;
-    let channel = fixture.patch.address;
-    for (const declared of mode.channels) {
-      for (let byte = 0; byte < declared.bytes; byte += 1) {
-        names.set(
-          channel,
-          `${fixture.name} · ${declared.key}${declared.bytes > 1 ? ` ${String(byte + 1)}` : ""}`,
-        );
-        channel += 1;
-      }
-    }
-  }
+  const map = universeMap(document, tester.universeId);
   return tester.values.map((value, index) => {
     const channel = tester.address + index;
-    return { channel, value, name: names.get(channel) };
+    const occupied = map.get(channel);
+    return {
+      channel,
+      value,
+      name:
+        occupied === undefined
+          ? undefined
+          : `${occupied.fixture.name} · ${channelLabel(occupied)}`,
+    };
   });
 }

@@ -22,6 +22,10 @@ import { LiveStateSchema } from "./live.ts";
  *   answers with a `resolved` message holding every Element of those
  *   Fixtures, then `resolved` messages holding only what changed, coalesced
  *   to the stream rate.
+ * - Frame stream: `frames` names the Universes a session wants DMX Frames
+ *   for, the same way. The runtime answers with a `frame` message holding
+ *   all 512 bytes of each, then `frame` messages holding only the addresses
+ *   whose byte changed, coalesced to the stream rate.
  *
  * `command` is a document-scoped acknowledged operation (registry commands,
  * undo, redo). `request` is a runtime-scoped one (documents, the library).
@@ -113,6 +117,14 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
       fixtureIds: z.array(z.string().min(1)),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("frames"),
+      documentId: DocumentIdSchema,
+      /** Universes whose DMX Frames the session wants; the whole set, empty to stop. */
+      universeIds: z.array(z.string().min(1)),
+    })
+    .strict(),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -122,6 +134,13 @@ export const ResolvedValuesSchema = z.record(
   ParameterValuesSchema,
 );
 export type ResolvedValues = z.infer<typeof ResolvedValuesSchema>;
+
+/** Bytes of a DMX Frame by DMX Address (`"1"` to `"512"`); a partial record on updates. */
+export const FrameBytesSchema = z.record(
+  z.string().min(1),
+  z.number().int().min(0).max(255),
+);
+export type FrameBytes = z.infer<typeof FrameBytesSchema>;
 
 export const DocumentSummarySchema = z
   .object({
@@ -218,6 +237,17 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
       /** True when the message holds every Element of every streamed Fixture. */
       full: z.boolean(),
       values: ResolvedValuesSchema,
+    })
+    .strict(),
+  /** The DMX Frame of a streamed Universe: all 512 bytes on (re)subscribe, then changed addresses only. */
+  z
+    .object({
+      type: z.literal("frame"),
+      documentId: DocumentIdSchema,
+      universeId: z.string().min(1),
+      /** True when `bytes` holds every address. */
+      full: z.boolean(),
+      bytes: FrameBytesSchema,
     })
     .strict(),
   /** A trigger Address fired; not revisioned. */

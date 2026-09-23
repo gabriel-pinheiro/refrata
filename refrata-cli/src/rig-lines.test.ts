@@ -8,7 +8,12 @@ import { describe, expect, it } from "vitest";
 
 import rgbJson from "../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
 import strobeJson from "../../refrata-core/test-fixtures/atomic-like-panel.json" with { type: "json" };
-import { formatFixtures, formatLibrary } from "./rig-lines.ts";
+import {
+  formatFixtures,
+  formatLibrary,
+  formatUniverseMap,
+  universeMapRuns,
+} from "./rig-lines.ts";
 
 const registry = createBuiltInRegistry();
 
@@ -77,5 +82,32 @@ describe("Rig lines", () => {
         },
       ]),
     ).toEqual(["generic/rgb-3ch          Generic RGB 3ch  modes: 3ch (3ch)"]);
+  });
+});
+
+describe("formatUniverseMap", () => {
+  it("prints each Fixture's run and the free gaps, bytes on a gap only when forced", () => {
+    const document = stage();
+    const universeId = Object.keys(document.universes)[0] ?? "";
+    const frame = new Array<number>(512).fill(0);
+    frame[0] = 255;
+    frame[2] = 12;
+    frame[10] = 7;
+    const runs = universeMapRuns(document, universeId, frame);
+    expect(
+      runs.map((run) => [run.start, run.end, run.fixture?.name ?? null]),
+    ).toEqual([
+      [1, 3, "Par"],
+      [4, 512, null],
+    ]);
+    expect(formatUniverseMap(runs)).toEqual([
+      "1-3      Par (3ch, 3 channels)  255 0 12",
+      "4-512    free                   <7x 0> 7 <501x 0>",
+    ]);
+    expect(
+      formatUniverseMap(
+        universeMapRuns(document, universeId, new Array<number>(512).fill(0)),
+      ),
+    ).toEqual(["1-3      Par (3ch, 3 channels)  <3x 0>", "4-512    free"]);
   });
 });

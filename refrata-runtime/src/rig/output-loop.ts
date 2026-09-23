@@ -70,6 +70,11 @@ export class OutputLoop {
     return this.#frames.get(universeId) ?? new Uint8Array(512);
   }
 
+  /** The latest frame of every Universe, by Universe id. */
+  frames(): ReadonlyMap<string, Uint8Array> {
+    return this.#frames;
+  }
+
   /** Fires after every tick with the values just resolved. */
   onResolved(listener: (resolved: ResolvedDocument) => void): () => void {
     this.#listeners.add(listener);

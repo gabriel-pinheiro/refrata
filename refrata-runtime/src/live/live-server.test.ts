@@ -225,6 +225,17 @@ describe("live protocol", () => {
     });
     expect(frame.bytes.slice(0, 4)).toEqual([255, 255, 255, 0]);
     expect(frame.bytes).toHaveLength(512);
+    studio.frames(created.id, [universeId]);
+    await waitFor(() => view.frameOf(universeId));
+    expect([...(view.frameOf(universeId) ?? []).slice(0, 4)]).toEqual([
+      255, 255, 255, 0,
+    ]);
+    studio.input(created.id, "element/par/root/highlight", false);
+    await waitFor(() =>
+      view.frameOf(universeId)?.[0] === 0 ? true : undefined,
+    );
+    studio.frames(created.id, []);
+    expect(view.frameOf(universeId)).toBeUndefined();
     studio.close();
   });
 

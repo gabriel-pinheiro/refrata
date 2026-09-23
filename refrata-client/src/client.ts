@@ -152,6 +152,18 @@ export class RefrataClient {
     this.#send({ type: "stream", documentId, fixtureIds: [...fixtureIds] });
   }
 
+  /**
+   * Names the Universes whose DMX Frames this client wants streamed (the
+   * whole set; empty stops the stream). Bytes land in the document's view
+   * under `frameOf`. Re-sent by itself after a reconnect.
+   */
+  frames(documentId: string, universeIds: readonly string[]): void {
+    const view = this.#views.get(documentId);
+    if (view === undefined) return;
+    view.setStreamedUniverses(universeIds);
+    this.#send({ type: "frames", documentId, universeIds: [...universeIds] });
+  }
+
   /** Latest-wins per address; flushed once per frame. */
   input(documentId: string, address: string, value: unknown): void {
     this.#inputs.set(`${documentId}\u0000${address}`, {
@@ -192,6 +204,13 @@ export class RefrataClient {
         type: "stream",
         documentId: view.documentId,
         fixtureIds: [...streamed],
+      });
+    const universes = view.streamedUniverses();
+    if (universes.length > 0)
+      this.#send({
+        type: "frames",
+        documentId: view.documentId,
+        universeIds: [...universes],
       });
   }
 
@@ -311,6 +330,11 @@ export class RefrataClient {
         this.#views
           .get(parsed.documentId)
           ?.applyResolved(parsed.values, parsed.full);
+        break;
+      case "frame":
+        this.#views
+          .get(parsed.documentId)
+          ?.applyFrame(parsed.universeId, parsed.bytes, parsed.full);
         break;
       case "event":
         this.#views.get(parsed.documentId)?.receiveEvent(parsed.address);

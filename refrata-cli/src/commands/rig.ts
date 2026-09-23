@@ -5,7 +5,12 @@ import type { Command } from "commander";
 import type { Cli } from "../cli.ts";
 import { resolveId } from "../names.ts";
 import { formatCommandResult } from "../result.ts";
-import { formatFixtures, formatLibrary } from "../rig-lines.ts";
+import {
+  formatFixtures,
+  formatLibrary,
+  formatUniverseMap,
+  universeMapRuns,
+} from "../rig-lines.ts";
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -253,9 +258,10 @@ export function registerRig(program: Command, cli: Cli): void {
   program
     .command("dmx <universe>")
     .description(
-      "Print the DMX Frame a Universe is sending now: 512 bytes, runs of one value grouped as <Nx value>.",
+      "Print the DMX Frame a Universe is sending now: 512 bytes, runs of one value grouped as <Nx value>. --map cuts it into what each Fixture is patched over and the free gaps between.",
     )
-    .action((universe: string) =>
+    .option("--map", "One line per patched Fixture and per free gap")
+    .action((universe: string, options: { map?: boolean }) =>
       cli.withDocument(async (client, summary) => {
         const { document } = await cli.replica(client, summary.id);
         const universeId = resolveId(document, "universes", universe);
@@ -263,7 +269,12 @@ export function registerRig(program: Command, cli: Cli): void {
           documentId: summary.id,
           universeId,
         });
-        cli.print(frame, () => formatFrame(frame.bytes));
+        if (options.map !== true) {
+          cli.print(frame, () => formatFrame(frame.bytes));
+          return;
+        }
+        const runs = universeMapRuns(document, universeId, frame.bytes);
+        cli.print({ ...frame, runs }, () => formatUniverseMap(runs).join("\n"));
       }),
     );
 }

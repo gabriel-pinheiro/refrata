@@ -2,6 +2,7 @@ import {
   applyPatches,
   getAtPath,
   pathsOverlap,
+  UNIVERSE_SIZE,
   type Document,
   type ParameterValues,
   type Patch,
@@ -9,6 +10,7 @@ import {
 } from "@refrata/core";
 import {
   EMPTY_LIVE_STATE,
+  type FrameBytes,
   type LiveState,
   type ResolvedValues,
 } from "@refrata/protocol";
@@ -41,6 +43,10 @@ export class DocumentView {
   #resolved = new Map<string, ParameterValues>();
   readonly #resolvedListeners = new Map<string, Set<() => void>>();
   #streamed: readonly string[] = [];
+  /** The latest DMX Frame of each streamed Universe; replaced, never mutated, so a holder can compare identity. */
+  #frames = new Map<string, Uint8Array>();
+  readonly #frameListeners = new Map<string, Set<() => void>>();
+  #streamedUniverses: readonly string[] = [];
 
   constructor(documentId: string, options: { readonly live?: boolean } = {}) {
     this.documentId = documentId;
@@ -141,6 +147,53 @@ export class DocumentView {
     for (const ref of changed)
       for (const listener of this.#resolvedListeners.get(ref) ?? []) listener();
     for (const listener of this.#resolvedListeners.get("*") ?? []) listener();
+  }
+
+  /** The latest DMX Frame of a Universe, 512 bytes, or undefined while nothing streams it. */
+  frameOf(universeId: string): Uint8Array | undefined {
+    return this.#frames.get(universeId);
+  }
+
+  /** Notifies when any byte of the Universe's frame changes, or the stream starts over. */
+  subscribeFrame(universeId: string, listener: () => void): () => void {
+    let listeners = this.#frameListeners.get(universeId);
+    if (listeners === undefined) {
+      listeners = new Set();
+      this.#frameListeners.set(universeId, listeners);
+    }
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this.#frameListeners.delete(universeId);
+    };
+  }
+
+  /** @internal Which Universes the client asked frames for, for resubscribing. */
+  streamedUniverses(): readonly string[] {
+    return this.#streamedUniverses;
+  }
+
+  /** @internal Frames of Universes no longer asked for are dropped. */
+  setStreamedUniverses(universeIds: readonly string[]): void {
+    this.#streamedUniverses = [...universeIds];
+    for (const universeId of this.#frames.keys())
+      if (!universeIds.includes(universeId)) this.#frames.delete(universeId);
+  }
+
+  /** @internal A `frame` message: every byte when `full`, changed addresses otherwise. */
+  applyFrame(universeId: string, bytes: FrameBytes, full: boolean): void {
+    const next = full
+      ? new Uint8Array(UNIVERSE_SIZE)
+      : new Uint8Array(
+          this.#frames.get(universeId) ?? new Uint8Array(UNIVERSE_SIZE),
+        );
+    for (const [address, byte] of Object.entries(bytes)) {
+      const slot = Number(address) - 1;
+      if (slot >= 0 && slot < next.length) next[slot] = byte;
+    }
+    this.#frames.set(universeId, next);
+    for (const listener of this.#frameListeners.get(universeId) ?? [])
+      listener();
   }
 
   /** A signal-like view of one path, for framework bindings. */

@@ -26,6 +26,7 @@ import type { FixtureLibrary } from "../rig/library.ts";
 import type { OutputLoop } from "../rig/output-loop.ts";
 import { AttachedSession } from "./attached-session.ts";
 import { documentsModeFor, pinnedRefusal } from "./documents-mode.ts";
+import { FrameStream } from "./frame-streams.ts";
 import { ResolvedStream } from "./resolved-streams.ts";
 
 function decodeRawData(data: RawData): string {
@@ -50,6 +51,8 @@ interface ClientSession {
   flushScheduled: boolean;
   /** The session's Resolved Stream, idle until it names Fixtures. */
   readonly stream: ResolvedStream;
+  /** The session's frame stream, idle until it names Universes. */
+  readonly frames: FrameStream;
 }
 
 type ReplyOutcome = Extract<ServerMessage, { type: "reply" }>["outcome"];
@@ -112,7 +115,10 @@ export class LiveServer {
       const followed = this.#attached.follow(options.store.currentSession());
       // A replaced document ends every stream; clients ask again for the new one.
       if (followed === "replaced")
-        for (const session of this.#sessions) session.stream.close();
+        for (const session of this.#sessions) {
+          session.stream.close();
+          session.frames.close();
+        }
       this.#broadcast({ type: "document", summary: options.store.current() });
       if (followed === "swapped") this.#resnapshot();
     });
@@ -131,7 +137,10 @@ export class LiveServer {
       this.#fanOutLive([{ op: "set", path: ["dmx"], value: dmx }]),
     );
     this.#unsubscribeResolved = options.loop.onResolved((resolved) => {
-      for (const session of this.#sessions) session.stream.update(resolved);
+      for (const session of this.#sessions) {
+        session.stream.update(resolved);
+        session.frames.update(options.loop.frames());
+      }
     });
     this.#attached.follow(options.store.currentSession());
   }
@@ -175,6 +184,11 @@ export class LiveServer {
         if (documentId === undefined) return;
         this.#send(session, { type: "resolved", documentId, ...message });
       }),
+      frames: new FrameStream((message) => {
+        const documentId = this.#attached.id;
+        if (documentId === undefined) return;
+        this.#send(session, { type: "frame", documentId, ...message });
+      }),
     };
     this.#sessions.add(session);
     socket.on("message", (raw) => {
@@ -182,6 +196,7 @@ export class LiveServer {
     });
     socket.on("close", () => {
       session.stream.close();
+      session.frames.close();
       this.#sessions.delete(session);
     });
   }
@@ -220,6 +235,7 @@ export class LiveServer {
     if (documentId === undefined) return;
     for (const session of this.#sessions) {
       session.stream.restart();
+      session.frames.restart();
       const subscription = session.subscriptions.get(documentId);
       if (subscription !== undefined)
         this.#subscribe(session, documentId, subscription.live);
@@ -383,6 +399,14 @@ export class LiveServer {
         session.stream.setFixtures(
           message.fixtureIds,
           this.#options.loop.resolved(),
+        );
+        break;
+      case "frames":
+        if (this.#options.store.session(message.documentId) === undefined)
+          break;
+        session.frames.setUniverses(
+          message.universeIds,
+          this.#options.loop.frames(),
         );
         break;
     }

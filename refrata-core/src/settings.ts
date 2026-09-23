@@ -114,6 +114,12 @@ export const settings = {
     /** A Look row's control wraps under its label when it would be narrower than this, in pixels. */
     controlWrapPx: 160,
   },
+  universeView: {
+    /** The narrowest an address cell may be, in pixels; the grid drops from 32 to 16 to 8 per row to keep it. */
+    minCellPx: 40,
+    /** Fixture names are drawn over their cells only when a cell is at least this wide. */
+    labelMinCellPx: 48,
+  },
   rigView: {
     /** Side of one schematic shape cell, in metres; templates are laid out in these. */
     cellMetres: 0.25,

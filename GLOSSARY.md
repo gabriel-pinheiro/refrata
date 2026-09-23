@@ -57,7 +57,7 @@ one input line, one output line and one feedback line.
 
 The 512 values a Universe holds at one instant, produced by the Runtime from
 Parameter Values through each Fixture's Encoding. Outputs send DMX Frames; the
-Studio previews them. A DMX Frame is Runtime state, never saved.
+Studio's Universe View shows them. A DMX Frame is Runtime state, never saved.
 
 The Runtime produces a DMX Frame for every Universe at `output.rateHz` (40 in
 settings) whenever the Installation has a Universe, Outputs or not, so a rig
@@ -66,7 +66,11 @@ its Universe; nothing is sent only on change.
 
 The CLI prints a Universe's current DMX Frame as a **frame dump**: the 512
 bytes in order, with runs of equal bytes grouped, such as
-`<2x 0> 127 127 12 <507x 0>`.
+`<2x 0> 127 127 12 <507x 0>`; with `--map` it cuts the dump into one line per
+patched Fixture and per free gap. A Studio session that opens the Universe
+View asks the Runtime to stream one Universe's frame: all 512 bytes first,
+then only the addresses whose byte changed, coalesced to `stream.rateHz`
+like the Resolved Stream, and nothing while the frame is still.
 
 **Elsewhere:** implicit in both ("DMX output").
 
@@ -988,6 +992,22 @@ or a Fixture Set is selected the view outlines its Targets or members, so
 what a Layer reaches is visible. It reads
 the Resolved Stream and shows Defaults and Highlight before any Layer exists.
 Always schematic; a beam-like 3D view is a later, separate view.
+
+### Universe View
+
+The Studio panel, the centre column's third tab beside the Rig View and the
+DMX Tester, that draws one Universe's 512 DMX Addresses as a grid: rows of
+32, 16 or 8 cells, whichever the column's width allows. A patched address is
+tinted by its Fixture (neighbours alternate two tints), names its Channel
+and shows the byte going out with a bar; the Fixture's name runs over the
+first cells of its footprint. A free address is dashed and shows a byte only
+when the DMX Tester forces one, marked with an amber corner. The picker,
+its Outputs with their status and a Blackout or Master note sit above the
+grid; free addresses and the longest free run are counted below it, so a
+gap for a device to try in the DMX Tester is found by looking. Clicking a
+patched address selects its Fixture, and selected Fixtures are outlined.
+The Universe shown is per session; the frame streams only while the tab is
+open. The CLI's counterpart is `refrata dmx <universe> --map`.
 
 ### Resolved Stream
 
