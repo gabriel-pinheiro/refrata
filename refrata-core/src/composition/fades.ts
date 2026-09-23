@@ -20,14 +20,21 @@ export function fadeCurve(curve: FadeCurve, t: number): number {
   }
 }
 
-/** The classic ease-out bounce: arrives, falls back three times smaller each, settles. */
+/**
+ * Reaches the target at two thirds of the time, snaps back to half and
+ * climbs again the same way. The snap is a step in the envelope; a mover's
+ * motor rounds it into one visible bounce, where a smooth bounce curve's
+ * small dips were lost in the motor entirely.
+ */
 function bounce(x: number): number {
-  const n = 7.5625;
-  const d = 2.75;
-  if (x < 1 / d) return n * x * x;
-  if (x < 2 / d) return n * (x -= 1.5 / d) * x + 0.75;
-  if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + 0.9375;
-  return n * (x -= 2.625 / d) * x + 0.984375;
+  const snapAt = 2 / 3;
+  const snapTo = 0.5;
+  if (x < snapAt) {
+    const u = x / snapAt;
+    return u * u;
+  }
+  const u = (x - snapAt) / (1 - snapAt);
+  return snapTo + (1 - snapTo) * u * u;
 }
 
 interface Running {

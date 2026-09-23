@@ -35,9 +35,12 @@ Layer that only sets `color` leaves `dimmer` alone throughout.
 
 **Curves.** Linear, Ease in, Ease out, Ease in out and Bounce, with the CSS
 meaning, so "ease in" is a slow start whichever way the fade goes. Bounce
-reaches the target and falls back a few times, smaller each, without passing
-it, so a mover arrives at the spot and pulls back toward where it came from.
-Elastic is out: it overshoots, and alpha cannot pass 1.
+reaches the target at two thirds of the time, snaps halfway back and climbs
+again, without passing it, so a mover arrives at the spot and pulls back
+toward where it came from. The snap is a step on purpose: a mover's motor
+rounds it into one clear bounce, where the classic ease-out bounce's small
+dips vanished in the motor. Elastic is out: it overshoots, and alpha cannot
+pass 1.
 
 **Choices and booleans** switch where the weight crosses one half, since they
 cannot crossfade: a gobo Layer fading in over 4 s changes gobo at 2 s. A

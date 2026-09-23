@@ -699,8 +699,8 @@ The envelope a Layer runs when its effective `enabled` flips, so a Macro or a
 Controller can show a Layer and it eases in instead of snapping. Every Layer,
 Groups included, carries a fade in and a fade out, each a time from 0 to 30 s
 (default 0, a cut) and a curve: Linear, Ease in, Ease out, Ease in out or
-Bounce (Bounce reaches the target and falls back a few times without ever
-passing it). Enabling ramps the envelope up over the fade in; disabling ramps
+Bounce (Bounce reaches the target at two thirds of the time, snaps halfway
+back and climbs again, never passing it). Enabling ramps the envelope up over the fade in; disabling ramps
 it down over the fade out while the Layer stays in the stack and its Visual
 keeps running. A flip mid-fade reverses from where the envelope is, along the
 other direction's curve, over the other direction's time scaled by the

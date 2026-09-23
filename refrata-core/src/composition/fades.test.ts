@@ -90,9 +90,10 @@ describe("fade curves", () => {
     expect(fadeCurve("ease-in", 0.5)).toBe(0.25);
     expect(fadeCurve("ease-out", 0.5)).toBe(0.75);
     expect(fadeCurve("ease-in-out", 0.5)).toBe(0.5);
-    // Bounce reaches 1 and falls back before settling.
-    expect(fadeCurve("bounce", 1 / 2.75)).toBeCloseTo(1);
-    expect(fadeCurve("bounce", 0.5)).toBeLessThan(0.9);
+    // Bounce reaches 1 at two thirds, snaps to half and climbs back.
+    expect(fadeCurve("bounce", 2 / 3 - 1e-6)).toBeCloseTo(1);
+    expect(fadeCurve("bounce", 2 / 3)).toBe(0.5);
+    expect(fadeCurve("bounce", 5 / 6)).toBeCloseTo(0.625);
   });
 });
 
