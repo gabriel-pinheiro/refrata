@@ -151,6 +151,28 @@ describe("Flyout", () => {
     fly.frame(0.5, ["m"]);
     expect(lit(fly.frame(0.6, ["m"]), "tilt")).toEqual([]);
   });
+
+  it("picks each fly a pan between Pan min and Pan max and holds it while lit", () => {
+    const fly = play("flyout", {
+      panMin: 10,
+      panMax: 50,
+      duration: 1,
+      gap: 1,
+      fadeIn: 0,
+    });
+    const first = pan(fly.frame(0, ["m"]).pan?.m?.[0]);
+    expect(first).toBeGreaterThanOrEqual(10);
+    expect(first).toBeLessThanOrEqual(50);
+    const mid = fly.frame(0.5, ["m"]);
+    expect(mid.level?.m?.[0]).toBe(1);
+    expect(pan(mid.pan?.m?.[0])).toBeCloseTo(first);
+    const dark = fly.frame(0.6, ["m"]);
+    expect(dark.level?.m?.[0]).toBe(0);
+    const second = pan(dark.pan?.m?.[0]);
+    expect(second).not.toBeCloseTo(first);
+    expect(pan(fly.frame(0.4, ["m"]).pan?.m?.[0])).toBeCloseTo(second);
+    expect(pan(fly.frame(0.5, ["m"]).pan?.m?.[0])).toBeCloseTo(second);
+  });
 });
 
 describe("Sweep", () => {

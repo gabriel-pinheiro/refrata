@@ -259,13 +259,13 @@ pan and tilt. Figure, Ballyhoo and Fan write offsets and ask for Add, so
 they run around whatever position the Look Layer below set; Flyout and
 Sweep are absolute.
 
-| Visual   | Slots (default binding)             | Parameters                                                                       | Cues         |
-| -------- | ----------------------------------- | -------------------------------------------------------------------------------- | ------------ |
-| Figure   | `x` (`pan`), `y` (`tilt`)           | form, rate, width, height, center x, center y, rotation, direction, phase spread | `sync`       |
-| Sweep    | `position` (`pan`)                  | duration, hold, run, ease, follow                                                | `sync`       |
-| Ballyhoo | `x` (`pan`), `y` (`tilt`)           | rate, pan, tilt, glide                                                           | `next`       |
-| Fan      | `x` (`pan`), `y` (`tilt`)           | form, pan, tilt                                                                  |              |
-| Flyout   | `tilt` (`tilt`), `level` (`dimmer`) | level, from, to, duration, fade in, gap, run, phase spread                       | `go`, `sync` |
+| Visual   | Slots (default binding)                            | Parameters                                                                       | Cues         |
+| -------- | -------------------------------------------------- | -------------------------------------------------------------------------------- | ------------ |
+| Figure   | `x` (`pan`), `y` (`tilt`)                          | form, rate, width, height, center x, center y, rotation, direction, phase spread | `sync`       |
+| Sweep    | `position` (`pan`)                                 | duration, hold, run, ease, follow                                                | `sync`       |
+| Ballyhoo | `x` (`pan`), `y` (`tilt`)                          | rate, pan, tilt, glide                                                           | `next`       |
+| Fan      | `x` (`pan`), `y` (`tilt`)                          | form, pan, tilt                                                                  |              |
+| Flyout   | `tilt` (`tilt`), `pan` (`pan`), `level` (`dimmer`) | level, from, to, pan min, pan max, duration, fade in, gap, run, phase spread     | `go`, `sync` |
 
 Figure is one Visual with a `form`, as QLC+'s EFX is one function with a
 pattern and grandMA3's pan/tilt phaser one phaser with a form: circle,
@@ -282,8 +282,10 @@ random positions of its own inside `pan` by `tilt`, `rate` moves a second,
 travel). Fan is still: it leans the beams apart by their place in the row,
 first to last or ends away from the middle, the console's fan. Flyout
 tilts from `from` to `to` while the level fades in over `fade in` of the
-fly, cuts, and sits dark for `gap`; on `run` On Go it flies once per `go`
-and writes nothing in between, so the look below shows.
+fly, cuts, and sits dark for `gap`; each fly is at a pan picked at random
+between `pan min` and `pan max`, moved to at the cut while dark and held
+until the next cut, so the beam never swings while lit. On `run` On Go it
+flies once per `go` and writes nothing in between, so the look below shows.
 
 Strobe, Shutter and Pump share one clock: a phase advancing at `rate`, a
 pulse per Target each time its own offset phase passes a beat, and a length
