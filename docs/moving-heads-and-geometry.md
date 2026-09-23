@@ -40,11 +40,12 @@ Preset will later let many Look Layers share it. This is the case that
 decided the Look Layer; see docs/visuals-and-links.md.
 
 **Movement time.** Consoles give each cue a fade; movers need it more than
-anything else, because a snap is visible and loud. Here it is a Smooth Filter
-at the top of the stack, "Position 1.5 s", easing every change of `pan` and
-`tilt` below it, whatever Layer or Scene caused it. A Transition, once built
-(docs/transitions.md), is the other half, and Move in Black handles the
-mover that is dark while it travels.
+anything else, because a snap is visible and loud. Here it is the Layer Fade
+(docs/transitions.md): the `Spot` Look Layer with a fade in of 1.5 s eases
+the movers from wherever they were to the spot when a Macro shows it, and
+back over its fade out when hidden. A Smooth Filter at the top of the stack,
+"Position 1.5 s", easing every change of `pan` and `tilt` below it whatever
+Layer caused it, is the other half, designed and not built.
 
 **Effects.** A Figure Visual has two Slots bound to `pan` and `tilt` by
 default, over their whole range, and width and height Parameters in degrees. A new Layer

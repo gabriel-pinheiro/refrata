@@ -10,7 +10,6 @@ import {
   fixtureElements,
   fixtureModeOf,
 } from "../document/fixtures.ts";
-import { targetedLayers } from "../document/layers.ts";
 import { orderedEntries } from "../document/order.ts";
 import {
   hasRowRef,
@@ -27,11 +26,12 @@ import { id as brand } from "../ids.ts";
 import {
   ALL_TARGETS_REF,
   isSetRef,
-  isTargetedLayer,
   SET_REF_PREFIX,
 } from "../document/composition.ts";
 import { isAttributeKey } from "../rig/attributes.ts";
 import { elementRef } from "../rig/elements.ts";
+import { layerPatterns } from "./layer-addresses.ts";
+import { PERCENT } from "./ranges.ts";
 import { visualPatterns } from "./visual-addresses.ts";
 
 /**
@@ -121,8 +121,6 @@ export interface AddressPattern {
   ): Omit<ResolvedAddress, "address"> | undefined;
   list(source: AddressSource): readonly (readonly string[])[];
 }
-
-const PERCENT = { min: 0, max: 1, step: 0.01, percent: true } as const;
 
 /**
  * The row Addresses of a Look Layer, resolved from a row ref and an
@@ -299,39 +297,7 @@ const patterns: readonly AddressPattern[] = [
     list: (document) =>
       orderedEntries(document.scenes).map((scene) => [scene.id]),
   },
-  {
-    pattern: ["layer", "*", "enabled"],
-    resolve: (document, [id = ""]) => {
-      const layer = document.layers[id];
-      if (layer === undefined) return undefined;
-      return {
-        label: "Enabled",
-        owner: layer.name,
-        path: ["layers", id, "enabled"],
-        type: "boolean",
-        default: true,
-      };
-    },
-    list: (document) =>
-      orderedEntries(document.layers).map((layer) => [layer.id]),
-  },
-  {
-    pattern: ["layer", "*", "opacity"],
-    resolve: (document, [id = ""]) => {
-      const layer = document.layers[id];
-      if (!isTargetedLayer(layer)) return undefined;
-      return {
-        label: "Opacity",
-        owner: layer.name,
-        path: ["layers", id, "opacity"],
-        type: "number",
-        default: 1,
-        range: PERCENT,
-      };
-    },
-    list: (document) =>
-      targetedLayers(document.layers).map((layer) => [layer.id]),
-  },
+  ...layerPatterns,
   rowPattern(
     "all",
     () => ALL_TARGETS_REF,
@@ -452,8 +418,8 @@ export function controllerAddress(
 
 /**
  * Document tables whose Addresses a Controller may drive: a Layer's
- * opacity, enabled, rows and Visual Parameters, and the Installation's
- * Master. A Controller's
+ * opacity, enabled, fade times, rows and Visual Parameters, and the
+ * Installation's Master. A Controller's
  * own value and the operational switches (Blackout, Highlight) are sources
  * of control or Macro actions, never targets.
  */

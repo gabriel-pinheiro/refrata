@@ -2,7 +2,7 @@ import { effectiveAt } from "../address/links.ts";
 import type { Document } from "../document/document.ts";
 import { allFixtures, fixtureElements } from "../document/fixtures.ts";
 import { childLayers } from "../document/layers.ts";
-import type { TargetedLayer } from "../document/composition.ts";
+import type { Layer, TargetedLayer } from "../document/composition.ts";
 import type {
   Color,
   ParameterDefinition,
@@ -15,6 +15,7 @@ import { defaultsOf } from "../rig/encoding.ts";
 import { snapToGamut } from "../rig/gamut.ts";
 import { blendValue } from "./blend.ts";
 import { lookContributions } from "./contributions.ts";
+import type { LayerEnvelopes } from "./fades.ts";
 import {
   visualContributions,
   type VisualOutputs,
@@ -26,11 +27,15 @@ export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
 /**
  * Resolve: every Element's Parameter Values for this frame. Start from the
  * Mode's Defaults, apply the active Scene's Layers bottom to top with their
- * opacity and Blend Mode (a Look Layer from its rows, a Visual Layer from
+ * weight and Blend Mode (a Look Layer from its rows, a Visual Layer from
  * what its Visual wrote this frame, handed in as `visuals` by whoever steps
  * the instances), then Master scales every `dimmer`, a held Highlight
  * overrides, and a colour on a wheel snaps to its swatch, so Studio and
- * Encoding both see what the fixture will show. Blackout is not here: it
+ * Encoding both see what the fixture will show. A Layer's weight is its
+ * opacity times its Layer Fade envelope (handed in as `envelopes` by
+ * whoever steps the fades; without them a Layer is at 1 when enabled and
+ * out otherwise) times the same of every Group above it, so a Group is a
+ * pass-through fader over everything inside. Blackout is not here: it
  * kills the encoded frame (rig/frames.ts) and leaves the composition as it
  * is, so Studio still shows the look. Links are read here, so a Controller
  * on a Layer's opacity or row is seen at the output rate. Nothing below the
@@ -39,6 +44,7 @@ export type ResolvedDocument = ReadonlyMap<string, ParameterValues>;
 export function resolveDocument(
   document: Document,
   visuals?: VisualOutputs,
+  envelopes?: LayerEnvelopes,
 ): ResolvedDocument {
   const values = new Map<string, Record<string, ParameterValue>>();
   const elements = new Map<string, Element>();
@@ -53,13 +59,7 @@ export function resolveDocument(
     }
   }
 
-  for (const layer of activeStack(document)) {
-    const opacity = effectiveAt(
-      document,
-      `layer/${layer.id}/opacity`,
-      layer.opacity,
-    );
-    if (typeof opacity !== "number" || opacity <= 0) continue;
+  for (const { layer, weight } of activeStack(document, envelopes)) {
     const contributions =
       layer.kind === "look"
         ? lookContributions(document, layer)
@@ -76,7 +76,7 @@ export function resolveDocument(
           parameter.definition.kind,
           current,
           contribution.value,
-          contribution.alpha * opacity,
+          contribution.alpha * weight,
           layer.blendMode,
         );
       }
@@ -107,25 +107,61 @@ export function resolveDocument(
   return values;
 }
 
-/** The active Scene's Look and Visual Layers bottom to top, skipping anything disabled by itself or a Group above it. */
-function activeStack(document: Document): readonly TargetedLayer[] {
+interface WeightedLayer {
+  readonly layer: TargetedLayer;
+  /** Opacity times envelope of the Layer and of every Group above it. */
+  readonly weight: number;
+}
+
+/**
+ * The active Scene's Look and Visual Layers bottom to top with their
+ * weight, skipping anything whose weight is 0: out, or inside a Group that
+ * is out. A Layer still fading out keeps its place while its envelope is
+ * above zero.
+ */
+function activeStack(
+  document: Document,
+  envelopes: LayerEnvelopes | undefined,
+): readonly WeightedLayer[] {
   const sceneId = document.installation.activeScene;
   if (sceneId === null || !(sceneId in document.scenes)) return [];
-  const result: TargetedLayer[] = [];
-  const visit = (parentId: string | null): void => {
+  const result: WeightedLayer[] = [];
+  const visit = (parentId: string | null, above: number): void => {
     for (const layer of childLayers(document.layers, sceneId, parentId)) {
-      const enabled = effectiveAt(
-        document,
-        `layer/${layer.id}/enabled`,
-        layer.enabled,
-      );
-      if (enabled !== true) continue;
-      if (layer.kind === "group") visit(layer.id);
-      else result.push(layer);
+      const weight = above * layerWeight(document, layer, envelopes);
+      if (weight <= 0) continue;
+      if (layer.kind === "group") visit(layer.id, weight);
+      else result.push({ layer, weight });
     }
   };
-  visit(null);
+  visit(null, 1);
   return result.reverse();
+}
+
+/** One Layer's own opacity times its envelope, Controllers read. */
+function layerWeight(
+  document: Document,
+  layer: Layer,
+  envelopes: LayerEnvelopes | undefined,
+): number {
+  const envelope = envelopes?.get(layer.id);
+  if (envelope !== undefined) {
+    if (envelope <= 0) return 0;
+  } else {
+    const enabled = effectiveAt(
+      document,
+      `layer/${layer.id}/enabled`,
+      layer.enabled,
+    );
+    if (enabled !== true) return 0;
+  }
+  const opacity = effectiveAt(
+    document,
+    `layer/${layer.id}/opacity`,
+    layer.opacity,
+  );
+  if (typeof opacity !== "number" || opacity <= 0) return 0;
+  return opacity * (envelope ?? 1);
 }
 
 function isHighlighted(

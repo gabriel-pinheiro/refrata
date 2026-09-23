@@ -21,10 +21,9 @@ Scene `Verse`, bottom to top:
 | `Breathe` | Visual | `Aura Panels`         | LFO, Slot bound to `dimmer`, anchors 0.2..0.6, blend normal               |
 | `Shimmer` | Visual | `Aura Panels`, spread | Shimmer, colour white; writes white with a rising and falling α per Panel |
 
-The fade-in is the Scene's Transition Time, 5 s, played from a `Dark` Scene;
-or `Base` with a Layer Fade of 5 s enabled by a Macro. Chataigne: a Macro
-`song-start` plays `Verse`; a Controller on `Shimmer`'s opacity is the fader
-that brings the shimmer in and out. Change `Base` to blue and the shimmer
+The fade-in is `Base` with a Layer Fade of 5 s, enabled by a Macro.
+Chataigne: a Macro `song-start` enables `Base`; a Controller on `Shimmer`'s
+opacity is the fader that brings the shimmer in and out. Change `Base` to blue and the shimmer
 still flashes white over blue, because it never said anything about green.
 
 Three Layers, one Set, one rule. Nothing restates anything.
@@ -118,9 +117,8 @@ chaser, one EFX, a Virtual Console page.
   and making it not so is a setting on the playback. Here order and blend
   mode say it, and `max` is there for whoever wants the floor.
 - **Who owns time.** Both consoles put the fade-in on the cue or scene. Here
-  it is the Scene's Transition Time or a Layer Fade, designed in
-  docs/transitions.md and left out of the first build; until then a hub
-  fades a Layer's opacity.
+  it is the Layer Fade of the Layer that arrives, docs/transitions.md, or a
+  hub riding a Layer's opacity.
 - **Who owns playback.** Both consoles are the surface. Here the surface is
   Chataigne or any OSC hub, and Layer opacity is the fader it holds.
 - **Size of the model.** grandMA3 needed group, cue, sequence, executor,

@@ -1,4 +1,5 @@
 import {
+  LayerFades,
   resolveDocument,
   settings,
   universeFrames,
@@ -21,14 +22,14 @@ export interface OutputLoopOptions {
 }
 
 /**
- * The output loop: at the output rate, step the playing Scene's Visuals,
- * resolve the open Installation with what they wrote, encode one DMX Frame
- * per Universe, hand the frames to the Outputs, and
+ * The output loop: at the output rate, step the playing Scene's Visuals
+ * and Layer Fades, resolve the open Installation with what they wrote,
+ * encode one DMX Frame per Universe, hand the frames to the Outputs, and
  * keep the latest resolved values for the Resolved Stream and the CLI. It
  * runs whenever an Installation with a Universe is open, Outputs or not.
- * The Visual instances live here and nowhere else: playing a Scene, the
- * playing one included, makes them anew, and a Cue reaches the instance of
- * its Layer.
+ * The Visual instances and the fade envelopes live here and nowhere else:
+ * playing a Scene, the playing one included, makes them anew, and a Cue
+ * reaches the instance of its Layer.
  */
 export class OutputLoop {
   readonly #options: OutputLoopOptions;
@@ -46,6 +47,7 @@ export class OutputLoop {
   #unsubscribeDeltas: (() => void) | undefined;
   #unsubscribeEvents: (() => void) | undefined;
   readonly #visuals = new VisualPlayer();
+  readonly #fades = new LayerFades();
   #steppedAt: number | undefined;
 
   constructor(options: OutputLoopOptions) {
@@ -109,16 +111,21 @@ export class OutputLoop {
       // content starts its Visuals over, the way a new document does.
       if (delta.patches.some((patch) => patch.path.length === 1)) {
         this.#visuals.restart();
+        this.#fades.restart();
         this.tick();
       }
     });
     this.#unsubscribeEvents?.();
     this.#unsubscribeEvents = session?.onEvent(({ address }) => {
       const [table, id = "", kind, key = ""] = address.split("/");
-      if (table === "scene" && kind === "play") this.#visuals.restart();
+      if (table === "scene" && kind === "play") {
+        this.#visuals.restart();
+        this.#fades.restart();
+      }
       if (table === "layer" && kind === "cue") this.#visuals.cue(id, key);
     });
     this.#visuals.restart();
+    this.#fades.restart();
     this.#document = session?.document;
     void this.#options.outputs.sync(session?.document.outputs ?? {});
     // A new document must not keep showing the old one's values.
@@ -144,6 +151,7 @@ export class OutputLoop {
     this.#resolved = resolveDocument(
       document,
       this.#visuals.step(document, dt),
+      this.#fades.step(document, dt),
     );
     this.#frames = universeFrames(document, this.#resolved);
     this.#options.outputs.send(this.#frames);
@@ -172,6 +180,7 @@ export class OutputLoop {
     this.#unsubscribeDeltas?.();
     this.#unsubscribeEvents?.();
     this.#visuals.restart();
+    this.#fades.restart();
     await this.#options.outputs.close();
   }
 }

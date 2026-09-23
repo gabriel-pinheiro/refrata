@@ -23,12 +23,13 @@ import { AllTargetsRows, TargetBlock } from "./look-rows";
 import { VisualLayerBody } from "./visual-layer-body";
 
 /**
- * A Layer's name and settings: Enabled and, for every kind but a Group,
- * Opacity as Address rows a Controller can take, and the Blend Mode. A
- * Visual Layer then shows its Visual, Parameters, Bindings and Cues. Then
- * the Targets, and for a Look Layer the "All Targets" rows every Target
- * takes unless it has its own, and one block per Target with its own rows.
- * A Group stops after Enabled.
+ * A Layer's name and settings: Enabled and Opacity as Address rows a
+ * Controller can take, and for every kind but a Group the Blend Mode; then
+ * the Layer Fade, a time and a curve per direction, Addresses too. Both
+ * sections start collapsed. A Visual Layer then shows its Visual,
+ * Parameters, Bindings and Cues. Then the Targets, and for a Look Layer the
+ * "All Targets" rows every Target takes unless it has its own, and one
+ * block per Target with its own rows. A Group stops after the Fade.
  */
 export function LayerInspector({
   view,
@@ -49,6 +50,26 @@ export function LayerInspector({
   if (layer === undefined || document === undefined) return null;
   const enabled = resolveAddress(document, `layer/${id}/enabled`);
   const opacity = resolveAddress(document, `layer/${id}/opacity`);
+  const fadeRows = (["in", "out"] as const).flatMap((direction) =>
+    (["time", "curve"] as const).map((field) => {
+      const resolved = resolveAddress(
+        document,
+        `layer/${id}/fade/${direction}/${field}`,
+      );
+      const value = layer[direction === "in" ? "fadeIn" : "fadeOut"][field];
+      return resolved === undefined ? null : (
+        <AddressRow
+          key={resolved.address}
+          resolved={resolved}
+          value={value}
+          onEdit={(next) =>
+            command("address.edit", { address: resolved.address, value: next })
+          }
+          links={rowLinks(resolved, `${layer.name} ${resolved.label}`)}
+        />
+      );
+    }),
+  );
   return (
     <>
       <InspectorHeading name={layer.name} id={layer.id} />
@@ -61,7 +82,7 @@ export function LayerInspector({
           }
         />
       </div>
-      <InspectorSection storageKey="layer" label="Layer">
+      <InspectorSection storageKey="layer" label="Layer" collapsed>
         {enabled !== undefined && (
           <AddressRow
             resolved={enabled}
@@ -72,7 +93,7 @@ export function LayerInspector({
             links={rowLinks(enabled, `${layer.name} Enabled`)}
           />
         )}
-        {isTargetedLayer(layer) && opacity !== undefined && (
+        {opacity !== undefined && (
           <AddressRow
             resolved={opacity}
             value={layer.opacity}
@@ -99,6 +120,9 @@ export function LayerInspector({
             }}
           />
         )}
+      </InspectorSection>
+      <InspectorSection storageKey="fade" label="Fade" collapsed>
+        {fadeRows}
       </InspectorSection>
       {layer.kind === "visual" && (
         <VisualLayerBody view={view} document={document} layer={layer}>

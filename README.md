@@ -56,7 +56,8 @@ of the Installation's Fixture Type copies, and the CLI's `scenes`, `play`,
 `layers`, `look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig
 (Universes, Enttec-compatible and uDMX USB Outputs, Fixture Types from
 `refrata-library/`, Patch, Highlight, Encoding at 40 Hz, the Resolved
-Stream) is unchanged underneath. Not yet: Transitions, Layer Fade, Filters.
+Stream) is unchanged underneath. Layer Fade eases a Layer in and out when it
+is shown or hidden, with Group opacity passing through. Not yet: Filters.
 The design the rest is built against is in `GLOSSARY.md` and `docs/`.
 
 ## Read the design
@@ -72,8 +73,8 @@ The design the rest is built against is in `GLOSSARY.md` and `docs/`.
   Layer.
 - [docs/moving-heads-and-geometry.md](docs/moving-heads-and-geometry.md), a
   mover walked through the model, and the road to positions.
-- [docs/transitions.md](docs/transitions.md), Scene crossfades, Move in
-  Black and Layer Fade, designed and deferred.
+- [docs/transitions.md](docs/transitions.md), how time enters a show: the
+  Layer Fade, and the Selector Group idea.
 - [docs/comparison-walkthrough.md](docs/comparison-walkthrough.md), one look
   built here, in grandMA3 and in QLC+.
 - [docs/fixture-sources.md](docs/fixture-sources.md), how Open Fixture

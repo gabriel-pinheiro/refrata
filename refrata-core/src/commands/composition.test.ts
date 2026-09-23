@@ -570,6 +570,36 @@ describe("Resolve", () => {
     ]);
     expect(resolved(grouped, "strobe/panel-3")?.color).toEqual([0, 1, 0, 1]);
 
+    // A Group's opacity passes through: every child at the Group's weight over what is below.
+    const groupHalf = apply(grouped, [
+      ["layer.update", { layerId: "g", enabled: true, opacity: 0.5 }],
+    ]);
+    expect(resolved(groupHalf, "strobe/panel-3")?.color).toEqual([
+      0.5, 1, 0.5, 1,
+    ]);
+    const bothHalf = run(groupHalf, "address.edit", {
+      address: "layer/spot/opacity",
+      value: 0.5,
+    }).document;
+    expect(resolved(bothHalf, "strobe/panel-3")?.color).toEqual([
+      0.25, 1, 0.25, 1,
+    ]);
+
+    // An envelope stands in for enabled: a Layer fading out is still there at its envelope.
+    expect(
+      resolveDocument(
+        run(document, "layer.update", { layerId: "spot", enabled: false })
+          .document,
+        undefined,
+        new Map([["spot", 0.5]]),
+      ).get("strobe/panel-3")?.color,
+    ).toEqual([0.5, 1, 0.5, 1]);
+    expect(
+      resolveDocument(document, undefined, new Map([["spot", 0]])).get(
+        "strobe/panel-3",
+      )?.color,
+    ).toEqual([0, 1, 0, 1]);
+
     // Blend max is HTP: a lower value above does not darken.
     const htp = apply(document, [
       [

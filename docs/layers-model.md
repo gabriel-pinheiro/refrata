@@ -111,10 +111,9 @@ Scene `Verse`, bottom to top:
    white over the green and return; nothing else is touched because only
    Shimmer's `color` Slot is bound. Bind its `level` Slot to `dimmer` as well
    and the sparkle is full white instead of white at 0.4.
-3. **The fade in.** Not a Layer: it is the Scene's Transition Time when
-   `Verse` is played from a `Dark` Scene, or a Layer Fade on `Base` when a
-   Macro enables it. See docs/transitions.md. Either way the rig comes up
-   from dark to the look.
+3. **The fade in.** Not a Layer: it is a Layer Fade on `Base`, fade in 5 s,
+   with `Base` disabled until a Macro enables it. See docs/transitions.md.
+   The rig comes up from dark to the look.
 
 Note what the fade is not: a black colour fading to transparent. A black
 `color` over an RGB panel reads as off, but over a fixture with a white lamp
@@ -127,9 +126,9 @@ parameter that actually turns lights off.
 
 Then the Layer's `opacity` is the fader. Give `Shimmer` a Controller on its
 opacity and Chataigne rides it. Link one Controller to the opacity of several
-Layers and it is a submaster; a Group has no opacity of its own, only
-`enabled`. This is the model's best property: Difracta's one Address table,
-Controllers and OSC give a playback surface for free.
+Layers, or to the opacity of the Group holding them, and it is a submaster.
+This is the model's best property: Difracta's one Address table, Controllers
+and OSC give a playback surface for free.
 
 ## 4. Where it bends
 
@@ -171,24 +170,27 @@ grandMA3 stores relative phaser values so a circle runs around wherever the
 base position is. Here a Figure Visual writes pan and tilt offsets on a Layer
 with blend `add`. Absolute figures use `normal`. No new concept.
 
-### Cue-list timing becomes Transitions plus smoothing
+### Cue-list timing becomes Layer Fades plus smoothing
 
 Theatre wants a GO button and per-cue fade and delay times, often per
-Attribute. The model has (designed in docs/transitions.md, not in the first
-build):
+Attribute. Refrata is not performed as a cue list: a Scene holds a show's
+part, and the hub performs it by showing and hiding Layers. So time enters
+here:
 
-- **Transition**: playing a Scene while another is active crossfades the two
-  resolved outputs over a time, using the same per-kind blend (numbers and
-  colours interpolate, choices snap), with Move in Black. Difracta cuts;
-  lighting cannot.
+- a **Layer Fade** on every Layer (docs/transitions.md, built): enabling
+  eases the Layer in over its time and curve, disabling eases it out, using
+  the same per-kind blend (numbers and colours crossfade toward the Layer,
+  choices switch at half). A Macro that shows the `Spot` position Layer
+  moves the movers there over its fade in.
 - a **Smooth** Filter, "Position 2 s", "Color 0.5 s", placed at the top of a
-  stack: every change to those Attributes below it, from any Layer or Scene,
-  eases over that time. Declarative fade times instead of per-cue ones.
+  stack: every change to those Attributes below it, from any Layer, eases
+  over that time. Declarative fade times instead of per-cue ones. Designed,
+  not built.
 
 What this does not give: a delay per Attribute in one cue, or a different fade
-time for the same Attribute in cue 12 than in cue 13. If a theatre-style show
-needs that, it is a Transition with per-family times, a small addition.
-Tracking between cues is deliberately absent.
+time for the same Attribute in cue 12 than in cue 13. Scene to Scene
+crossfades were designed and dropped, since Scenes separate shows rather
+than cues. Tracking between cues is deliberately absent.
 
 ### Filters are value transforms scoped to Targets
 
@@ -260,9 +262,9 @@ Honest limits, so the choice is made knowingly.
 - Whether Look Layers and Presets go in now or after the stack is agreed.
   Decided: Look Layers are slice 2 with rows per Target; Presets are named
   and detailed later.
-- Whether a Group gets an opacity. Decided in the slice 2 grill: no, a Group
-  has `enabled` only; a submaster is a Controller on the opacity of the Layers
-  it rides.
-- Whether Transition time is a Scene property, a play argument, or both.
-  Decided in docs/transitions.md: a default on the Scene, overridable by the
-  `play` trigger's argument from OSC or a Macro.
+- Whether a Group gets an opacity. Declined in the slice 2 grill, then added
+  with the Layer Fade on 2026-09-23: a Group's opacity and fade envelope pass
+  through to every Layer inside, the same multiplication, so a submaster is a
+  Controller on the Group's opacity or on the opacity of the Layers it rides.
+- Whether Scenes crossfade. Decided on 2026-09-23: no; a show is performed
+  inside one Scene, and docs/transitions.md covers the Layer Fade instead.

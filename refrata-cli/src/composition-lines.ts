@@ -57,9 +57,23 @@ export function formatScenes(document: Document): string[] {
     .map((scene) => describeScene(document, scene));
 }
 
+/** "fade in 2 s ease-in-out, out 1 s" for the directions with a time; nothing for a cut. */
+function describeFade(layer: Layer): string {
+  const parts = (["fadeIn", "fadeOut"] as const).flatMap((direction) => {
+    const fade = layer[direction];
+    if (fade.time <= 0) return [];
+    const curve = fade.curve === "linear" ? "" : ` ${fade.curve}`;
+    return [
+      `${direction === "fadeIn" ? "in" : "out"} ${String(fade.time)} s${curve}`,
+    ];
+  });
+  return parts.length === 0 ? "" : `  fade ${parts.join(", ")}`;
+}
+
 function describeLayer(document: Document, layer: Layer): string {
   const off = layerEffectivelyEnabled(document.layers, layer) ? "" : "  [off]";
-  if (layer.kind === "group") return `Group “${layer.name}”  ${layer.id}${off}`;
+  if (layer.kind === "group")
+    return `Group “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}${describeFade(layer)}${off}`;
   const targets = layer.targets
     .map(
       (target) =>
@@ -67,7 +81,7 @@ function describeLayer(document: Document, layer: Layer): string {
     )
     .join(", ");
   const kind = layer.kind === "look" ? "Look" : `Visual (${visualName(layer)})`;
-  return `${kind} “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}  targets: ${targets === "" ? "none" : targets}${off}`;
+  return `${kind} “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}${describeFade(layer)}  targets: ${targets === "" ? "none" : targets}${off}`;
 }
 
 /** A Scene's stack topmost first, Groups indented; under a Look Layer its rows, All Targets first, then per Target; under a Visual Layer what `visualLayerLines` says. */

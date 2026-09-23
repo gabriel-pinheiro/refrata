@@ -84,6 +84,10 @@ export const settings = {
     /** A frame's send that has neither landed nor failed after this counts as failed, so a hung widget is let go and looked for again. */
     sendTimeoutMs: 1_000,
   },
+  fade: {
+    /** The longest Layer Fade, in seconds; the range a linked fader spans. */
+    maxSeconds: 30,
+  },
   visuals: {
     /** The longest step a Visual is handed, so a stalled tick does not jump an animation. */
     maxFrameSeconds: 0.1,

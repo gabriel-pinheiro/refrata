@@ -682,70 +682,56 @@ in the Runtime at the Output rate; Studio shows resolved values it is streamed.
 ### Scene
 
 A saved, ordered stack of Layers, topmost first, as in Difracta. One Scene is
-active at a time, and playing one is a cut until Transitions arrive. A Scene is
-complete: nothing tracks from the previous one, and what no Layer sets is at
-Default. Scenes have an order among themselves, which Next and Previous will
-follow.
+active at a time, and playing one is a cut. A Scene is complete: nothing
+tracks from the previous one, and what no Layer sets is at Default. Scenes
+separate the very different parts of a show, one artist or one game each; a
+show is performed inside one Scene by showing and hiding its Layers and
+moving Controllers, so there is no crossfade between Scenes.
 
 Selecting a Scene in Studio edits it and does not play it; the play button on
 its row does. The Rig View always shows the active Scene, and the status
 strip warns when the Scene being edited is not the one playing, so a show is
 never changed by clicking around the navigator.
 
-### Transition (designed, not in the first build)
-
-Transition, Transition Time, Move in Black, Layer Fade and Next/Previous are
-specified in docs/transitions.md and left out of the first build, which cuts
-between Scenes as Difracta does. Until then a hub fades a Layer through a
-Controller on its opacity.
-
-Playing a Scene while another is active crossfades the two resolved outputs
-over the incoming Scene's Transition Time: numbers and colours interpolate,
-choices and booleans take the new value at the start, subject to Move in
-Black. Both stacks run during the Transition; the old one's Visual instances
-are dropped at the end. A play that interrupts a Transition freezes the
-current output as a still and fades from it. Difracta cuts; lighting cannot.
-
-### Transition Time
-
-A Scene's default time for arriving, stored on the Scene being played to, as
-consoles store a fade on the cue you go to. The `play` trigger takes an
-optional time that overrides it for one firing. Per-family times (dimmer up,
-dimmer down, colour, position) are deferred; the single time is their default
-when they come.
-
-### Move in Black
-
-The always-on rule that changes happen while dark. During a Transition an
-Element whose `dimmer` resolves to 0 in the outgoing Scene takes all its other
-Parameters from the incoming Scene at once; an Element whose `dimmer` resolves
-to 0 in the incoming Scene keeps its outgoing values until its dimmer has
-reached 0. It reads the resolved Parameter, so fixtures with a virtual dimmer
-qualify. Fixtures with no `dimmer` are never dark.
-
-**Elsewhere:** grandMA3 "MIB", a per-cue or per-fixture setting; Eos "mark".
-
 ### Layer Fade
 
-Two times on every Layer, fade-in and fade-out, default 0. Flipping `enabled`
-on ramps an envelope up over the fade-in; off ramps it down over the fade-out
-while the Layer keeps running. Effective opacity is opacity × envelope, so a
-Look Layer easing in is a crossfade from the stack below to its values. A
-Group's envelope scales everything inside it. Manual fades remain a
-Controller on opacity.
+The envelope a Layer runs when its effective `enabled` flips, so a Macro or a
+Controller can show a Layer and it eases in instead of snapping. Every Layer,
+Groups included, carries a fade in and a fade out, each a time from 0 to 30 s
+(default 0, a cut) and a curve: Linear, Ease in, Ease out, Ease in out or
+Bounce (Bounce reaches the target and falls back a few times without ever
+passing it). Enabling ramps the envelope up over the fade in; disabling ramps
+it down over the fade out while the Layer stays in the stack and its Visual
+keeps running. A flip mid-fade reverses from where the envelope is, along the
+other direction's curve, over the other direction's time scaled by the
+distance left, so a quick on-off never overshoots. Time and curve are read
+at the flip; a fader ridden on the time during a fade changes the next fade.
 
-### Next and Previous
+A Layer's weight in Resolve is its opacity times its envelope, times the same
+of every Group above it, so a Look Layer easing in is a crossfade from the
+stack below to its values, and choices and booleans switch where the weight
+crosses one half. A fade starts only when `enabled` flips while the Scene is
+playing: playing a Scene, opening a document, starting the Runtime or adding
+a Layer lands every Layer on its final value. Undo flips `enabled` too, and
+fades like any flip.
 
-Two Installation Addresses that play the Scene after or before the active one in
-navigator order, with that Scene's Transition. Scene order plus these two
-triggers is the cue list; they do not wrap.
+The four fields are Addresses (`layer/<id>/fade/in/time`, `.../in/curve`,
+`.../out/time`, `.../out/curve`); a time takes a Controller. In Studio they
+are the Layer inspector's Fade section, collapsed by default like the Layer
+section; on the CLI, `refrata layers fade <layer> in|out <seconds>`. Manual
+fades remain a Controller on opacity. Swapping two sibling Layers with fades
+dips a little toward the stack below at the midpoint; fade the new one in
+first and cut the old one once covered, or see the Selector Group in
+docs/transitions.md. Times per row, a switch point for discrete values and a
+per-firing time on a Macro are deferred; docs/transitions.md says why.
 
 ### Layer
 
-One entry in a Scene's stack: name, enabled, position, an ordered list of
-Targets with Spread flags, opacity, Blend Mode and Layer Fade times. Layer
-opacity is the fader: give it a Controller and a hub rides it. A Layer is one
-of four kinds: Look Layer, Visual Layer, Filter Layer or Group.
+One entry in a Scene's stack: name, enabled, position, opacity, a Layer Fade
+in and out, and for every kind but a Group an ordered list of Targets with
+Spread flags and a Blend Mode. Layer opacity is the fader: give it a
+Controller and a hub rides it. A Layer is one of four kinds: Look Layer,
+Visual Layer, Filter Layer or Group.
 
 ### Look Layer
 
@@ -915,10 +901,17 @@ arrived. Kept here so the settle time on Parameter has a stated purpose.
 
 ### Group
 
-Difracta's navigator folder and stack folder, unchanged: a Group in a stack
-has `enabled` and nothing else. A Group opacity as a submaster was proposed
-and declined in the slice 2 grill; opacity stays on Layers, and a submaster is
-a Controller linked to the opacity of the Layers it should ride.
+Difracta's navigator folder and stack folder. A Group in a stack has
+`enabled`, opacity and a Layer Fade, no Targets and no Blend Mode. Its
+opacity and envelope pass through: they multiply into the weight of every
+Layer inside, so a Group at half is each child at half over whatever is
+below it, and a child with `add` still adds to what lies outside the Group.
+That is not the Group's look at half: two children stacked in a Group at
+half show the lower one a quarter through, where at full it was hidden.
+Compositing a Group as its own picture first ("isolate") was declined for
+now, since it would make a child's Blend Mode blend against nothing. Group
+opacity was declined in the slice 2 grill and added with the Layer Fade,
+since a Group fade is the same multiplication.
 
 ### Blackout
 

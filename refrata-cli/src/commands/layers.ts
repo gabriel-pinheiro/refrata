@@ -120,6 +120,54 @@ export function registerLayers(program: Command, cli: Cli): void {
     );
 
   layers
+    .command("fade <layer> <direction> <seconds>")
+    .description(
+      "Set a Layer Fade: layers fade Spot in 2, layers fade Spot out 0.5 --curve ease-in-out. The Layer eases in over that time when enabled and out when disabled; 0 is a cut. Curves: linear, ease-in, ease-out, ease-in-out, bounce. Undoable; the same write as edit layer/<layer>/fade/<in|out>/time.",
+    )
+    .option("--curve <curve>", "the curve for that direction")
+    .action(
+      (
+        layer: string,
+        direction: string,
+        seconds: string,
+        local: { curve?: string },
+      ) =>
+        cli.withDocument(async (client, summary) => {
+          if (direction !== "in" && direction !== "out")
+            throw new Error("layers fade takes “in” or “out”.");
+          const time = Number(seconds);
+          if (seconds.trim() === "" || !Number.isFinite(time))
+            throw new Error(`layers fade takes seconds, not “${seconds}”.`);
+          const { document } = await cli.replica(client, summary.id);
+          const layerId = resolveId(document, "layers", layer);
+          const writes: [string, unknown][] = [
+            [`layer/${layerId}/fade/${direction}/time`, time],
+          ];
+          if (local.curve !== undefined)
+            writes.push([
+              `layer/${layerId}/fade/${direction}/curve`,
+              local.curve,
+            ]);
+          const results: Record<string, CommandResult> = {};
+          for (const [address, value] of writes)
+            results[address] = await client.command<CommandResult>(
+              summary.id,
+              "address.edit",
+              { address, value },
+            );
+          cli.print(results, () =>
+            Object.entries(results)
+              .map(([address, result]) =>
+                result.changed
+                  ? `${address} set (revision ${String(result.revision)})`
+                  : `${address} unchanged`,
+              )
+              .join("\n"),
+          );
+        }),
+    );
+
+  layers
     .command("visual <layer> <id>")
     .description(
       "Give a Visual Layer another Visual of the Catalog; its Parameters and bindings start over from that Visual's defaults.",

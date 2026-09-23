@@ -6,23 +6,27 @@ import { isBoolean, useStoredState } from "@/lib/storage";
 /**
  * A collapsible group of inspector rows. The open state is remembered per
  * section name, not per entity, so collapsing Links on one Controller
- * collapses them on every Controller until reopened.
+ * collapses them on every Controller until reopened. A section starts open
+ * unless `collapsed` says otherwise.
  */
 export function InspectorSection({
   storageKey,
   label,
+  collapsed = false,
   actions,
   children,
 }: {
   readonly storageKey: string;
   readonly label: string;
+  /** Closed until the person opens it, for settings that are rarely touched. */
+  readonly collapsed?: boolean;
   /** Shown at the right of the header, such as a reset button. */
   readonly actions?: ReactNode;
   readonly children: ReactNode;
 }) {
   const [expanded, setExpanded] = useStoredState(
     `refrata.inspector.${storageKey}`,
-    true,
+    !collapsed,
     isBoolean,
   );
   return (

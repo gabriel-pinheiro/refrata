@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import {
+  DEFAULT_FADE,
   LAYER_KINDS,
   LAYER_LABELS,
   type Layer,
@@ -17,8 +18,9 @@ import { generateId, id } from "../ids.ts";
 
 /**
  * A new Layer lands at the top of the Scene root or Group it was added to,
- * or right below the sibling `after` names. A Look Layer starts opaque,
- * blending normally, with the Targets given (or none) and no rows: every
+ * or right below the sibling `after` names. Every kind starts enabled,
+ * opaque and cutting in and out (Layer Fade times 0, Linear). A Look Layer
+ * blends normally, with the Targets given (or none) and no rows: every
  * Attribute released until a row is set. A Visual Layer starts the same
  * way with its Visual's default Parameter Values and default bindings; its
  * Targets arrive not spread.
@@ -92,11 +94,13 @@ export const layerCreate = defineCommand({
       sceneId: payload.sceneId,
       parentId: payload.parentId,
       enabled: true,
+      opacity: 1,
+      fadeIn: DEFAULT_FADE,
+      fadeOut: DEFAULT_FADE,
       order,
     };
     const stack = {
       targets: targets.map((ref) => ({ ref, spread: false })),
-      opacity: 1,
       blendMode: definition?.blendMode ?? "normal",
     } as const;
     const layer: Layer =

@@ -71,6 +71,11 @@ Working from a shell
              layers spread <layer> <target> on|off  spreads a Target (a Set
              into its members, an Element into its children); "layers"
              prints the expansion. A Look Layer ignores it.
+             layers fade <layer> in|out <seconds> [--curve <c>]  a Layer
+             Fade: enabling eases the Layer in over that time, disabling
+             out, from wherever it is (Groups too, over everything inside);
+             0 cuts. Curves: linear, ease-in, ease-out, ease-in-out, bounce.
+             The times are Addresses a Controller can ride.
              play <scene> cuts the Outputs to it; master <0..1> scales every
              dimmer, positions kept; blackout on|off sends 0 on every address
              of every Universe, whatever the patch, the kill switch. play and
@@ -141,6 +146,7 @@ Working from a shell
              scene/<id|name>/play             element/<fixture>/<key>/highlight
              fixture/<id|name>/action/<key>
              layer/<id|name>/opacity          layer/<id|name>/enabled
+             layer/<id|name>/fade/<in|out>/<time|curve>
              layer/<id|name>/row/<target|all>/<attribute>
              layer/<id|name>/param/<name>     layer/<id|name>/cue/<key>
              (a row's <target> is written as in "look"; "addresses" lists

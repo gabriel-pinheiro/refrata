@@ -2,6 +2,7 @@ import { z, type ZodType } from "zod";
 
 import type { FixtureSetId, Id, LayerId, SceneId } from "../ids.ts";
 import { ParameterValueSchema, ParameterValuesSchema } from "../parameters.ts";
+import { settings } from "../settings.ts";
 import { DEFAULT_ORDER_KEY } from "./order.ts";
 
 /**
@@ -79,6 +80,35 @@ export type AttributeRows = z.infer<typeof AttributeRowsSchema>;
 export const LookRowsSchema = z.record(z.string().min(1), AttributeRowsSchema);
 export type LookRows = z.infer<typeof LookRowsSchema>;
 
+export const FADE_CURVES = [
+  "linear",
+  "ease-in",
+  "ease-out",
+  "ease-in-out",
+  "bounce",
+] as const;
+export type FadeCurve = (typeof FADE_CURVES)[number];
+export const FADE_CURVE_LABELS: Record<FadeCurve, string> = {
+  linear: "Linear",
+  "ease-in": "Ease in",
+  "ease-out": "Ease out",
+  "ease-in-out": "Ease in out",
+  bounce: "Bounce",
+};
+
+/**
+ * One direction of a Layer Fade: how long the envelope takes, in seconds,
+ * and along which curve. Zero is a cut.
+ */
+export const FadeSchema = z
+  .object({
+    time: z.number().min(0).max(settings.fade.maxSeconds),
+    curve: z.enum(FADE_CURVES),
+  })
+  .strict();
+export type Fade = z.infer<typeof FadeSchema>;
+export const DEFAULT_FADE: Fade = { time: 0, curve: "linear" };
+
 const LayerBase = {
   id: z.string().min(1),
   name: EntityName,
@@ -86,6 +116,11 @@ const LayerBase = {
   /** The Group containing the Layer, or null at the Scene's root. */
   parentId: z.string().min(1).nullable(),
   enabled: z.boolean(),
+  /** The Layer's fader; on a Group it scales every Layer inside. */
+  opacity: z.number().min(0).max(1).default(1),
+  /** Layer Fade: the envelope on enable and on disable. */
+  fadeIn: FadeSchema.default(DEFAULT_FADE),
+  fadeOut: FadeSchema.default(DEFAULT_FADE),
   /** Position among siblings; the first sorts topmost. */
   order: z.string().min(1).default(DEFAULT_ORDER_KEY),
 };
@@ -119,9 +154,10 @@ export const LAYER_LABELS: Record<LayerKind, string> = {
  * its own row overrides them, an opacity that is its fader, and a Blend
  * Mode. A Visual Layer runs one Visual of the Catalog over its Targets:
  * the Visual's id, its Parameter Values, one Slot Binding per Slot, and the
- * same opacity and Blend Mode, shared by every Slot. A Group has `enabled`
- * and nothing else, so a submaster is a Controller on the opacities it
- * should ride.
+ * same opacity and Blend Mode, shared by every Slot. A Group has `enabled`,
+ * opacity and fades and no Blend Mode: its opacity and envelope multiply
+ * into every Layer inside it (pass-through), so a Group at half is every
+ * child at half over what is below, not the Group's look at half.
  */
 export const LayerSchema = z.discriminatedUnion("kind", [
   z
@@ -129,7 +165,6 @@ export const LayerSchema = z.discriminatedUnion("kind", [
       ...LayerBase,
       kind: z.literal("look"),
       targets: z.array(TargetSchema),
-      opacity: z.number().min(0).max(1),
       blendMode: BlendModeSchema,
       rows: LookRowsSchema,
       all: AttributeRowsSchema.default({}),
@@ -140,7 +175,6 @@ export const LayerSchema = z.discriminatedUnion("kind", [
       ...LayerBase,
       kind: z.literal("visual"),
       targets: z.array(TargetSchema),
-      opacity: z.number().min(0).max(1),
       blendMode: BlendModeSchema,
       visual: z.string().min(1),
       parameters: ParameterValuesSchema,
@@ -152,7 +186,7 @@ export const LayerSchema = z.discriminatedUnion("kind", [
 export type Layer = Entity<typeof LayerSchema, LayerId>;
 export type LookLayer = Extract<Layer, { kind: "look" }>;
 export type VisualLayer = Extract<Layer, { kind: "visual" }>;
-/** A Layer with Targets, opacity and a Blend Mode: every kind but a Group. */
+/** A Layer with Targets and a Blend Mode: every kind but a Group. */
 export type TargetedLayer = LookLayer | VisualLayer;
 
 export function isTargetedLayer(

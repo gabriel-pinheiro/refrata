@@ -19,10 +19,11 @@ function controlled(
 
 /**
  * Settings of a Layer, each optional so one call changes any subset:
- * enabled on every kind, opacity and Blend Mode on every kind but a
- * Group. Enabled
- * and opacity are also Addresses (`layer/<id>/enabled`, `layer/<id>/opacity`)
- * and refuse a hand edit while a Controller drives them.
+ * enabled and opacity on every kind, Blend Mode on every kind but a Group.
+ * Enabled and opacity are also Addresses (`layer/<id>/enabled`,
+ * `layer/<id>/opacity`) and refuse a hand edit while a Controller drives
+ * them; the Layer Fade fields are Addresses only (`layer/<id>/fade/...`),
+ * written with `address.edit`.
  */
 export const layerUpdate = defineCommand({
   name: "layer.update",
@@ -63,7 +64,6 @@ export const layerUpdate = defineCommand({
       set("enabled", payload.enabled);
     }
     if (payload.opacity !== undefined) {
-      if (!isTargetedLayer(layer)) return rejected("A Group has no opacity.");
       const problem = controlled(
         document,
         `layer/${layer.id}/opacity`,
