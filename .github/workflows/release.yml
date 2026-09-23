@@ -57,7 +57,12 @@ jobs:
       - run: npm install --global npm@12
       - run: npm ci
       - name: Package
-        run: npm run package:desktop -- -c.extraMetadata.version=${{ steps.version.outputs.version }}
+        # bash on Windows as well: PowerShell splits `-c.extraMetadata...`
+        # at the dot, and electron-builder then looks for a config file.
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: npm run package:desktop -- "-c.extraMetadata.version=$VERSION"
       # The Desktop suite against the x86_64 AppImage itself, so a package
       # that does not start, serve Studio or load its native modules fails
       # here. An AppImage mounts itself with FUSE 2, which the runner lacks.
