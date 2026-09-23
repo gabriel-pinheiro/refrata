@@ -13,32 +13,36 @@ dimmer) and can be attached to whatever Parameter fills that Attribute on a
 fixture; some Visuals could apply to a kind instead (any number). The second
 half is the general case, so take it as the rule:
 
-- a Visual declares **Slots**, its typed outputs: LFO one number, Circle two
+- a Visual declares **Slots**, its typed outputs: LFO one number, Figure two
   numbers, Rainbow one color, Shimmer and Chase a color and a number (section
   5 says why);
 - a Layer holds a **Slot Binding** per Slot: which Attribute it reaches, or
   none, and for a number two anchors mapping the Slot's 0 to 1 into the
   Attribute's units, the same anchors a Difracta Parameter Link has;
-- each Visual ships a default binding per Slot (LFO to `dimmer`, Circle `x` to
+- each Visual ships a default binding per Slot (LFO to `dimmer`, Figure `x` to
   `pan` and `y` to `tilt`), so the common case is zero clicks, and the Layer
   can rebind (LFO to `zoom`, to `strobe`, to `iris`).
 
 A Contribution lands on every Element of the Layer's Targets that has a
 Parameter for the bound Attribute. Elements without it ignore it. So the same
 LFO Layer over a mixed Set moves the dimmer of the washes and the dimmer of
-the movers, and a Circle Layer over the same Set moves only the movers.
+the movers, and a Figure Layer over the same Set moves only the movers.
 
 What this buys: a small Visual library. One Smooth Fade serves dimmer, strobe,
 zoom and pan. One Rainbow serves colour on every fixture, discrete gamut or
 not, because Encoding does the snapping downstream. Attribute-specific Visuals
-still exist when the semantics matter (a Circle knows it is drawing in
+still exist when the semantics matter (a Figure knows it is drawing in
 pan-tilt space) but they are the exception, expressed as default bindings.
 
 Units: a number Slot is always 0 to 1 and the binding's anchors carry the
 units. A Visual therefore never sees degrees or hertz. When it should (a
-Circle with a radius in degrees), the radius is a Visual Parameter in degrees
-and the Slot still leaves 0 to 1 over the binding's range. This is the same
-division Difracta makes between a Parameter's units and a Link's anchors.
+Figure with a width in degrees), the width is a Visual Parameter in degrees
+and the Slot still leaves 0 to 1 over the binding's range. What makes the
+degrees true is that a Slot in degrees writes over its Attribute's whole
+range, pan −270° to 270° and tilt −135° to 135°, which is what a new Layer
+binds: 0.5 is 0° on both, and a Parameter of 30° moves the beam 30°. A
+Layer that rebinds scales them. This is the same division Difracta makes
+between a Parameter's units and a Link's anchors.
 
 ## 2. Two graphs, not one
 
@@ -190,8 +194,8 @@ remains is a hint, "distributes across Targets", for the classic mistake: a
 Chase over one Target flashes everything together, and Studio offers to
 spread it.
 
-**Value Visuals and envelope Visuals.** LFO, Rainbow, the Statics and Circle
-write a moving value at alpha 1. Shimmer and Chase are envelopes: their real
+**Value Visuals and envelope Visuals.** LFO, Rainbow, the Statics and the
+movement Visuals write a moving value at alpha 1. Shimmer and Chase are envelopes: their real
 output is a level per Target, and the question is what it reveals. Each has a
 color Slot carrying its `color` Parameter and a number Slot carrying its
 `level` Parameter, both at alpha equal to the envelope, and either binding may
@@ -222,15 +226,15 @@ Shimmer's `color` on `normal` with its `level` on `max`, which differs only
 when `level` is below the look underneath; a Blend Mode per binding is the
 fix if it ever bites.
 
-| Visual        | Slots (default binding)            | Parameters                                                 | Cues              |
-| ------------- | ---------------------------------- | ---------------------------------------------------------- | ----------------- |
-| LFO           | number (`dimmer`)                  | waveform, rate, `low`, `high`, phase spread                | `sync`            |
-| Shimmer       | `color` (`color`), `level` (none)  | color, level, count, fade in, hold, fade out, rate, jitter | `fire`            |
-| Chase         | `level` (`dimmer`), `color` (none) | color, level, rate, order, tail, fade                      | `step`, `restart` |
-| Rainbow       | color (`color`)                    | rate, spread of hue across Targets, saturation             | `sync`            |
-| Static Number | number (`dimmer`)                  | value                                                      |                   |
-| Static Color  | color (`color`)                    | color                                                      |                   |
-| Circle        | `x` (`pan`), `y` (`tilt`)          | rate, radius, center x, center y, phase spread             | `sync`            |
+| Visual        | Slots (default binding)            | Parameters                                                                       | Cues              |
+| ------------- | ---------------------------------- | -------------------------------------------------------------------------------- | ----------------- |
+| LFO           | number (`dimmer`)                  | waveform, rate, `low`, `high`, phase spread                                      | `sync`            |
+| Shimmer       | `color` (`color`), `level` (none)  | color, level, count, fade in, hold, fade out, rate, jitter                       | `fire`            |
+| Chase         | `level` (`dimmer`), `color` (none) | color, level, rate, order, tail, fade                                            | `step`, `restart` |
+| Rainbow       | color (`color`)                    | rate, spread of hue across Targets, saturation                                   | `sync`            |
+| Static Number | number (`dimmer`)                  | value                                                                            |                   |
+| Static Color  | color (`color`)                    | color                                                                            |                   |
+| Figure        | `x` (`pan`), `y` (`tilt`)          | form, rate, width, height, center x, center y, rotation, direction, phase spread | `sync`            |
 
 The second batch, for electronic music and for game show stages. Every one
 has a `color` Slot on `color` and a `level` Slot on `dimmer`, both bound,
@@ -247,6 +251,37 @@ Multiply.
 | Timer    | duration, mode, order, color, color end, level, urgent, at the end           | `start`, `pause`, `resume`, `reset` |
 | Reveal   | color, level, style, time                                                    | `reveal`, `hide`                    |
 | Roulette | color, level, duration, laps, winner, tail                                   | `spin`, `clear`                     |
+
+The movement Visuals, for movers, all on degrees Slots over the whole of
+pan and tilt. Figure, Ballyhoo and Fan write offsets and ask for Add, so
+they run around whatever position the Look Layer below set; Flyout and
+Sweep are absolute.
+
+| Visual   | Slots (default binding)             | Parameters                                                                       | Cues         |
+| -------- | ----------------------------------- | -------------------------------------------------------------------------------- | ------------ |
+| Figure   | `x` (`pan`), `y` (`tilt`)           | form, rate, width, height, center x, center y, rotation, direction, phase spread | `sync`       |
+| Sweep    | `position` (`pan`)                  | duration, hold, run, ease, follow                                                | `sync`       |
+| Ballyhoo | `x` (`pan`), `y` (`tilt`)           | rate, pan, tilt, glide                                                           | `next`       |
+| Fan      | `x` (`pan`), `y` (`tilt`)           | form, pan, tilt                                                                  |              |
+| Flyout   | `tilt` (`tilt`), `level` (`dimmer`) | level, from, to, duration, fade in, gap, run, phase spread                       | `go`, `sync` |
+
+Figure is one Visual with a `form`, as QLC+'s EFX is one function with a
+pattern and grandMA3's pan/tilt phaser one phaser with a form: circle,
+eight (tilt at twice the pan rate), line, square, diamond, triangle and
+spiral share every other control. `width` and `height` are in degrees
+before `rotation`, so a Line at 90° runs in tilt and at 45° is a diagonal;
+the polygons walk their corners at one speed (QLC+'s Line2 and choppy
+square), the rest are trigonometric. Sweep is the searchlight chase: one
+crossing between the binding's ends in `duration` seconds, `hold` at each
+end, bouncing or jumping back, each Target `follow` seconds behind the one
+before. Ballyhoo is the console effect of that name: each mover wanders to
+random positions of its own inside `pan` by `tilt`, `rate` moves a second,
+`glide` the part of each move spent travelling (0 jumps and lets the motor
+travel). Fan is still: it leans the beams apart by their place in the row,
+first to last or ends away from the middle, the console's fan. Flyout
+tilts from `from` to `to` while the level fades in over `fade in` of the
+fly, cuts, and sits dark for `gap`; on `run` On Go it flies once per `go`
+and writes nothing in between, so the look below shows.
 
 Strobe, Shutter and Pump share one clock: a phase advancing at `rate`, a
 pulse per Target each time its own offset phase passes a beat, and a length
@@ -298,5 +333,5 @@ backward, bounce, centre-out, ends-in or random; centre-out over eight lights
 pairs and takes four steps. A `step` from the hub re-arms the automatic
 timer, which is tap sync.
 
-Circle stays minimal until a mover exists: on `add` the centre is the look
-below, on `normal` its own `center`. Here it proves two Slots.
+Figure on `add` runs around the look below and its `center` is an offset;
+on `normal` `center` is the position itself. Here it proves two Slots.

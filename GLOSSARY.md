@@ -769,8 +769,8 @@ Element by nature (a mover's focus position) is one Target per Element.
 ### Visual
 
 Code in the Catalog that animates Parameters over time: LFO, Shimmer, Chase,
-Strobe, Shutter, Pump, Rainbow, Static Number, Static Color, Circle, Meter,
-Counter, Timer, Reveal, Roulette. A Visual declares its Slots with a default
+Strobe, Shutter, Pump, Rainbow, Static Number, Static Color, Figure, Sweep,
+Ballyhoo, Fan, Flyout, Meter, Counter, Timer, Reveal, Roulette. A Visual declares its Slots with a default
 binding each, its Parameter Schema, the Cues it answers, whether it
 distributes across Targets, the Blend Mode a new Layer of it starts with when
 that is not Normal, and one line saying what it is. It
@@ -795,7 +795,8 @@ such a Layer has one Target after Spread and offers to spread it; it is a
 hint, never a refusal, and every Visual accepts any number of Targets.
 
 Visuals come in two families. A value Visual (LFO, Rainbow, the Statics,
-Circle, Shutter, Pump) writes a moving value at alpha 1. An envelope Visual
+Figure and the other movement Visuals, Shutter, Pump) writes a moving value
+at alpha 1. An envelope Visual
 (Shimmer, Chase, Strobe, Meter, Counter, Timer, Reveal, Roulette) writes a
 fixed value, its `color` or `level` Parameter, at a moving alpha and says
 nothing about a Target outside its envelope, which is a Release: what is
@@ -837,9 +838,10 @@ nearer a Scene here.
 ### Slot
 
 One typed output a Visual declares, a number or a color: an LFO has one
-number Slot, Rainbow one color Slot, Circle two number Slots (`x`, `y`),
+number Slot, Rainbow one color Slot, Figure two number Slots (`x`, `y`),
 Shimmer and Chase a color Slot `color` and a number Slot `level`. Numbers
-leave a Slot in 0 to 1. Each frame a Slot carries, per Target, a value and an
+leave a Slot in 0 to 1; a Slot in degrees spreads its Attribute's whole
+range over it, so its Visual's degrees mean degrees at the default binding. Each frame a Slot carries, per Target, a value and an
 alpha, or nothing. A Visual is written against kinds, never against a
 fixture; it does not know whether its number Slot ends up on a dimmer or a
 zoom.

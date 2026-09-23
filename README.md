@@ -24,7 +24,7 @@ only, as Difracta's does, a Macro takes any Address from Studio's picker
 makes the one a hub's pad needs.
 
 Slice 4, "Visuals", underneath: Visual Layers running a Visual from the
-Catalog (LFO, Shimmer, Chase, Rainbow, Static Number, Static Color, Circle)
+Catalog (LFO, Shimmer, Chase, Rainbow, Static Number, Static Color, Figure)
 over their Targets, stepped by the Runtime at Output rate; Slots bound to
 Attributes with a range; Visual Parameters as linkable Addresses; Cues; the
 Spread switch per Target. The CLI gained `visuals`, `layers add --visual`,

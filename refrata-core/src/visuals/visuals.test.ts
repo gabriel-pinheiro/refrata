@@ -16,7 +16,11 @@ describe("the Catalog", () => {
       "rainbow",
       "static-number",
       "static-color",
-      "circle",
+      "figure",
+      "sweep",
+      "ballyhoo",
+      "fan",
+      "flyout",
       "meter",
       "counter",
       "timer",
@@ -152,7 +156,7 @@ describe("Chase", () => {
   });
 });
 
-describe("Rainbow, the Statics and Circle", () => {
+describe("Rainbow and the Statics", () => {
   it("lays the spectrum across the Targets", () => {
     const written = play("rainbow", { rate: 0 }).frame(0, ["a", "b", "c"]);
     expect(written.color?.a?.[0]).toEqual([1, 0, 0, 1]);
@@ -163,15 +167,5 @@ describe("Rainbow, the Statics and Circle", () => {
     const number = play("static-number", { value: 0.3 }).frame(0, ["a", "b"]);
     expect(number.value).toEqual({ a: [0.3, 1], b: [0.3, 1] });
     expect(lit(play("static-color").frame(0, ["a"]), "color")).toEqual(["a"]);
-  });
-
-  it("draws a circle in two Slots", () => {
-    const circle = play("circle", { rate: 1, radius: 0.25 });
-    const start = circle.frame(0, ["m"]);
-    expect(start.x?.m?.[0]).toBeCloseTo(0.75);
-    expect(start.y?.m?.[0]).toBeCloseTo(0.5);
-    const quarter = circle.frame(0.25, ["m"]);
-    expect(quarter.x?.m?.[0]).toBeCloseTo(0.5);
-    expect(quarter.y?.m?.[0]).toBeCloseTo(0.75);
   });
 });

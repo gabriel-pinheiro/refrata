@@ -168,8 +168,8 @@ docs/visuals-and-links.md.
 ### Relative values are a blend mode
 
 grandMA3 stores relative phaser values so a circle runs around wherever the
-base position is. Here a Circle Visual writes pan and tilt offsets on a Layer
-with blend `add`. Absolute circles use `normal`. No new concept.
+base position is. Here a Figure Visual writes pan and tilt offsets on a Layer
+with blend `add`. Absolute figures use `normal`. No new concept.
 
 ### Cue-list timing becomes Transitions plus smoothing
 

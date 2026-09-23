@@ -1,5 +1,8 @@
+import { ballyhoo } from "./ballyhoo.ts";
 import { chase } from "./chase.ts";
-import { circle } from "./circle.ts";
+import { fan } from "./fan.ts";
+import { figure } from "./figure.ts";
+import { flyout } from "./flyout.ts";
 import { counter } from "./counter.ts";
 import { lfo } from "./lfo.ts";
 import { meter } from "./meter.ts";
@@ -10,6 +13,7 @@ import { roulette } from "./roulette.ts";
 import type { VisualDefinition } from "./sdk.ts";
 import { shimmer } from "./shimmer.ts";
 import { shutter } from "./shutter.ts";
+import { sweep } from "./sweep.ts";
 import { staticColor, staticNumber } from "./statics.ts";
 import { strobe } from "./strobe.ts";
 import { timer } from "./timer.ts";
@@ -25,7 +29,11 @@ export const CATALOG: readonly VisualDefinition[] = [
   rainbow,
   staticNumber,
   staticColor,
-  circle,
+  figure,
+  sweep,
+  ballyhoo,
+  fan,
+  flyout,
   meter,
   counter,
   timer,

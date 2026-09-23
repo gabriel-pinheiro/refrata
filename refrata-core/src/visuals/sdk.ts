@@ -1,6 +1,11 @@
 import type { BlendMode } from "../document/composition.ts";
-import type { Color, ParameterSchema, ParameterValues } from "../parameters.ts";
-import type { AttributeKey } from "../rig/attributes.ts";
+import type {
+  Color,
+  NumberParameter,
+  ParameterSchema,
+  ParameterValues,
+} from "../parameters.ts";
+import { ATTRIBUTES, type AttributeKey } from "../rig/attributes.ts";
 
 /**
  * The Visual SDK. A Visual is a definition (Slots with default bindings, a
@@ -134,4 +139,49 @@ export function booleanParam(
 
 /** The top of every rate Parameter, in hertz, so one tempo Controller links to all of them alike. */
 export const RATE_MAX_HZ = 20;
+
+/**
+ * A number Slot in degrees on a position Attribute. It writes over the
+ * Attribute's whole range, which is what a new Layer binds, so a Parameter
+ * of 10° moves the beam 10° at the default binding and a Layer that
+ * rebinds scales it.
+ */
+export function degreesSlot(
+  key: string,
+  label: string,
+  attribute: AttributeKey,
+): SlotDefinition {
+  return { key, label, kind: "number", attribute };
+}
+
+/** Degrees as a degrees Slot on `attribute` writes them, clamped at the Attribute's range. */
+export function unitOfDegrees(
+  attribute: AttributeKey,
+  degrees: number,
+): number {
+  const definition = ATTRIBUTES[attribute];
+  if (definition.kind !== "number") return 0.5;
+  const { min, max } = definition;
+  return Math.min(1, Math.max(0, (degrees - min) / (max - min)));
+}
+
+/** A number Parameter in degrees, on a whole-degree grid. */
+export function degreesParam(
+  label: string,
+  min: number,
+  max: number,
+  fallback: number,
+  description?: string,
+): NumberParameter {
+  return {
+    kind: "number",
+    label,
+    ...(description === undefined ? {} : { description }),
+    min,
+    max,
+    step: 1,
+    unit: "°",
+    default: fallback,
+  };
+}
 export const WHITE: Color = [1, 1, 1, 1];

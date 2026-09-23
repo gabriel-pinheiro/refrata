@@ -46,13 +46,17 @@ at the top of the stack, "Position 1.5 s", easing every change of `pan` and
 (docs/transitions.md), is the other half, and Move in Black handles the
 mover that is dark while it travels.
 
-**Effects.** A Circle Visual has two Slots bound to `pan` and `tilt` by
-default and a radius Parameter in degrees. On a Layer with blend `add`, it is
-relative: the circle runs around whatever position the Look Layer below set,
-and each mover draws its own circle around its own focus. On `normal` it is
-absolute. Spread over a Set, with a phase Parameter, it becomes a wave of
-circles. This covers grandMA3's absolute and relative phaser layers with one
-blend mode.
+**Effects.** A Figure Visual has two Slots bound to `pan` and `tilt` by
+default, over their whole range, and width and height Parameters in degrees. A new Layer
+of it starts on blend `add`, so it is relative: the figure runs around
+whatever position the Look Layer below set, and each mover draws its own
+around its own focus. On `normal` it is absolute. Spread over a Set, with a
+phase Parameter, it becomes a wave of figures. This covers grandMA3's
+absolute and relative phaser layers with one blend mode. Ballyhoo and Fan
+are offsets the same way; Sweep and Flyout write positions. Pan and tilt are
+angles on a sphere, so a figure drawn as equal degrees on both axes only
+looks like itself away from the pan axis: with the beam along it, a circle
+folds into an eight. The cone-correct figure waits on the geometry below.
 
 **Pairing.** Touching pan on a console stores tilt too (GDTF's activation
 group), so a cue never moves one axis without the other. In a Look Layer both

@@ -77,9 +77,11 @@ Working from a shell
   Visuals    layers add <scene> <name> --visual <id> [--target <t>]...  a
              Visual Layer running one Visual of the Catalog (lfo, shimmer,
              chase, strobe, shutter, pump, rainbow, static-number,
-             static-color, circle, meter, counter, timer, reveal, roulette)
-             over its Targets, with the Visual's default Parameters,
-             bindings and Blend Mode (shutter and pump start on multiply).
+             static-color, figure, sweep, ballyhoo, fan, flyout, meter,
+             counter, timer, reveal, roulette) over its Targets, with the
+             Visual's default Parameters, bindings and Blend Mode (shutter
+             and pump start on multiply; figure, ballyhoo and fan on add,
+             so they run around the position below).
              A Visual sees its Targets in order, a Set in the Set's order;
              a Target arrives not spread, and "layers" warns when a Chase
              or a Rainbow has one Target: spread it to step through it.
