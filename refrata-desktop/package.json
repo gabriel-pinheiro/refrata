@@ -2,7 +2,7 @@
   "name": "@refrata/desktop",
   "productName": "Refrata",
   "desktopName": "refrata.desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Refrata Desktop: a window that shows Studio, from a Runtime it runs on this machine or from one elsewhere.",
@@ -15,10 +15,10 @@
     "package": "node scripts/stage-addons.mjs && electron-builder --config electron-builder.yml --publish never"
   },
   "devDependencies": {
-    "@refrata/client": "0.1.0",
-    "@refrata/core": "0.1.0",
-    "@refrata/protocol": "0.1.0",
-    "@refrata/runtime": "0.1.0",
+    "@refrata/client": "0.2.0",
+    "@refrata/core": "0.2.0",
+    "@refrata/protocol": "0.2.0",
+    "@refrata/runtime": "0.2.0",
     "electron": "44.4.3",
     "electron-builder": "^26.15.3",
     "playwright": "~1.61.1",
