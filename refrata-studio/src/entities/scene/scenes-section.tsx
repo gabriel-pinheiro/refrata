@@ -101,6 +101,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
                 <ContextMenu>
                   <ContextMenuTrigger>
                     <NavigatorRow
+                      id={scene.id}
                       icon={Clapperboard}
                       label={scene.name}
                       selected={isSelected(selected, "scene", scene.id)}

@@ -1,4 +1,5 @@
 import type { DocumentView } from "@refrata/client";
+import type { Document } from "@refrata/core";
 import type { ComponentType } from "react";
 
 import { controllerEntity } from "./controller/controller-entity";
@@ -10,8 +11,26 @@ import { setEntity } from "./set/set-entity";
 import { outputEntity, universeEntity } from "./universe/universe-entity";
 
 /**
- * What one entity kind contributes to Studio: its navigator section and its
- * inspector. Each kind lives in its own folder under `entities/`; adding a
+ * How Remove (the Delete key, Edit ▸ Remove) takes one entity of a kind away:
+ * the same command its row's context menu runs.
+ */
+export interface Removal {
+  /** Singular, as in "Removed Scene “Intro”". */
+  readonly noun: string;
+  readonly command: string;
+  readonly payload: (id: string) => unknown;
+  /** The entity, or `undefined` once it is gone. */
+  readonly find: (
+    document: Document,
+    id: string,
+  ) => { readonly name: string } | undefined;
+  /** Why this one may not go now, worded as its context menu words it. */
+  readonly refusal?: (document: Document, id: string) => string | undefined;
+}
+
+/**
+ * What one entity kind contributes to Studio: its navigator section, its
+ * inspector and, when its rows have a Remove, how it is removed. Each kind lives in its own folder under `entities/`; adding a
  * kind is one folder plus one line in `entities` below.
  */
 export interface EntityModule {
@@ -23,6 +42,8 @@ export interface EntityModule {
     readonly view: DocumentView;
     readonly id: string;
   }>;
+  /** Absent for a kind with no Remove of its own, such as an Element. */
+  readonly removal?: Removal;
 }
 
 export const entities = {

@@ -82,6 +82,7 @@ export function MacroRows({
             <ContextMenu>
               <ContextMenuTrigger>
                 <NavigatorRow
+                  id={macro.id}
                   icon={macroIcons[macro.kind]}
                   label={macro.name}
                   depth={depth}

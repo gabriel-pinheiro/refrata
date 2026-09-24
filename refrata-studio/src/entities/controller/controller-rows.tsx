@@ -94,6 +94,7 @@ export function ControllerRows({
             <ContextMenu>
               <ContextMenuTrigger>
                 <NavigatorRow
+                  id={controller.id}
                   icon={controllerIcons[controller.kind]}
                   label={controller.name}
                   depth={depth}

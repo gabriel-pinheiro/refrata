@@ -110,6 +110,7 @@ export function LayerRows({
             <ContextMenu>
               <ContextMenuTrigger>
                 <NavigatorRow
+                  id={layer.id}
                   icon={layerIcons[layer.kind]}
                   label={layer.name}
                   depth={depth}

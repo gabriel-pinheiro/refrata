@@ -34,13 +34,25 @@ interface SelectionState {
 
 const Context = createContext<SelectionState | undefined>(undefined);
 
-/** Studio-local, never sent to the runtime. Mount with a `key` per document so it resets. */
+/** The empty selection, one array so it compares equal to itself. */
+const none: readonly Selection[] = [];
+
+/**
+ * Studio-local, never sent to the runtime. Held above the menu, which removes
+ * the selection, and empty again whenever `documentId` changes.
+ */
 export function SelectionProvider({
+  documentId,
   children,
 }: {
+  readonly documentId: string | undefined;
   readonly children: ReactNode;
 }) {
-  const [selected, setSelected] = useState<readonly Selection[]>([]);
+  const [held, setHeld] = useState<{
+    readonly documentId: string | undefined;
+    readonly selected: readonly Selection[];
+  }>({ documentId, selected: [] });
+  const selected = held.documentId === documentId ? held.selected : none;
   const select = useCallback(
     (
       next: Selection | readonly Selection[] | undefined,
@@ -48,11 +60,16 @@ export function SelectionProvider({
     ) => {
       const items =
         next === undefined ? [] : Array.isArray(next) ? next : [next];
-      setSelected((previous) =>
-        pickItems(previous, items as readonly Selection[], mode),
-      );
+      setHeld((previous) => ({
+        documentId,
+        selected: pickItems(
+          previous.documentId === documentId ? previous.selected : none,
+          items as readonly Selection[],
+          mode,
+        ),
+      }));
     },
-    [],
+    [documentId],
   );
   const state = useMemo(() => ({ selected, select }), [selected, select]);
   return <Context.Provider value={state}>{children}</Context.Provider>;

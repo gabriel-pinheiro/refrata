@@ -6,6 +6,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Inspector } from "@/inspector/inspector";
+import { NavigatorKeys } from "@/keyboard/navigator-keys";
 import { readStored, writeStored } from "@/lib/storage";
 import { Navigator } from "@/navigator/navigator";
 import { ExpansionProvider } from "@/navigator/expansion";
@@ -25,14 +26,15 @@ const isLayout = (candidate: unknown): candidate is Record<string, number> =>
 /**
  * Navigator, the centre tabs (Rig View, DMX Tester) and inspector as three
  * resizable columns. Column sizes are remembered per browser; which rows
- * are open resets with the document, as the selection (provided above, per
- * document) does. The Resolved Stream follows every Fixture while the
+ * are open resets with the document, as the selection (held in `App`)
+ * does. The Resolved Stream follows every Fixture while the
  * workspace is open, and the DMX Tester's range is kept alive from here.
  */
 export function Workspace({ view }: { readonly view: DocumentView }) {
   return (
     <ExpansionProvider key={view.documentId}>
       <SelectionKeys />
+      <NavigatorKeys />
       <RigStream view={view} />
       <TesterKeepalive view={view} />
       <Columns view={view} />

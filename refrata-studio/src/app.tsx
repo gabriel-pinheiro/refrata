@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Toaster } from "@/components/ui/sonner";
 import {
   DocumentCommandsProvider,
@@ -13,13 +15,28 @@ import { Workspace } from "@/workspace/workspace";
 export function App() {
   return (
     <DocumentCommandsProvider>
-      <div className="flex h-dvh flex-col">
-        <AppMenu />
-        <Main />
-      </div>
-      <ShortcutKeys />
+      <DocumentSelection>
+        <div className="flex h-dvh flex-col">
+          <AppMenu />
+          <Main />
+        </div>
+        <ShortcutKeys />
+      </DocumentSelection>
       <Toaster position="bottom-right" closeButton />
     </DocumentCommandsProvider>
+  );
+}
+
+/**
+ * The selection, above the menu and the shortcuts that remove it and the
+ * status strip that warns about the edited Scene; empty for each document.
+ */
+function DocumentSelection({ children }: { readonly children: ReactNode }) {
+  const { view } = useDocumentCommands();
+  return (
+    <SelectionProvider documentId={view?.documentId}>
+      {children}
+    </SelectionProvider>
   );
 }
 
@@ -41,11 +58,10 @@ function Main() {
       </>
     );
   }
-  // The selection lives above the status strip, which warns about the edited Scene.
   return (
-    <SelectionProvider key={view.documentId}>
+    <>
       <Workspace view={view} />
       <StatusStrip />
-    </SelectionProvider>
+    </>
   );
 }

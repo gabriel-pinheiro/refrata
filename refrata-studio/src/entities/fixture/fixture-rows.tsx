@@ -95,6 +95,7 @@ export function FixtureRows({
             <ContextMenu>
               <ContextMenuTrigger>
                 <NavigatorRow
+                  id={fixture.id}
                   icon={fixtureIcons[fixture.kind]}
                   label={fixture.name}
                   depth={depth}

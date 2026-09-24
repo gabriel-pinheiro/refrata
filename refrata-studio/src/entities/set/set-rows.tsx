@@ -85,6 +85,7 @@ export function SetRows({
             <ContextMenu>
               <ContextMenuTrigger>
                 <NavigatorRow
+                  id={set.id}
                   icon={
                     set.kind === "set" && isRuleSet(set)
                       ? ruleSetIcon

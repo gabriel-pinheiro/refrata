@@ -101,6 +101,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
               <ContextMenu>
                 <ContextMenuTrigger>
                   <NavigatorRow
+                    id={universe.id}
                     icon={universeIcon}
                     label={universe.name}
                     depth={1}
@@ -158,6 +159,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                       <ContextMenu key={output.id}>
                         <ContextMenuTrigger>
                           <NavigatorRow
+                            id={output.id}
                             icon={outputIcons[output.kind]}
                             label={`${OUTPUT_LABELS[output.kind]} · ${output.device}`}
                             depth={2}

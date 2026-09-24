@@ -56,6 +56,7 @@ export function ElementRows({
           <ContextMenu key={ref}>
             <ContextMenuTrigger>
               <NavigatorRow
+                id={ref}
                 icon={elementIcon}
                 label={element.name}
                 depth={depth + element.depth - 1}
