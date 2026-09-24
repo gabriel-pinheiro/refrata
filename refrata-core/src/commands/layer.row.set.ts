@@ -33,15 +33,17 @@ function controlledBy(document: Document, address: string): string | undefined {
  * that did not exist starts at alpha 1 and the Element's Highlight for the
  * Attribute when its Mode declares one, else the Parameter's Default, so
  * ticking an Attribute on is this command with neither and lights the
- * fixture. A Set row can name any Attribute of the vocabulary, since a rule
- * Set's members may arrive later. A row a Controller drives refuses the
- * hand edit, as every Address does.
+ * fixture. The All Targets row starts at the Highlight of the first Target
+ * (a Set by its members) whose Element declares one, so it lights the
+ * fixtures too. A Set row can name any Attribute of the vocabulary, since a
+ * rule Set's members may arrive later, and starts at the Default. A row a
+ * Controller drives refuses the hand edit, as every Address does.
  */
 export const layerRowSet = defineCommand({
   name: "layer.row.set",
   kind: "authoring",
   description:
-    "Set a Look Layer row: an Attribute's value on one or more Targets, or on All Targets.",
+    "Set a Look Layer row: an Attribute's value on one or more Targets, or on All Targets. Without a value a new row starts lit, at the Element's Highlight (for All Targets, the first Target's) when its Mode declares one, else the Parameter's Default.",
   payload: z
     .object({
       layerId: z.string().min(1),
@@ -87,7 +89,7 @@ export const layerRowSet = defineCommand({
         value:
           payload.value ??
           existing?.value ??
-          rowRefStart(document, ref, attribute),
+          rowRefStart(document, layer, ref, attribute),
         alpha: payload.alpha ?? existing?.alpha ?? 1,
       };
       if (

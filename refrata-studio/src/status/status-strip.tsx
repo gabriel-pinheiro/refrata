@@ -1,6 +1,17 @@
 import type { ConnectionPhase, DocumentView } from "@refrata/client";
-import type { Layer, Scene, Table, Tester } from "@refrata/core";
-import type { DocumentSummary, LiveState } from "@refrata/protocol";
+import type {
+  Layer,
+  Output,
+  Scene,
+  Table,
+  Tester,
+  Universe,
+} from "@refrata/core";
+import {
+  outputStatusLine,
+  type DocumentSummary,
+  type LiveState,
+} from "@refrata/protocol";
 
 import { useDocumentCommands } from "@/documents/document-commands";
 import {
@@ -127,13 +138,13 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
     "operational",
     "tester",
   ]);
-  const universes =
-    useDocumentPath<Table<{ id: string; name: string }>>(view, ["universes"]) ??
-    {};
+  const universes = useDocumentPath<Table<Universe>>(view, ["universes"]) ?? {};
+  const outputTable = useDocumentPath<Table<Output>>(view, ["outputs"]) ?? {};
   const statuses = Object.values(outputs);
   const delivering = statuses.filter(
     (status) => status.state === "delivering",
   ).length;
+  const source = { universes, outputs: outputTable };
   return (
     <>
       {dmx !== undefined && (
@@ -146,9 +157,9 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
       )}
       {statuses.length > 0 && (
         <span
-          title={statuses
-            .map((status) => status.message ?? status.state)
-            .join("; ")}
+          title={Object.entries(outputs)
+            .map(([id, status]) => outputStatusLine(source, id, status))
+            .join("\n")}
           className={cn(
             delivering < statuses.length && "text-amber-400",
             "tabular-nums",

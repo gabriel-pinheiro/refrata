@@ -58,6 +58,9 @@ Working from a shell
              (dimmer 0.4, color '[0,1,0,1]', shutter closed); <target> "all"
              is the All Targets row every Target takes unless it has its
              own. look <layer> release <target> <attribute> lets it go.
+             run layer.row.set without a value ticks a row on lit: at the
+             Element's Highlight when its Mode declares one (for "all",
+             the first Target's), else the Parameter's Default.
              sets add <name> <ref>...  a Fixture Set of Elements, in order.
              sets add <name> --rule panel,odd --rule wall  a Set by rule,
              resolved live: a Rule is all of its Tags, and its member is

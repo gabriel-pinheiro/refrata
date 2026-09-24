@@ -26,6 +26,7 @@ import {
 } from "@/navigator/navigator-row";
 import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import {
   isSelected,
   pickModeOf,
@@ -57,6 +58,7 @@ export function LayerRows({
 }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const { createItems, dialog } = useLayerActions(view);
   const layers = useDocumentPath<Table<Layer>>(view, ["layers"]) ?? {};
@@ -75,7 +77,7 @@ export function LayerRows({
   if (rows.length === 0)
     return (
       <NavigatorEmptyRow depth={depth}>
-        {parentId === null ? "No Layers" : "Empty Group"}
+        {parentId === null ? "No Layers yet." : "Empty Group"}
       </NavigatorEmptyRow>
     );
   return (
@@ -200,7 +202,7 @@ export function LayerRows({
                 <ContextMenuItem
                   variant="destructive"
                   onClick={() =>
-                    void command("layer.remove", { layerId: layer.id })
+                    removeEntities([{ kind: "layer", id: layer.id }])
                   }
                 >
                   <Trash2 /> Remove

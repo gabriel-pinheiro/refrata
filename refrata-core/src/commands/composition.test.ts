@@ -385,6 +385,56 @@ describe("Layers", () => {
     expect(applyPatches(removal.document, removal.inverse)).toEqual(document);
   });
 
+  it("starts an All Targets row at the first Target's Highlight, a Set by its members, else the Default", () => {
+    // The Par's root declares a dimmer Highlight (full); the Strobe's root
+    // has no dimmer of its own.
+    let document = apply(stage(), [
+      ["set.create", { id: "all", name: "All", rules: [[]] }],
+      [
+        "layer.create",
+        {
+          id: "strobeFirst",
+          sceneId: "verse",
+          kind: "look",
+          name: "Strobe first",
+          targets: ["strobe/root", "par/root"],
+        },
+      ],
+      [
+        "layer.create",
+        {
+          id: "strobeOnly",
+          sceneId: "verse",
+          kind: "look",
+          name: "Strobe only",
+          targets: ["strobe/root"],
+        },
+      ],
+      [
+        "layer.create",
+        {
+          id: "viaSet",
+          sceneId: "verse",
+          kind: "look",
+          name: "Via Set",
+          targets: ["set:all"],
+        },
+      ],
+    ]);
+    for (const layerId of ["base", "strobeFirst", "strobeOnly", "viaSet"])
+      document = run(document, "layer.row.set", {
+        layerId,
+        targets: ["all"],
+        attribute: "dimmer",
+      }).document;
+    expect(document.layers).toMatchObject({
+      base: { all: { dimmer: { value: 1, alpha: 1 } } },
+      strobeFirst: { all: { dimmer: { value: 1, alpha: 1 } } },
+      strobeOnly: { all: { dimmer: { value: 0, alpha: 1 } } },
+      viaSet: { all: { dimmer: { value: 1, alpha: 1 } } },
+    });
+  });
+
   it("sets and releases rows with validation, and refuses linked ones", () => {
     let document = stage();
     expect(

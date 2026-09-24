@@ -18,6 +18,7 @@ import { useSelection } from "@/selection/selection";
 
 import { MacroRows } from "./macro-rows";
 import { macroIcons, macroKindLabels } from "./macro-icons";
+import { countMacroWarnings } from "./macro-warning";
 
 /**
  * Navigator section listing the Macros as a tree of Groups, each Macro with
@@ -68,6 +69,7 @@ export function MacrosSection({ view }: { readonly view: DocumentView }) {
         label="Macros"
         defaultExpanded={roots.length === 0}
         empty={roots.length === 0 ? "No Macros yet." : undefined}
+        warnings={countMacroWarnings(macros)}
         createItems={createItems(null)}
       >
         <MacroRows

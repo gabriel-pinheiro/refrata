@@ -1,3 +1,4 @@
+import { CommandError } from "@refrata/client";
 import { createBuiltInRegistry, type CommandRegistry } from "@refrata/core";
 import type { CommandResult } from "@refrata/protocol";
 import type { Command } from "commander";
@@ -11,6 +12,21 @@ import { formatSchema } from "../schema.ts";
 
 /** The registry is the only source for `commands`, `describe` and `run`. */
 const registry = createBuiltInRegistry();
+
+/**
+ * The runtime's refusal of an undo or redo with no step to take, which is
+ * an answer rather than a failure: the message to print, or undefined for
+ * any other error.
+ */
+export function nothingToDo(
+  error: unknown,
+  direction: "undo" | "redo",
+): string | undefined {
+  return error instanceof CommandError &&
+    error.message === `Nothing to ${direction}.`
+    ? error.message
+    : undefined;
+}
 
 export interface CommandDescription {
   readonly name: string;
@@ -102,11 +118,19 @@ export function registerRun(program: Command, cli: Cli): void {
       .option("--global", "act on the last step by any session", false)
       .action((local: { global: boolean }) =>
         cli.withDocument(async (client, summary) => {
-          const result = await client.command<CommandResult>(
-            summary.id,
-            `history.${direction}`,
-            { global: local.global },
-          );
+          let result: CommandResult;
+          try {
+            result = await client.command<CommandResult>(
+              summary.id,
+              `history.${direction}`,
+              { global: local.global },
+            );
+          } catch (error) {
+            const message = nothingToDo(error, direction);
+            if (message === undefined) throw error;
+            cli.print({ changed: false, message }, () => message);
+            return;
+          }
           cli.print(
             result,
             () =>

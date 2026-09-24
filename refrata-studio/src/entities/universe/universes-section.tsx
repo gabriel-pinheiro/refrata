@@ -30,6 +30,7 @@ import {
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import {
   isSelected,
   pickModeOf,
@@ -38,6 +39,7 @@ import {
 } from "@/selection/selection";
 
 import { outputIcons, universeIcon } from "./universe-icons";
+import { countUniverseWarnings, universeWarning } from "./universe-warning";
 
 /**
  * Navigator section listing the Universes, each opening to its Outputs with
@@ -47,6 +49,7 @@ import { outputIcons, universeIcon } from "./universe-icons";
 export function UniversesSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const table = useDocumentPath<Table<Universe>>(view, ["universes"]);
   const outputs = useDocumentPath<Table<Output>>(view, ["outputs"]) ?? {};
@@ -81,6 +84,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
       holds={["universe", "output"]}
       label="Universes"
       empty={universes.length === 0 ? "No Universes yet." : undefined}
+      warnings={countUniverseWarnings(table, outputs)}
       onCreate={addUniverse}
     >
       <SortableList
@@ -96,6 +100,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
             (output) => output.universeId === universe.id,
           );
           const expanded = isExpanded("universe", universe.id);
+          const warning = universeWarning(universe, outputs);
           return (
             <SortableItem key={universe.id} id={universe.id}>
               <ContextMenu>
@@ -118,10 +123,10 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                     }
                     createItems={outputItems(universe.id)}
                   >
-                    {own.length === 0 ? (
+                    {warning !== undefined ? (
                       <NavigatorWarning
-                        label="No Output"
-                        explanation="This Universe reaches no fixture until an Output is added to it with the + on its row."
+                        label={warning.label}
+                        explanation={warning.explanation}
                       />
                     ) : (
                       <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
@@ -140,9 +145,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                   <ContextMenuItem
                     variant="destructive"
                     onClick={() =>
-                      void command("universe.remove", {
-                        universeId: universe.id,
-                      })
+                      removeEntities([{ kind: "universe", id: universe.id }])
                     }
                   >
                     <Trash2 /> Remove
@@ -151,7 +154,9 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
               </ContextMenu>
               {expanded &&
                 (own.length === 0 ? (
-                  <NavigatorEmptyRow depth={2}>No Outputs</NavigatorEmptyRow>
+                  <NavigatorEmptyRow depth={2}>
+                    No Outputs yet.
+                  </NavigatorEmptyRow>
                 ) : (
                   own.map((output) => {
                     const status = statuses[output.id];
@@ -190,9 +195,9 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                           <ContextMenuItem
                             variant="destructive"
                             onClick={() =>
-                              void command("output.remove", {
-                                outputId: output.id,
-                              })
+                              removeEntities([
+                                { kind: "output", id: output.id },
+                              ])
                             }
                           >
                             <Trash2 /> Remove

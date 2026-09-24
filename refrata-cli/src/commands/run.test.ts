@@ -1,7 +1,8 @@
+import { CommandError } from "@refrata/client";
 import { createBuiltInRegistry } from "@refrata/core";
 import { describe, expect, it } from "vitest";
 
-import { describeCommand } from "./run.ts";
+import { describeCommand, nothingToDo } from "./run.ts";
 
 interface ObjectSchema {
   readonly required?: readonly string[];
@@ -31,5 +32,20 @@ describe("describeCommand", () => {
     expect(() => describeCommand(createBuiltInRegistry(), "nope.x")).toThrow(
       "Unknown command “nope.x”. Try `refrata commands`.",
     );
+  });
+});
+
+describe("nothingToDo", () => {
+  it("takes an undo or redo with no step as an answer, not a failure", () => {
+    expect(nothingToDo(new CommandError("Nothing to undo."), "undo")).toBe(
+      "Nothing to undo.",
+    );
+    expect(nothingToDo(new CommandError("Nothing to redo."), "redo")).toBe(
+      "Nothing to redo.",
+    );
+    expect(
+      nothingToDo(new CommandError("Nothing to undo."), "redo"),
+    ).toBeUndefined();
+    expect(nothingToDo(new Error("Nothing to undo."), "undo")).toBeUndefined();
   });
 });

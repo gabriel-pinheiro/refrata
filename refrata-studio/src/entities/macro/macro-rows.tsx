@@ -19,6 +19,7 @@ import {
 } from "@/navigator/navigator-row";
 import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import {
   isSelected,
   pickModeOf,
@@ -27,6 +28,7 @@ import {
 } from "@/selection/selection";
 
 import { macroIcons } from "./macro-icons";
+import { macroWarning } from "./macro-warning";
 import { useRunMacro } from "./run-macro";
 
 /** The Macros under the root or one Group as rows, each with its action count and a Run button. */
@@ -44,6 +46,7 @@ export function MacroRows({
   const command = useCommand(view);
   const run = useRunMacro(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const macros = useDocumentPath<Table<Macro>>(view, ["macros"]) ?? {};
   const rows = childMacros(macros, parentId);
@@ -53,7 +56,7 @@ export function MacroRows({
   if (rows.length === 0)
     return (
       <NavigatorEmptyRow depth={depth}>
-        {parentId === null ? "No Macros" : "Empty Group"}
+        {parentId === null ? "No Macros yet." : "Empty Group"}
       </NavigatorEmptyRow>
     );
   return (
@@ -69,6 +72,7 @@ export function MacroRows({
       {rows.map((macro) => {
         const group = macro.kind === "group";
         const expanded = group && isExpanded("macro", macro.id);
+        const warning = macroWarning(macro);
         return (
           <SortableItem
             key={macro.id}
@@ -109,10 +113,10 @@ export function MacroRows({
                   }
                 >
                   {macro.kind === "macro" &&
-                    (macro.actions.length === 0 ? (
+                    (warning !== undefined ? (
                       <NavigatorWarning
-                        label="No Actions"
-                        explanation="Running this Macro does nothing until actions are added in its inspector."
+                        label={warning.label}
+                        explanation={warning.explanation}
                       />
                     ) : (
                       <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
@@ -157,7 +161,7 @@ export function MacroRows({
                 <ContextMenuItem
                   variant="destructive"
                   onClick={() =>
-                    void command("macro.remove", { macroId: macro.id })
+                    removeEntities([{ kind: "macro", id: macro.id }])
                   }
                 >
                   <Trash2 /> Remove

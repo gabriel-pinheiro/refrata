@@ -19,8 +19,10 @@ export interface AddressPlace {
  * name, the Scenes in navigator order between "Scenes" (their play
  * triggers) and "Controllers", and each Layer's stay together in the order
  * the Scene lists its Layers, so a show of eighty Layers reads Scene by
- * Scene and Layer by Layer. An Element's Highlight is a programming tool
- * and has no place.
+ * Scene and Layer by Layer. A Look row's owner names its row after the
+ * Layer ("Look · All Targets", "Look · Par 1"), so two rows with the same
+ * label read apart. An Element's Highlight is a programming tool and has no
+ * place.
  */
 export function addressPlacer(
   document: Document,
@@ -48,7 +50,7 @@ export function addressPlacer(
         if (layer === undefined) return undefined;
         return {
           group: document.scenes[layer.sceneId]?.name ?? "",
-          owner: layer.name,
+          owner: resolved.owner ?? layer.name,
           detail:
             layer.kind === "visual"
               ? visualDefinition(layer.visual)?.name

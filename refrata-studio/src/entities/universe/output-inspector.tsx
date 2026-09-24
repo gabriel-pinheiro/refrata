@@ -7,7 +7,11 @@ import {
   type Table,
   type Universe,
 } from "@refrata/core";
-import type { LiveState, OutputStatus } from "@refrata/protocol";
+import {
+  formatOutputStatus,
+  type LiveState,
+  type OutputStatus,
+} from "@refrata/protocol";
 import { Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -19,17 +23,9 @@ import { SelectField } from "@/inspector/fields/select-field";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useSelection } from "@/selection/selection";
 
-/** An Output's status in words: delivering on a path at a rate, missing, or in error. */
+/** An Output's status in the CLI's words, or "not running" before the runtime reports one. */
 export function describeStatus(status: OutputStatus | undefined): string {
-  if (status === undefined) return "not running";
-  switch (status.state) {
-    case "delivering":
-      return `delivering on ${status.path ?? "?"} at ${String(status.fps)} fps`;
-    case "device-missing":
-      return `device missing${status.message === undefined ? "" : `: ${status.message}`}`;
-    case "error":
-      return `error${status.message === undefined ? "" : `: ${status.message}`}`;
-  }
+  return status === undefined ? "not running" : formatOutputStatus(status);
 }
 
 /** An Output's Universe, widget kind, device (serial number or `any`) and live status. */

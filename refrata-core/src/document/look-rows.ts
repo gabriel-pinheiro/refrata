@@ -12,6 +12,7 @@ import {
   locateSet,
   rowDefinition,
   targetAttributes,
+  targetElements,
   targetLabel,
   type TargetSource,
 } from "./targets.ts";
@@ -102,17 +103,24 @@ export function rowRefDefinition(
 /**
  * The value a row starts at when ticked on: an Element's Highlight for the
  * Attribute when its Mode declares one (dimmer full, colour white), so a
- * fresh row lights the fixture, else the Parameter's Default. A Set or All
- * Targets has no single Element, so it starts at the Default.
+ * fresh row lights the fixture, else the Parameter's Default. An All
+ * Targets row takes the Highlight of the first of the Layer's Targets, in
+ * Target order with a Set standing for its members, whose Element declares
+ * one. A Set's own row has no single Element, so it starts at the Default.
  */
 export function rowRefStart(
   document: TargetSource,
+  layer: LookLayer,
   ref: string,
   attribute: AttributeKey,
 ): ParameterValue {
-  const highlight = isAllTargetsRef(ref)
-    ? undefined
-    : locateElement(document, ref)?.element.parameters[attribute]?.highlight;
+  const elements = isAllTargetsRef(ref)
+    ? layer.targets.flatMap((target) => targetElements(document, target.ref))
+    : (locateElement(document, ref) ?? []);
+  const highlight = [elements]
+    .flat()
+    .map((located) => located.element.parameters[attribute]?.highlight)
+    .find((value) => value !== undefined);
   return highlight ?? rowRefDefinition(document, ref, attribute).default;
 }
 

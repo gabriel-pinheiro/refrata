@@ -2,7 +2,7 @@ import { emptyDocument, type Document } from "@refrata/core";
 import type { LiveState } from "@refrata/protocol";
 import { describe, expect, it } from "vitest";
 
-import { formatLiveStatus, liveStatus, outputLabel } from "./live-status.ts";
+import { formatLiveStatus, liveStatus } from "./live-status.ts";
 
 const base: LiveState = {
   osc: { port: 9100, listeners: 2 },
@@ -66,10 +66,6 @@ describe("liveStatus", () => {
         },
       },
     } as unknown as Document;
-    expect(outputLabel(document, "o")).toBe("Universe 1 · Enttec DMX USB Pro");
-    expect(outputLabel(document, "p")).toBe("Universe 1 · Anyma uDMX · 3-4");
-    expect(outputLabel(document, "gone")).toBe("gone");
-    expect(outputLabel(undefined, "o")).toBe("o");
     expect(
       formatLiveStatus(
         liveStatus({

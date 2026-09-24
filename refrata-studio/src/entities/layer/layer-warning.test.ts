@@ -1,7 +1,7 @@
 import { DEFAULT_FADE, id, type Layer } from "@refrata/core";
 import { describe, expect, it } from "vitest";
 
-import { layerWarning } from "./layer-warning.ts";
+import { countLayerWarnings, layerWarning } from "./layer-warning.ts";
 
 const base = {
   id: id("layer", "l"),
@@ -45,5 +45,15 @@ describe("layerWarning", () => {
 
   it("never warns a Group", () => {
     expect(layerWarning({ ...base, kind: "group" })).toBeUndefined();
+  });
+
+  it("counts the rows that would warn", () => {
+    expect(
+      countLayerWarnings({
+        a: look([]),
+        b: { ...look(["set:all"]), id: id("layer", "b") },
+        c: { ...base, id: id("layer", "c"), kind: "group" },
+      }),
+    ).toBe(1);
   });
 });

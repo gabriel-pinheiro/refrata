@@ -58,6 +58,18 @@ export const usbProFraming: SerialFraming = {
   send: (link, frame) => link.write(usbProPacket(frame)),
 };
 
+/**
+ * Why no port matched an Output's `device`: a path (`/dev/ttyUSB0`,
+ * `COM3`) is reported as a path, anything else as a serial number.
+ */
+export function missingWidgetMessage(device: string): string {
+  if (device === ANY_DEVICE) return "No serial DMX widget found.";
+  const path = /^(\/|\\\\|COM\d+$)/i.test(device);
+  return path
+    ? `No widget at path ${device}.`
+    : `No widget with serial number ${device}.`;
+}
+
 /** A serial widget's driver: the port the Output names, framed the family's way. */
 export function serialDriver(
   ports: () => Promise<SerialPortFactory>,
@@ -68,11 +80,7 @@ export function serialDriver(
       const factory = await ports();
       const port = pickPort(await factory.list(), device);
       if (port === undefined)
-        throw new DeviceMissingError(
-          device === ANY_DEVICE
-            ? "No serial DMX widget found."
-            : `No widget with serial number ${device}.`,
-        );
+        throw new DeviceMissingError(missingWidgetMessage(device));
       const link = await factory.open(port.path, framing.options);
       return {
         location: port.path,

@@ -5,6 +5,7 @@ import {
   childControllers,
   type Controller,
   type ControllerKind,
+  type Link,
   type Table,
 } from "@refrata/core";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { useSelection } from "@/selection/selection";
 
 import { ControllerRows } from "./controller-rows";
 import { controllerIcons, controllerKindLabels } from "./controller-icons";
+import { countControllerWarnings } from "./controller-warning";
 
 /**
  * Navigator section listing the Controllers as a tree of Groups. Number and
@@ -32,6 +34,7 @@ export function ControllersSection({ view }: { readonly view: DocumentView }) {
   const { select } = useSelection();
   const { setExpanded } = useExpansion();
   const table = useDocumentPath<Table<Controller>>(view, ["controllers"]);
+  const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
   const controllers = table ?? {};
   const [naming, setNaming] = useState<NameRequest | undefined>(undefined);
   const roots = childControllers(controllers, null);
@@ -72,6 +75,7 @@ export function ControllersSection({ view }: { readonly view: DocumentView }) {
         label="Controllers"
         defaultExpanded={roots.length === 0}
         empty={roots.length === 0 ? "No Controllers yet." : undefined}
+        warnings={countControllerWarnings(controllers, links)}
         createItems={createItems(null)}
       >
         <ControllerRows

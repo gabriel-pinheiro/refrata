@@ -24,6 +24,7 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import {
   isSelected,
   pickModeOf,
@@ -47,6 +48,7 @@ export function SetRows({
 }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const sets = useDocumentPath<Table<FixtureSet>>(view, ["fixtureSets"]) ?? {};
   const rows = childSets(sets, parentId);
@@ -56,7 +58,7 @@ export function SetRows({
   if (rows.length === 0)
     return (
       <NavigatorEmptyRow depth={depth}>
-        {parentId === null ? "No Fixture Sets" : "Empty Group"}
+        {parentId === null ? "No Fixture Sets yet." : "Empty Group"}
       </NavigatorEmptyRow>
     );
   return (
@@ -129,7 +131,7 @@ export function SetRows({
                 )}
                 <ContextMenuItem
                   variant="destructive"
-                  onClick={() => void command("set.remove", { setId: set.id })}
+                  onClick={() => removeEntities([{ kind: "set", id: set.id }])}
                 >
                   <Trash2 /> Remove
                 </ContextMenuItem>

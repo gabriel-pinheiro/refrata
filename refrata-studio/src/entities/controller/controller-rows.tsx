@@ -23,6 +23,7 @@ import {
 } from "@/navigator/navigator-row";
 import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import {
   isSelected,
   pickModeOf,
@@ -31,6 +32,7 @@ import {
 } from "@/selection/selection";
 
 import { controllerIcons } from "./controller-icons";
+import { controllerWarning, linkedControllers } from "./controller-warning";
 
 /** The Controllers under the root or one Group as rows, with their live value at the right. */
 export function ControllerRows({
@@ -46,11 +48,12 @@ export function ControllerRows({
 }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const controllers =
     useDocumentPath<Table<Controller>>(view, ["controllers"]) ?? {};
   const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
-  const linked = new Set(Object.values(links).map((link) => link.controllerId));
+  const linked = linkedControllers(links);
   const rows = childControllers(controllers, parentId);
   const moveInto = (controllerId: string, target: Controller): void =>
     void command("controller.move", {
@@ -62,7 +65,7 @@ export function ControllerRows({
   if (rows.length === 0)
     return (
       <NavigatorEmptyRow depth={depth}>
-        {parentId === null ? "No Controllers" : "Empty Group"}
+        {parentId === null ? "No Controllers yet." : "Empty Group"}
       </NavigatorEmptyRow>
     );
   return (
@@ -78,6 +81,7 @@ export function ControllerRows({
       {rows.map((controller) => {
         const group = controller.kind === "group";
         const expanded = group && isExpanded("controller", controller.id);
+        const warning = controllerWarning(controller, linked);
         return (
           <SortableItem
             key={controller.id}
@@ -113,10 +117,10 @@ export function ControllerRows({
                   }
                   createItems={group ? createItems(controller.id) : undefined}
                 >
-                  {!group && !linked.has(controller.id) && (
+                  {warning !== undefined && (
                     <NavigatorWarning
-                      label="Not linked"
-                      explanation="This Controller moves nothing until an Address is linked to it, from that Address's row in an inspector."
+                      label={warning.label}
+                      explanation={warning.explanation}
                     />
                   )}
                   <ValueReadout controller={controller} />
@@ -157,9 +161,7 @@ export function ControllerRows({
                 <ContextMenuItem
                   variant="destructive"
                   onClick={() =>
-                    void command("controller.remove", {
-                      controllerId: controller.id,
-                    })
+                    removeEntities([{ kind: "controller", id: controller.id }])
                   }
                 >
                   <Trash2 /> Remove

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, TriangleAlert } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -7,6 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { EntityKind } from "@/entities";
 import { isBoolean, useStoredState } from "@/lib/storage";
 import { useSelection } from "@/selection/selection";
@@ -19,7 +24,8 @@ import { NavigatorEmptyRow, type CreateItem } from "./navigator-row";
  * section still shows while the latest selected item is an entity of a kind
  * it `holds`, so a created or chip-selected entity is never hidden; that
  * reveal is not remembered, and collapsing by hand hides it again until the
- * selection moves.
+ * selection moves. A collapsed section with `warnings` shows an amber mark
+ * on its header, so a row's warning is never hidden without a hint.
  */
 export function NavigatorSection({
   storageKey,
@@ -27,6 +33,7 @@ export function NavigatorSection({
   holds,
   defaultExpanded = true,
   empty,
+  warnings = 0,
   onCreate,
   createItems,
   children,
@@ -38,6 +45,8 @@ export function NavigatorSection({
   readonly defaultExpanded?: boolean | undefined;
   /** Shown in place of rows while the section has none. */
   readonly empty?: string | undefined;
+  /** How many rows inside would show a warning; marked on the header while collapsed. */
+  readonly warnings?: number | undefined;
   readonly onCreate?: (() => void) | undefined;
   /** Several kinds of entries: the "+" opens a menu of these instead. */
   readonly createItems?: readonly CreateItem[] | undefined;
@@ -70,6 +79,22 @@ export function NavigatorSection({
           )}
           <span className="truncate">{label}</span>
         </button>
+        {!expanded && warnings > 0 && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  className="mr-1 grid size-5 shrink-0 place-items-center text-amber-300"
+                  data-testid="section-warnings"
+                />
+              }
+            >
+              <TriangleAlert aria-hidden className="size-3" />
+              <span className="sr-only">{attentionText(warnings)}</span>
+            </TooltipTrigger>
+            <TooltipContent>{attentionText(warnings)}</TooltipContent>
+          </Tooltip>
+        )}
         {onCreate !== undefined && (
           <button
             type="button"
@@ -139,6 +164,13 @@ function useRevealFor(holds: readonly EntityKind[]): {
     active: key !== undefined && key !== dismissed,
     dismiss: () => setDismissed(key),
   };
+}
+
+/** "1 row needs attention", "3 rows need attention". */
+export function attentionText(count: number): string {
+  return count === 1
+    ? "1 row needs attention"
+    : `${String(count)} rows need attention`;
 }
 
 const createButtonClass =

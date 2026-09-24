@@ -23,6 +23,7 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import { TargetContextItems } from "@/entities/target/target-actions";
 import {
   isSelected,
@@ -48,6 +49,7 @@ export function FixtureRows({
 }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const fixtures = useDocumentPath<Table<Fixture>>(view, ["fixtures"]) ?? {};
   const fixtureTypes =
@@ -63,7 +65,7 @@ export function FixtureRows({
   if (rows.length === 0)
     return (
       <NavigatorEmptyRow depth={depth}>
-        {parentId === null ? "No Fixtures" : "Empty Group"}
+        {parentId === null ? "No Fixtures yet." : "Empty Group"}
       </NavigatorEmptyRow>
     );
   return (
@@ -153,7 +155,7 @@ export function FixtureRows({
                 <ContextMenuItem
                   variant="destructive"
                   onClick={() =>
-                    void command("fixture.remove", { fixtureId: fixture.id })
+                    removeEntities([{ kind: "fixture", id: fixture.id }])
                   }
                 >
                   <Trash2 /> Remove

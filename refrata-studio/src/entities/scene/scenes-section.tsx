@@ -2,6 +2,7 @@ import type { DocumentView } from "@refrata/client";
 import {
   generateId,
   orderedEntries,
+  type Layer,
   type Scene,
   type Table,
 } from "@refrata/core";
@@ -17,6 +18,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { LayerRows } from "@/entities/layer/layer-rows";
+import { countLayerWarnings } from "@/entities/layer/layer-warning";
 import { useLayerActions } from "@/entities/layer/use-layer-actions";
 import { macroIcons } from "@/entities/macro/macro-icons";
 import { useMakeMacro } from "@/entities/macro/use-make-macro";
@@ -25,6 +27,7 @@ import { useExpansion } from "@/navigator/expansion";
 import { NavigatorRow, RowAction } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { SortableItem, SortableList } from "@/navigator/sortable";
+import { useRemoveEntities } from "@/selection/remove-selection";
 import {
   isSelected,
   pickModeOf,
@@ -42,9 +45,11 @@ const MacroIcon = macroIcons.macro;
 export function ScenesSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { selected, select } = useSelection();
+  const removeEntities = useRemoveEntities();
   const { isExpanded, setExpanded } = useExpansion();
   const { createItems, dialog } = useLayerActions(view);
   const scenes = useDocumentPath<Table<Scene>>(view, ["scenes"]) ?? {};
+  const layers = useDocumentPath<Table<Layer>>(view, ["layers"]) ?? {};
   const activeScene = useDocumentPath<string | null>(view, [
     "installation",
     "activeScene",
@@ -69,6 +74,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
         holds={["scene", "layer"]}
         label="Scenes"
         empty={ordered.length === 0 ? "No Scenes yet." : undefined}
+        warnings={countLayerWarnings(layers)}
         onCreate={() => setNaming(true)}
       >
         <SortableList
@@ -167,7 +173,7 @@ export function ScenesSection({ view }: { readonly view: DocumentView }) {
                       variant="destructive"
                       disabled={active}
                       onClick={() =>
-                        void command("scene.remove", { sceneId: scene.id })
+                        removeEntities([{ kind: "scene", id: scene.id }])
                       }
                     >
                       <Trash2 /> Remove

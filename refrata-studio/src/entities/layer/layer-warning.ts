@@ -1,4 +1,4 @@
-import type { Layer } from "@refrata/core";
+import type { Layer, Table } from "@refrata/core";
 
 /** What keeps a Layer from reaching a fixture, as a navigator warning. */
 export interface LayerWarning {
@@ -19,4 +19,11 @@ export function layerWarning(layer: Layer): LayerWarning | undefined {
         "This Layer reaches no fixture until Targets are added in its inspector, or a selection is added to it with Add to Layer.",
     };
   return undefined;
+}
+
+/** How many Layer rows would warn, across every Scene: what a collapsed Scenes section says. */
+export function countLayerWarnings(layers: Table<Layer>): number {
+  return Object.values(layers).filter(
+    (layer) => layerWarning(layer) !== undefined,
+  ).length;
 }

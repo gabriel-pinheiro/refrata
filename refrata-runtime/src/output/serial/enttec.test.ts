@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { openDmxFraming, usbProPacket } from "./enttec.ts";
+import {
+  missingWidgetMessage,
+  openDmxFraming,
+  usbProPacket,
+} from "./enttec.ts";
 import { fakeSerialFactory, FTDI_PORT } from "./fake-serial.ts";
 import { pickPort } from "./serial-port.ts";
 
@@ -56,5 +60,18 @@ describe("pickPort", () => {
       "/dev/ttyACM0",
     );
     expect(pickPort([other, FTDI_PORT], "nope")).toBeUndefined();
+  });
+});
+
+describe("missingWidgetMessage", () => {
+  it("calls a path a path and anything else a serial number", () => {
+    expect(missingWidgetMessage("any")).toBe("No serial DMX widget found.");
+    expect(missingWidgetMessage("/dev/ttyUSB0")).toBe(
+      "No widget at path /dev/ttyUSB0.",
+    );
+    expect(missingWidgetMessage("COM3")).toBe("No widget at path COM3.");
+    expect(missingWidgetMessage("A1B2C3")).toBe(
+      "No widget with serial number A1B2C3.",
+    );
   });
 });

@@ -1,7 +1,23 @@
+import type { DocumentSummary } from "@refrata/protocol";
 import type { Command } from "commander";
 
 import type { Cli } from "../cli.ts";
 import { formatLiveStatus, liveStatus } from "../live-status.ts";
+
+/**
+ * The open Installation on one line: name, id, its file or "(no file)"
+ * for one never saved, "unsaved changes" when the file is behind, and the
+ * revision.
+ */
+export function documentLine(summary: DocumentSummary): string {
+  return [
+    summary.name,
+    summary.id,
+    summary.path ?? "(no file)",
+    ...(summary.dirty ? ["unsaved changes"] : []),
+    `revision ${String(summary.revision)}`,
+  ].join("  ");
+}
 
 export function registerStatus(program: Command, cli: Cli): void {
   program
@@ -27,7 +43,7 @@ export function registerStatus(program: Command, cli: Cli): void {
         cli.print({ sessionId, documents, document: summary, live }, () =>
           [
             connected,
-            `  ${summary.name}  ${summary.id}  ${summary.path ?? "(unsaved)"}${summary.dirty ? "  unsaved changes" : ""}  revision ${String(summary.revision)}`,
+            `  ${documentLine(summary)}`,
             ...formatLiveStatus(live, document).map((line) => `  ${line}`),
           ].join("\n"),
         );
