@@ -164,6 +164,18 @@ export class RefrataClient {
     this.#send({ type: "frames", documentId, universeIds: [...universeIds] });
   }
 
+  /**
+   * Names the Layers whose Geometry Visual pose this client wants streamed
+   * (the whole set; empty stops the stream). Poses land in the document's
+   * view under `poseOf`. Re-sent by itself after a reconnect.
+   */
+  poses(documentId: string, layerIds: readonly string[]): void {
+    const view = this.#views.get(documentId);
+    if (view === undefined) return;
+    view.setStreamedLayers(layerIds);
+    this.#send({ type: "poses", documentId, layerIds: [...layerIds] });
+  }
+
   /** Latest-wins per address; flushed once per frame. */
   input(documentId: string, address: string, value: unknown): void {
     this.#inputs.set(`${documentId}\u0000${address}`, {
@@ -211,6 +223,13 @@ export class RefrataClient {
         type: "frames",
         documentId: view.documentId,
         universeIds: [...universes],
+      });
+    const layers = view.streamedLayers();
+    if (layers.length > 0)
+      this.#send({
+        type: "poses",
+        documentId: view.documentId,
+        layerIds: [...layers],
       });
   }
 
@@ -335,6 +354,11 @@ export class RefrataClient {
         this.#views
           .get(parsed.documentId)
           ?.applyFrame(parsed.universeId, parsed.bytes, parsed.full);
+        break;
+      case "pose":
+        this.#views
+          .get(parsed.documentId)
+          ?.applyPose(parsed.layerId, parsed.pose);
         break;
       case "event":
         this.#views.get(parsed.documentId)?.receiveEvent(parsed.address);

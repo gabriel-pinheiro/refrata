@@ -13,6 +13,12 @@ a projection-mapping engine built the same way.
 
 ## Status
 
+Geometry Visuals: Wipe, Radar, Spectrum and Ripple read where their
+Targets hang. A Layer of one carries a Frame, a rectangle placed on the
+stage that the Rig View draws and drags while the Layer is selected, with
+the Visual's live figure inside it streamed from the Runtime as a pose.
+The CLI gained `layers frame`.
+
 After slice 5 the Catalog grew by eight Visuals: Strobe, Shutter and Pump
 for electronic music, Meter, Counter, Timer, Reveal and Roulette for game
 show stages. A Visual may now name the Blend Mode a new Layer of it starts
@@ -73,6 +79,8 @@ The design the rest is built against is in `GLOSSARY.md` and `docs/`.
   Layer.
 - [docs/moving-heads-and-geometry.md](docs/moving-heads-and-geometry.md), a
   mover walked through the model, and the road to positions.
+- [docs/geometry-visuals.md](docs/geometry-visuals.md), Visuals that read
+  where their Targets are: the Frame, a Target's point, pose and figure.
 - [docs/transitions.md](docs/transitions.md), how time enters a show: the
   Layer Fade, and the Selector Group idea.
 - [docs/comparison-walkthrough.md](docs/comparison-walkthrough.md), one look

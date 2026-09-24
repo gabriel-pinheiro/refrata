@@ -88,7 +88,8 @@ Working from a shell
              Visual Layer running one Visual of the Catalog (lfo, shimmer,
              chase, strobe, shutter, pump, rainbow, static-number,
              static-color, figure, sweep, ballyhoo, fan, flyout, meter,
-             counter, timer, reveal, roulette) over its Targets, with the
+             counter, timer, reveal, roulette, wipe, radar, spectrum,
+             ripple) over its Targets, with the
              Visual's default Parameters, bindings and Blend Mode (shutter
              and pump start on multiply; figure, ballyhoo and fan on add,
              so they run around the position below).
@@ -104,6 +105,12 @@ Working from a shell
              Chase have a color and a level Slot, either or both bound.
              layers visual <layer> <id>  changes the Visual; Parameters
              and bindings start over.
+             layers frame <layer> --x 0 --y 1 --width 6 --height 2
+             [--rotation 15] | --fit  sets the Frame of a Layer running a
+             Geometry Visual (wipe, radar, spectrum, ripple): the stage
+             rectangle, in metres, the Visual measures its Targets against;
+             a new such Layer starts with it fitted to its Targets, and
+             "layers" prints it. Not an Address; the Rig View drags it.
              cue <layer> <key>  fires a Cue (chase: step, restart; shimmer:
              fire; counter: add, remove, reset; reveal: reveal, hide;
              "visuals <id>" lists the rest). Show control, never undone;

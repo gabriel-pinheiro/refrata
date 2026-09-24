@@ -5,6 +5,7 @@ import {
   universeFrames,
   VisualPlayer,
   type Document,
+  type Pose,
   type ResolvedDocument,
 } from "@refrata/core";
 import type { DmxLive } from "@refrata/protocol";
@@ -75,6 +76,11 @@ export class OutputLoop {
   /** The latest frame of every Universe, by Universe id. */
   frames(): ReadonlyMap<string, Uint8Array> {
     return this.#frames;
+  }
+
+  /** The pose of every Geometry Visual instance after the last tick, by Layer id. */
+  poses(): ReadonlyMap<string, Pose> {
+    return this.#visuals.poses();
   }
 
   /** Fires after every tick with the values just resolved. */

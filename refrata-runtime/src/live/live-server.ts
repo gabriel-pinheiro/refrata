@@ -27,6 +27,7 @@ import type { OutputLoop } from "../rig/output-loop.ts";
 import { AttachedSession } from "./attached-session.ts";
 import { documentsModeFor, pinnedRefusal } from "./documents-mode.ts";
 import { FrameStream } from "./frame-streams.ts";
+import { PoseStream } from "./pose-streams.ts";
 import { ResolvedStream } from "./resolved-streams.ts";
 
 function decodeRawData(data: RawData): string {
@@ -53,6 +54,8 @@ interface ClientSession {
   readonly stream: ResolvedStream;
   /** The session's frame stream, idle until it names Universes. */
   readonly frames: FrameStream;
+  /** The session's pose stream, idle until it names Layers. */
+  readonly poses: PoseStream;
 }
 
 type ReplyOutcome = Extract<ServerMessage, { type: "reply" }>["outcome"];
@@ -118,6 +121,7 @@ export class LiveServer {
         for (const session of this.#sessions) {
           session.stream.close();
           session.frames.close();
+          session.poses.close();
         }
       this.#broadcast({ type: "document", summary: options.store.current() });
       if (followed === "swapped") this.#resnapshot();
@@ -140,6 +144,7 @@ export class LiveServer {
       for (const session of this.#sessions) {
         session.stream.update(resolved);
         session.frames.update(options.loop.frames());
+        session.poses.update(options.loop.poses());
       }
     });
     this.#attached.follow(options.store.currentSession());
@@ -189,6 +194,11 @@ export class LiveServer {
         if (documentId === undefined) return;
         this.#send(session, { type: "frame", documentId, ...message });
       }),
+      poses: new PoseStream((message) => {
+        const documentId = this.#attached.id;
+        if (documentId === undefined) return;
+        this.#send(session, { type: "pose", documentId, ...message });
+      }),
     };
     this.#sessions.add(session);
     socket.on("message", (raw) => {
@@ -197,6 +207,7 @@ export class LiveServer {
     socket.on("close", () => {
       session.stream.close();
       session.frames.close();
+      session.poses.close();
       this.#sessions.delete(session);
     });
   }
@@ -236,6 +247,7 @@ export class LiveServer {
     for (const session of this.#sessions) {
       session.stream.restart();
       session.frames.restart();
+      session.poses.restart();
       const subscription = session.subscriptions.get(documentId);
       if (subscription !== undefined)
         this.#subscribe(session, documentId, subscription.live);
@@ -408,6 +420,11 @@ export class LiveServer {
           message.universeIds,
           this.#options.loop.frames(),
         );
+        break;
+      case "poses":
+        if (this.#options.store.session(message.documentId) === undefined)
+          break;
+        session.poses.setLayers(message.layerIds, this.#options.loop.poses());
         break;
     }
   }

@@ -11,6 +11,7 @@ import { allSets } from "../document/fixture-sets.ts";
 import type { Document } from "../document/document.ts";
 import { childLayers } from "../document/layers.ts";
 import { uniqueName } from "../document/names.ts";
+import { frameFittingTargets } from "../document/geometry.ts";
 import { targetProblem } from "../document/targets.ts";
 import { defaultBindings } from "../document/visual-layers.ts";
 import { setRef } from "../document/composition.ts";
@@ -45,7 +46,8 @@ export function defaultLayerTargets(
  * set. Its Targets are the ones given; given none (`targets` omitted) it
  * takes `defaultLayerTargets`, and `null` leaves it without any. A Visual
  * Layer starts the same way with its Visual's default Parameter Values and
- * default bindings; its Targets arrive not spread.
+ * default bindings; its Targets arrive not spread. Running a Geometry
+ * Visual, it gets a Frame fitted to those Targets.
  */
 export const layerCreate = defineCommand({
   name: "layer.create",
@@ -131,16 +133,23 @@ export const layerCreate = defineCommand({
       targets: targets.map((ref) => ({ ref, spread: false })),
       blendMode: definition?.blendMode ?? "normal",
     } as const;
+    const visualLayer = (): Layer => {
+      if (definition === undefined) throw new Error("unreachable");
+      const layer: Layer = {
+        ...base,
+        ...stack,
+        kind: "visual",
+        visual: definition.id,
+        parameters: { ...defaultParameterValues(definition.parameters) },
+        bindings: defaultBindings(definition),
+      };
+      return definition.geometry === undefined
+        ? layer
+        : { ...layer, frame: frameFittingTargets(document, layer) };
+    };
     const layer: Layer =
       definition !== undefined
-        ? {
-            ...base,
-            ...stack,
-            kind: "visual",
-            visual: definition.id,
-            parameters: { ...defaultParameterValues(definition.parameters) },
-            bindings: defaultBindings(definition),
-          }
+        ? visualLayer()
         : payload.kind === "look"
           ? {
               ...base,

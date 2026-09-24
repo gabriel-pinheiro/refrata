@@ -140,6 +140,25 @@ export const SlotBindingSchema = z
   .strict();
 export type SlotBinding = z.infer<typeof SlotBindingSchema>;
 
+/**
+ * The Frame of a Visual Layer running a Geometry Visual: a rectangle in
+ * stage space the Visual measures its Targets against, centred at `x`, `y`
+ * in metres, `width` and `height` in metres, turned `rotation` degrees
+ * about its centre (counterclockwise as the audience sees it). Set once
+ * per Layer like a Slot Binding's anchors, never an Address; a Layer of
+ * any other Visual has none.
+ */
+export const FrameSchema = z
+  .object({
+    x: z.number(),
+    y: z.number(),
+    width: z.number().positive(),
+    height: z.number().positive(),
+    rotation: z.number(),
+  })
+  .strict();
+export type Frame = z.infer<typeof FrameSchema>;
+
 export const LAYER_KINDS = ["look", "visual", "group"] as const;
 export type LayerKind = (typeof LAYER_KINDS)[number];
 export const LAYER_LABELS: Record<LayerKind, string> = {
@@ -154,7 +173,8 @@ export const LAYER_LABELS: Record<LayerKind, string> = {
  * its own row overrides them, an opacity that is its fader, and a Blend
  * Mode. A Visual Layer runs one Visual of the Catalog over its Targets:
  * the Visual's id, its Parameter Values, one Slot Binding per Slot, and the
- * same opacity and Blend Mode, shared by every Slot. A Group has `enabled`,
+ * same opacity and Blend Mode, shared by every Slot; running a Geometry
+ * Visual it also has a Frame. A Group has `enabled`,
  * opacity and fades and no Blend Mode: its opacity and envelope multiply
  * into every Layer inside it (pass-through), so a Group at half is every
  * child at half over what is below, not the Group's look at half.
@@ -179,6 +199,7 @@ export const LayerSchema = z.discriminatedUnion("kind", [
       visual: z.string().min(1),
       parameters: ParameterValuesSchema,
       bindings: z.record(z.string().min(1), SlotBindingSchema),
+      frame: FrameSchema.optional(),
     })
     .strict(),
   z.object({ ...LayerBase, kind: z.literal("group") }).strict(),

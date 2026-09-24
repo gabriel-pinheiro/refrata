@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { frameFittingTargets } from "../document/geometry.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
 import { defaultBindings } from "../document/visual-layers.ts";
@@ -14,7 +15,9 @@ import { notLayerOf } from "./kind-problems.ts";
  * bindings start over from the new Visual's defaults, and the Links and
  * Macro actions on the old Visual's Parameters and Cues go with them;
  * Targets and opacity stay. The Blend Mode follows the new Visual's own
- * only while it is still the one the old Visual started with.
+ * only while it is still the one the old Visual started with. A Geometry
+ * Visual gets a Frame fitted to the Targets unless the Layer has one; any
+ * other Visual drops it.
  */
 export const layerVisualSet = defineCommand({
   name: "layer.visual.set",
@@ -59,6 +62,15 @@ export const layerVisualSet = defineCommand({
         value: defaultBindings(definition),
       },
     );
+    if (definition.geometry === undefined) {
+      if (layer.frame !== undefined)
+        patches.push({ op: "remove", path: ["layers", layer.id, "frame"] });
+    } else if (layer.frame === undefined)
+      patches.push({
+        op: "set",
+        path: ["layers", layer.id, "frame"],
+        value: frameFittingTargets(document, layer),
+      });
     return accepted(patches, undefined, warnings);
   },
 });

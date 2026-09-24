@@ -40,12 +40,59 @@ export interface VisualTarget {
   readonly count: number;
 }
 
+/** A Target as a Geometry Visual sees it: with its point in Frame space, metres from the Frame's centre. */
+export interface GeometryTarget extends VisualTarget {
+  /** Along the Frame's width, positive to the right. */
+  readonly x: number;
+  /** Along the Frame's height, positive up. */
+  readonly y: number;
+}
+
+/** The Frame's size, metres, as a Geometry Visual sees it. */
+export interface FrameSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** What the Runtime adds to a frame for a Geometry Visual whose Layer has a Frame. */
+export interface GeometryInput extends FrameSize {
+  readonly targets: readonly GeometryTarget[];
+}
+
 export interface VisualFrame {
   /** Seconds since the previous frame, clamped to `settings.visuals.maxFrameSeconds`. */
   readonly dt: number;
   readonly params: ParameterValues;
   /** In the order the Layer lists them; a Set in its own order. */
   readonly targets: readonly VisualTarget[];
+  /** Present for a Geometry Visual on a Layer with a Frame; absent, it releases everything. */
+  readonly geometry?: GeometryInput;
+}
+
+/** The small serializable state a Geometry Visual reports each frame, from which its figure is drawn. */
+export type Pose = Readonly<Record<string, number | readonly number[]>>;
+
+/**
+ * One path of a Geometry Visual's figure, in Frame space (metres from the
+ * Frame's centre, `y` up). Filled at `alpha` in the selection colour, or
+ * in `color`; with `strokeWidth` it is stroked that wide, in metres,
+ * instead of filled.
+ */
+export interface FigurePath {
+  readonly d: string;
+  readonly alpha: number;
+  readonly color?: Color;
+  readonly strokeWidth?: number;
+}
+
+/** What makes a Visual a Geometry Visual: a pure drawing of its pose. */
+export interface GeometryDefinition {
+  /** The figure the Rig View draws for a Layer of it, from the Layer's Parameters and the instance's pose. */
+  figure(
+    params: ParameterValues,
+    pose: Pose,
+    size: FrameSize,
+  ): readonly FigurePath[];
 }
 
 /**
@@ -64,6 +111,8 @@ export interface VisualInstance {
   /** Called before the next `update` for each Cue fired since the last one. */
   cue?(key: string): void;
   dispose?(): void;
+  /** A Geometry Visual's pose after the last `update`, streamed to a Rig View showing its Layer. */
+  pose?(): Pose;
 }
 
 export interface VisualContext {
@@ -82,6 +131,8 @@ export interface VisualDefinition {
   readonly distributes: boolean;
   /** The Blend Mode a new Layer of it starts with; Normal when absent. A Visual that gates what is below asks for Multiply. */
   readonly blendMode?: BlendMode;
+  /** Present on a Geometry Visual: it reads where its Targets are in its Layer's Frame. */
+  readonly geometry?: GeometryDefinition;
   create(context: VisualContext): VisualInstance;
 }
 

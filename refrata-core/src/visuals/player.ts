@@ -3,11 +3,12 @@ import type {
   VisualOutputs,
 } from "../composition/visual-contributions.ts";
 import type { Document } from "../document/document.ts";
+import { geometryInput } from "../document/geometry.ts";
 import { sceneVisualLayers } from "../document/layers.ts";
 import { visualParameters, visualTargets } from "../document/visual-layers.ts";
 import { settings } from "../settings.ts";
 import { visualDefinition } from "./catalog.ts";
-import type { VisualInstance } from "./sdk.ts";
+import type { Pose, VisualInstance } from "./sdk.ts";
 
 interface Running {
   readonly visual: string;
@@ -21,12 +22,14 @@ interface Running {
  * whether the Layer is enabled or visible, and disposed when another Scene
  * plays, the Layer goes or it is given another Visual. No other edit
  * remakes one. The Runtime owns the one player; Studio and the CLI never
- * run a Visual.
+ * run a Visual. After each step the poses of the Geometry Visuals are
+ * kept, for the Rig View to draw their figures.
  */
 export class VisualPlayer {
   readonly #random: () => number;
   readonly #running = new Map<string, Running>();
   #sceneId: string | null = null;
+  #poses: ReadonlyMap<string, Pose> = new Map();
 
   constructor(random: () => number = Math.random) {
     this.#random = random;
@@ -36,6 +39,12 @@ export class VisualPlayer {
   restart(): void {
     for (const running of this.#running.values()) running.instance.dispose?.();
     this.#running.clear();
+    this.#poses = new Map();
+  }
+
+  /** The pose of every Geometry Visual's instance after the last step, by Layer id. */
+  poses(): ReadonlyMap<string, Pose> {
+    return this.#poses;
   }
 
   /** Queues a Cue for a Layer's instance; dropped when the Layer has none. */
@@ -58,6 +67,7 @@ export class VisualPlayer {
       }
 
     const outputs = new Map<string, Map<string, Map<string, SlotOutput>>>();
+    const poses = new Map<string, Pose>();
     const clamped = Math.min(Math.max(dt, 0), settings.visuals.maxFrameSeconds);
     for (const layer of layers) {
       const definition = visualDefinition(layer.visual);
@@ -79,11 +89,16 @@ export class VisualPlayer {
       for (const key of running.cues) running.instance.cue?.(key);
       running.cues = [];
       const output = new Map<string, Map<string, SlotOutput>>();
+      const geometry =
+        definition.geometry === undefined
+          ? undefined
+          : geometryInput(document, layer);
       running.instance.update(
         {
           dt: clamped,
           params: visualParameters(document, layer, definition),
           targets: visualTargets(document, layer).targets,
+          ...(geometry === undefined ? {} : { geometry }),
         },
         (slot, target, value, alpha = 1) => {
           let byTarget = output.get(slot);
@@ -95,7 +110,10 @@ export class VisualPlayer {
         },
       );
       outputs.set(layer.id, output);
+      const pose = running.instance.pose?.();
+      if (pose !== undefined) poses.set(layer.id, pose);
     }
+    this.#poses = poses;
     return outputs;
   }
 }

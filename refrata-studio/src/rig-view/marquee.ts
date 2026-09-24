@@ -1,4 +1,13 @@
-import { placeShape, type PlacedShape, type Position } from "@refrata/core";
+import {
+  allFixtures,
+  elementsOf,
+  placeShape,
+  type Fixture,
+  type PlacedShape,
+  type Position,
+  type StoredFixtureType,
+  type Table,
+} from "@refrata/core";
 
 /**
  * Marquee hit-testing, in stage metres: a placed Element is inside when its
@@ -18,6 +27,22 @@ export interface PlacedFixture {
   readonly id: string;
   readonly position: Position;
   readonly shapes: readonly PlacedShape[];
+}
+
+/** Every Fixture with its placed shapes, in stage-relative metres. */
+export function placedFixtures(
+  fixtures: Table<Fixture>,
+  types: Table<StoredFixtureType>,
+): PlacedFixture[] {
+  return allFixtures(fixtures).map((fixture) => {
+    const mode = types[fixture.typeKey]?.type.modes[fixture.modeKey];
+    return {
+      id: fixture.id,
+      position: fixture.position,
+      shapes:
+        mode === undefined ? [] : placeShape(mode.shape, elementsOf(mode)),
+    };
+  });
 }
 
 export function normalizeRect(rect: Rect): Rect {

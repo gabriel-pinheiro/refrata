@@ -26,6 +26,10 @@ describe("the Catalog", () => {
       "timer",
       "reveal",
       "roulette",
+      "wipe",
+      "radar",
+      "spectrum",
+      "ripple",
     ]);
     for (const definition of CATALOG) {
       expect(definition.description.length).toBeGreaterThan(0);

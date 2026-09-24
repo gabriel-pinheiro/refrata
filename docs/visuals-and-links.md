@@ -187,7 +187,8 @@ after Spread as key, index and count. The key decides it: Shimmer keeps an
 envelope per Target, and by index a Fixture tagged into a rule Set mid-show
 would shift every sparkle. No Tags (a Visual reading Tags is written against
 the rig, and "only the odd ones" is a Rule), no Position (order is the Set's;
-geometry is its own grill). A grandMA3 phaser spreads phase across the
+a Geometry Visual gets a point in its Layer's Frame instead, see
+docs/geometry-visuals.md). A grandMA3 phaser spreads phase across the
 selection order, which is index and count; a QLC+ chaser knows its step list.
 
 **One or many Targets is not a constraint.** An LFO with `phase spread` 0 is
@@ -253,6 +254,9 @@ Multiply.
 | Timer    | duration, mode, order, color, color end, level, urgent, at the end           | `start`, `pause`, `resume`, `reset` |
 | Reveal   | color, level, style, time                                                    | `reveal`, `hide`                    |
 | Roulette | color, level, duration, laps, winner, tail                                   | `spin`, `clear`                     |
+
+The Geometry Visuals, which read each Target's point in the Layer's Frame,
+are tabled in docs/geometry-visuals.md: Wipe, Radar, Spectrum and Ripple.
 
 The movement Visuals, for movers, all on degrees Slots over the whole of
 pan and tilt. Figure, Ballyhoo and Fan write offsets and ask for Add, so

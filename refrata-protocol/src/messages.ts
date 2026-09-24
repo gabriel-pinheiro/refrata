@@ -22,6 +22,10 @@ import { LiveStateSchema } from "./live.ts";
  *   answers with a `resolved` message holding every Element of those
  *   Fixtures, then `resolved` messages holding only what changed, coalesced
  *   to the stream rate.
+ * - Pose stream: `poses` names the Layers whose Geometry Visual pose a
+ *   session wants (a Rig View showing their Frames); the runtime answers
+ *   with a `pose` message per Layer whenever it changes, coalesced to the
+ *   stream rate, null for a Layer with no instance.
  * - Frame stream: `frames` names the Universes a session wants DMX Frames
  *   for, the same way. The runtime answers with a `frame` message holding
  *   all 512 bytes of each, then `frame` messages holding only the addresses
@@ -125,6 +129,14 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
       universeIds: z.array(z.string().min(1)),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("poses"),
+      documentId: DocumentIdSchema,
+      /** Layers whose Geometry Visual pose the session wants; the whole set, empty to stop. */
+      layerIds: z.array(z.string().min(1)),
+    })
+    .strict(),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -134,6 +146,13 @@ export const ResolvedValuesSchema = z.record(
   ParameterValuesSchema,
 );
 export type ResolvedValues = z.infer<typeof ResolvedValuesSchema>;
+
+/** A Geometry Visual's pose: small numbers or lists of them, as the Visual reports it. */
+export const PoseSchema = z.record(
+  z.string().min(1),
+  z.union([z.number(), z.array(z.number())]),
+);
+export type PoseValues = z.infer<typeof PoseSchema>;
 
 /** Bytes of a DMX Frame by DMX Address (`"1"` to `"512"`); a partial record on updates. */
 export const FrameBytesSchema = z.record(
@@ -256,6 +275,15 @@ export const ServerMessageSchema = z.discriminatedUnion("type", [
       /** True when `bytes` holds every address. */
       full: z.boolean(),
       bytes: FrameBytesSchema,
+    })
+    .strict(),
+  /** The pose of a streamed Layer's Geometry Visual, or null while its Scene is not playing. */
+  z
+    .object({
+      type: z.literal("pose"),
+      documentId: DocumentIdSchema,
+      layerId: z.string().min(1),
+      pose: PoseSchema.nullable(),
     })
     .strict(),
   /** A trigger Address fired; not revisioned. */

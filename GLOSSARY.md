@@ -761,7 +761,8 @@ Element by nature (a mover's focus position) is one Target per Element.
 
 Code in the Catalog that animates Parameters over time: LFO, Shimmer, Chase,
 Strobe, Shutter, Pump, Rainbow, Static Number, Static Color, Figure, Sweep,
-Ballyhoo, Fan, Flyout, Meter, Counter, Timer, Reveal, Roulette. A Visual declares its Slots with a default
+Ballyhoo, Fan, Flyout, Meter, Counter, Timer, Reveal, Roulette, and the
+Geometry Visuals Wipe, Radar, Spectrum and Ripple. A Visual declares its Slots with a default
 binding each, its Parameter Schema, the Cues it answers, whether it
 distributes across Targets, the Blend Mode a new Layer of it starts with when
 that is not Normal, and one line saying what it is. It
@@ -779,7 +780,8 @@ every instance, which is how one pad re-syncs a whole Scene.
 
 Each frame the instance receives its Layer's Targets after Spread, in order,
 each as a stable key, an index and the count, and nothing else: no Tags, no
-Position, no Attributes. State a Visual keeps per Target is kept by key, so
+Position, no Attributes; a Geometry Visual alone also gets each Target's
+point in its Layer's Frame. State a Visual keeps per Target is kept by key, so
 a Fixture joining a rule Set mid-show moves no sparkle. A Visual that
 distributes across Targets (Chase, Rainbow) says so, and Studio warns when
 such a Layer has one Target after Spread and offers to spread it; it is a
@@ -870,6 +872,38 @@ Slot per Target. Its Addresses are those of any Layer plus
 `layer/<id>/param/<name>` per Visual Parameter, linkable, and
 `layer/<id>/cue/<key>` per Cue. A Layer whose Visual the Catalog does not
 know contributes nothing and says so.
+
+### Geometry Visual
+
+A Visual that also sees where its Targets are: each Target's point in its
+Layer's Frame, metres from the Frame's centre along its width and height,
+with the Frame's size, never stage metres or a Fixture. Wipe (a band of
+`color` crossing the Frame), Radar (a wedge turning about its centre),
+Spectrum (Rainbow by position) and Ripple (rings from the centre, or in to
+it). Its Parameters are fractions of the Frame, so they read the same on a
+measured rig and a schematic one; Targets past the Frame's edges still
+reach it, and each says what it does there. A Target's point is the centre
+of what it draws in the Rig View: a root the whole fixture, a spread bar a
+point per pixel, an unspread Set the centroid of its members. It reports a
+pose each frame, a few numbers the Runtime streams to a Studio session
+that asks, and its definition draws a figure from that pose in Frame
+space, which the Rig View shows inside the Frame while the Layer is
+selected; no Visual runs in Studio. The order-based Visuals stay
+order-based. Reasoned in [docs/geometry-visuals.md](docs/geometry-visuals.md).
+
+### Frame
+
+The rectangle in stage space a Layer running a Geometry Visual measures
+its Targets against: a centre, a width and a height in metres, and a
+rotation about the centre in degrees, stored on the Visual Layer. Set once
+per Layer like a Slot Binding's anchors and never an Address: dragging it
+in the Rig View (its outline to move, edges and corners to resize, a
+handle to rotate), its inspector fields and `refrata layers frame` are one
+undoable command. A new Layer of a Geometry Visual starts with it fitted
+around what its Targets draw; "Fit to Targets" does that again. A Layer
+of any other Visual has none. It is a coordinate system, not a mask.
+
+Do not confuse with a DMX Frame, one refresh of a Universe's 512 bytes.
 
 ### Controller and Parameter Link
 
@@ -969,7 +1003,8 @@ new Fixture lands one shape width to the right of the rightmost existing
 Fixture, on the floor line, so a fresh rig reads as a row before anyone drags;
 the first Fixture lands at the origin. Elements have no Position of their own;
 their offsets come from the Shape Template. Position is what the
-front view draws and what geometry Visuals will read later.
+front view draws and what a Geometry Visual reads through its Layer's
+Frame.
 
 ### Shape Template
 
@@ -1030,10 +1065,8 @@ Never saved.
 - **Generated Controller**: a Controller whose value comes from an LFO, an
   envelope or audio instead of a hand or a hub, linkable like any Controller.
 - **Tempo**: an Installation-level rate that Visuals may sync to.
-- **Positions handed to Visuals** per Target so gradients and sweeps follow
-  the real rig; see docs/moving-heads-and-geometry.md. Position itself is in
-  section 5.
-- **Grid** on a Fixture Set for spatial effects and matrices.
+- **Pointing**: a mover aimed at a point on stage, from its Position and
+  orientation; see docs/moving-heads-and-geometry.md.
 - **Multipatch**: a second Patch that mirrors a Fixture's output elsewhere.
 - **Multi-range Modes** (GDTF "breaks").
 - **Emitter Parameters**: raw red, green, blue, white levels beside `color`.

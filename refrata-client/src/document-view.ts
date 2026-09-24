@@ -12,6 +12,7 @@ import {
   EMPTY_LIVE_STATE,
   type FrameBytes,
   type LiveState,
+  type PoseValues,
   type ResolvedValues,
 } from "@refrata/protocol";
 
@@ -47,6 +48,10 @@ export class DocumentView {
   #frames = new Map<string, Uint8Array>();
   readonly #frameListeners = new Map<string, Set<() => void>>();
   #streamedUniverses: readonly string[] = [];
+  /** The latest pose of each streamed Layer's Geometry Visual; null while its Scene is not playing. */
+  #poses = new Map<string, PoseValues | null>();
+  readonly #poseListeners = new Map<string, Set<() => void>>();
+  #streamedLayers: readonly string[] = [];
 
   constructor(documentId: string, options: { readonly live?: boolean } = {}) {
     this.documentId = documentId;
@@ -194,6 +199,43 @@ export class DocumentView {
     this.#frames.set(universeId, next);
     for (const listener of this.#frameListeners.get(universeId) ?? [])
       listener();
+  }
+
+  /** The latest pose of a Layer's Geometry Visual: null while its Scene is not playing, undefined while nothing streams it. */
+  poseOf(layerId: string): PoseValues | null | undefined {
+    return this.#poses.get(layerId);
+  }
+
+  /** Notifies when the pose of a Layer changes, or the stream starts over. */
+  subscribePose(layerId: string, listener: () => void): () => void {
+    let listeners = this.#poseListeners.get(layerId);
+    if (listeners === undefined) {
+      listeners = new Set();
+      this.#poseListeners.set(layerId, listeners);
+    }
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this.#poseListeners.delete(layerId);
+    };
+  }
+
+  /** @internal Which Layers the client asked poses for, for resubscribing. */
+  streamedLayers(): readonly string[] {
+    return this.#streamedLayers;
+  }
+
+  /** @internal Poses of Layers no longer asked for are dropped. */
+  setStreamedLayers(layerIds: readonly string[]): void {
+    this.#streamedLayers = [...layerIds];
+    for (const layerId of this.#poses.keys())
+      if (!layerIds.includes(layerId)) this.#poses.delete(layerId);
+  }
+
+  /** @internal A `pose` message. */
+  applyPose(layerId: string, pose: PoseValues | null): void {
+    this.#poses.set(layerId, pose);
+    for (const listener of this.#poseListeners.get(layerId) ?? []) listener();
   }
 
   /** A signal-like view of one path, for framework bindings. */

@@ -11,8 +11,10 @@ import { formatStack } from "./composition-lines.ts";
 import { stageLook } from "./composition-lines.test.ts";
 import {
   describeBinding,
+  describeFrame,
   formatCatalog,
   formatVisual,
+  visualLayerLines,
 } from "./visual-lines.ts";
 
 const registry = createBuiltInRegistry();
@@ -39,6 +41,9 @@ describe("the Catalog", () => {
     );
     expect(text).toContain("rate (number) 0 Hz to 20 Hz, default 2 Hz");
     expect(text).toContain("Cues: step (Advance one step now.), restart");
+    expect(text).toContain(
+      "wipe  “Wipe”  A band of color crosses the Frame; Targets outside the band are released.  [distributes across Targets]  [Geometry Visual: reads where its Targets are in its Layer's Frame]",
+    );
   });
 
   it("prints one Visual as its block of the Catalog", () => {
@@ -124,5 +129,43 @@ describe("describeBinding", () => {
       "value on strobe (1 Hz to 12 Hz)",
     );
     expect(describeBinding(lfo, { attribute: null })).toBe("value not bound");
+  });
+});
+
+describe("a Layer of a Geometry Visual in the stack", () => {
+  it("prints its Frame, or that it has none", () => {
+    const document = apply(stageLook(), [
+      [
+        "layer.create",
+        {
+          id: "sweep",
+          kind: "visual",
+          visual: "wipe",
+          sceneId: "verse",
+          name: "Across",
+          targets: ["set:wash"],
+        },
+      ],
+      [
+        "layer.frame.set",
+        {
+          layerId: "sweep",
+          frame: { x: 0.5, y: 0.75, width: 2, height: 1, rotation: 30 },
+        },
+      ],
+    ]);
+    const layer = document.layers.sweep;
+    if (layer?.kind !== "visual") throw new Error("No Layer.");
+    expect(
+      describeFrame({ x: 0, y: 0, width: 1, height: 1, rotation: 0 }),
+    ).toBe("1.00 m × 1.00 m at (0.00, 0.00)");
+    expect(visualLayerLines(document, layer)).toContain(
+      "frame: 2.00 m × 1.00 m at (0.50, 0.75), turned 30°",
+    );
+    expect(
+      visualLayerLines(document, { ...layer, frame: undefined }).some((line) =>
+        line.startsWith("frame: none"),
+      ),
+    ).toBe(true);
   });
 });

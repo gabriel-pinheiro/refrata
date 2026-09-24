@@ -7,6 +7,7 @@ import {
   spreadWarning,
   visualDefinition,
   type Document,
+  type Frame,
   type ParameterDefinition,
   type SlotBinding,
   type SlotDefinition,
@@ -18,8 +19,8 @@ import { formatRowValue, formatValue } from "./value-lines.ts";
 
 /**
  * Visuals as the CLI shows them: the Catalog one block per Visual, and
- * under a Visual Layer of a stack its Parameters, bindings, Cues and the
- * one-Target warning.
+ * under a Visual Layer of a stack its Parameters, bindings, Cues, the
+ * Frame of a Geometry Visual's Layer and the one-Target warning.
  */
 
 const NONE = "none";
@@ -63,7 +64,7 @@ function describeParameter(
 /** One Visual of the Catalog: what it is, its Slots, Parameters and Cues. */
 export function formatVisual(definition: VisualDefinition): string[] {
   return [
-    `${definition.id}  “${definition.name}”  ${definition.description}${definition.distributes ? "  [distributes across Targets]" : ""}`,
+    `${definition.id}  “${definition.name}”  ${definition.description}${definition.distributes ? "  [distributes across Targets]" : ""}${definition.geometry === undefined ? "" : "  [Geometry Visual: reads where its Targets are in its Layer's Frame]"}`,
     `  Slots: ${definition.slots
       .map(
         (slot) =>
@@ -105,7 +106,15 @@ export function visualName(layer: VisualLayer): string {
   );
 }
 
-/** The lines under a Visual Layer in a stack: Parameters (a linked one says who drives it), bindings, Cues, the warning. */
+/** `2.00 m × 1.00 m at (0.50, 0.75), turned 30°`: a Frame as the CLI prints it. */
+export function describeFrame(frame: Frame): string {
+  const metres = (value: number): string => `${value.toFixed(2)} m`;
+  const turned =
+    frame.rotation === 0 ? "" : `, turned ${String(frame.rotation)}°`;
+  return `${metres(frame.width)} × ${metres(frame.height)} at (${frame.x.toFixed(2)}, ${frame.y.toFixed(2)})${turned}`;
+}
+
+/** The lines under a Visual Layer in a stack: Parameters (a linked one says who drives it), bindings, the Frame, Cues, the warning. */
 export function visualLayerLines(
   document: Document,
   layer: VisualLayer,
@@ -132,6 +141,12 @@ export function visualLayerLines(
       .map((slot) => describeBinding(slot, layer.bindings[slot.key]))
       .join(", ")}`,
   ];
+  if (definition.geometry !== undefined)
+    lines.push(
+      layer.frame === undefined
+        ? "frame: none, so the Visual releases everything; set one with layers frame"
+        : `frame: ${describeFrame(layer.frame)}`,
+    );
   if (definition.cues.length > 0)
     lines.push(
       `cues: ${definition.cues

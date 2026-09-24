@@ -1,17 +1,17 @@
 import type { DocumentView } from "@refrata/client";
 import {
   allFixtures,
-  elementsOf,
-  placeShape,
   type Fixture,
+  type Frame,
   type StoredFixtureType,
   type Table,
 } from "@refrata/core";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useMemo, useRef, useState, type PointerEvent } from "react";
 
 import { PanelHeader } from "@/components/panel-header";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
+import { usePoseStream } from "@/lib/use-pose";
 import { pickedRefs } from "@/selection/selected-targets";
 import {
   pickModeOf,
@@ -20,25 +20,18 @@ import {
   type Selection,
 } from "@/selection/selection";
 
-import {
-  DEFAULT_CAMERA,
-  fit,
-  pan,
-  toStage,
-  viewBox,
-  wheel,
-  type Camera,
-  type CanvasSize,
-} from "./camera";
+import { pan, toStage, viewBox } from "./camera";
 import { FixtureShape } from "./fixture-shape";
+import { FrameGizmo } from "./frame-gizmo";
+import { dragFrame, isFrameHandle, type FrameHandle } from "./frame-handles";
 import {
   elementsInRect,
   normalizeRect,
-  rigBounds,
-  type PlacedFixture,
+  placedFixtures,
   type Rect,
 } from "./marquee";
 import { useOutlined } from "./outlined";
+import { useRigCanvas } from "./use-rig-canvas";
 
 /**
  * The schematic front view of the rig: every placed Element as a flat shape
@@ -50,8 +43,11 @@ import { useOutlined } from "./outlined";
  * button or Alt with the left one pans, and so does scrolling, both ways on
  * a trackpad; ctrl with the wheel, or a pinch, zooms around the pointer.
  * Selected Fixtures and Elements are outlined, and so are the Targets of
- * the selected Layers and the members of the selected Sets. Zoom and pan
- * are per session and never saved; the view opens framing the whole rig.
+ * the selected Layers and the members of the selected Sets. A selected
+ * Layer running a Geometry Visual shows its Frame with the Visual's
+ * figure inside; dragging the Frame's body, edges, corners or rotate
+ * handle sets it (one undo step). Zoom and pan are per session and never
+ * saved; the view opens framing the whole rig.
  */
 export function RigView({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
@@ -64,24 +60,19 @@ export function RigView({ view }: { readonly view: DocumentView }) {
   const fixtures = loadedFixtures ?? {};
   const types = loadedTypes ?? {};
   const outlined = useOutlined(view, selected);
-  const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
-  const [measured, setSize] = useState<CanvasSize | undefined>(undefined);
-  const size = measured ?? UNMEASURED;
-  const [framed, setFramed] = useState(false);
-  if (
-    !framed &&
-    measured !== undefined &&
-    loadedFixtures !== undefined &&
-    loadedTypes !== undefined
-  ) {
-    // Frame the whole rig once, when the canvas is measured and the rig loaded;
-    // React allows adjusting state during render.
-    setFramed(true);
-    const bounds = rigBounds(placedFixtures(loadedFixtures, loadedTypes));
-    if (bounds !== undefined) setCamera(fit(bounds, measured, FIT_MARGIN));
-  }
+  const loadedPlaced = useMemo(
+    () =>
+      loadedFixtures === undefined || loadedTypes === undefined
+        ? undefined
+        : placedFixtures(loadedFixtures, loadedTypes),
+    [loadedFixtures, loadedTypes],
+  );
+  const { svgRef, camera, setCamera, size } = useRigCanvas(loadedPlaced);
+  const selectedLayers = selected.flatMap((item) =>
+    item.kind === "layer" ? [item.id] : [],
+  );
+  usePoseStream(view, selectedLayers);
   const [marquee, setMarquee] = useState<Rect | undefined>(undefined);
-  const svgRef = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | undefined>(undefined);
   const place = useLatestWins(
     (move: {
@@ -94,43 +85,10 @@ export function RigView({ view }: { readonly view: DocumentView }) {
         position: { x: move.x, y: move.y },
       }),
   );
-
-  useEffect(() => {
-    const element = svgRef.current;
-    if (element === null) return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry === undefined) return;
-      setSize({
-        width: Math.max(1, entry.contentRect.width),
-        height: Math.max(1, entry.contentRect.height),
-      });
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  // A native listener, since React's wheel listener is passive and cannot
-  // stop ctrl+wheel or a pinch from zooming the whole page.
-  useEffect(() => {
-    const element = svgRef.current;
-    if (element === null) return;
-    const onWheel = (event: globalThis.WheelEvent): void => {
-      event.preventDefault();
-      const rect = element.getBoundingClientRect();
-      const input = {
-        px: event.clientX - rect.left,
-        py: event.clientY - rect.top,
-        deltaX: event.deltaX,
-        deltaY: event.deltaY,
-        deltaMode: event.deltaMode,
-        ctrlKey: event.ctrlKey,
-        shiftKey: event.shiftKey,
-      };
-      setCamera((previous) => wheel(previous, size, input));
-    };
-    element.addEventListener("wheel", onWheel, { passive: false });
-    return () => element.removeEventListener("wheel", onWheel);
-  }, [size]);
+  const placeFrame = useLatestWins(
+    (move: { readonly layerId: string; readonly frame: Frame }) =>
+      command("layer.frame.set", move),
+  );
 
   const pointer = (
     event: PointerEvent<SVGSVGElement>,
@@ -152,6 +110,21 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     if (event.button === 1 || event.altKey) {
       gesture.current = { kind: "pan", px, py };
       return;
+    }
+    const grabbed = frameHandleAt(event.target as SVGElement);
+    if (grabbed !== undefined && event.button === 0) {
+      const layer = view.get()?.layers[grabbed.layerId];
+      const frame = layer?.kind === "visual" ? layer.frame : undefined;
+      if (frame !== undefined) {
+        gesture.current = {
+          kind: "frame",
+          layerId: grabbed.layerId,
+          handle: grabbed.handle,
+          start: frame,
+          from: toStage(camera, size, px, py),
+        };
+        return;
+      }
     }
     if (fixtureId === undefined) {
       const at = toStage(camera, size, px, py);
@@ -181,6 +154,18 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     if (current.kind === "pan") {
       setCamera((previous) => pan(previous, px - current.px, py - current.py));
       gesture.current = { ...current, px, py };
+      return;
+    }
+    if (current.kind === "frame") {
+      placeFrame({
+        layerId: current.layerId,
+        frame: dragFrame(
+          current.start,
+          current.handle,
+          current.from,
+          toStage(camera, size, px, py),
+        ),
+      });
       return;
     }
     if (current.kind === "marquee") {
@@ -219,6 +204,7 @@ export function RigView({ view }: { readonly view: DocumentView }) {
     const current = gesture.current;
     gesture.current = undefined;
     if (current === undefined || current.kind === "pan") return;
+    if (current.kind === "frame") return;
     if (current.kind === "marquee") {
       const rect = marquee;
       setMarquee(undefined);
@@ -293,6 +279,14 @@ export function RigView({ view }: { readonly view: DocumentView }) {
               outlined={keysOf(outlined, fixture.id)}
             />
           ))}
+          {selectedLayers.map((layerId) => (
+            <FrameGizmo
+              key={layerId}
+              view={view}
+              layerId={layerId}
+              scale={camera.scale}
+            />
+          ))}
           {shown !== undefined && (
             <rect
               x={shown.x1}
@@ -315,29 +309,25 @@ export function RigView({ view }: { readonly view: DocumentView }) {
   );
 }
 
-const UNMEASURED: CanvasSize = { width: 1, height: 1 };
-
-/** Pixels kept clear around the rig when the view frames it. */
-const FIT_MARGIN = 48;
-
-/** Every Fixture with its placed shapes, in stage-relative metres. */
-function placedFixtures(
-  fixtures: Table<Fixture>,
-  types: Table<StoredFixtureType>,
-): PlacedFixture[] {
-  return allFixtures(fixtures).map((fixture) => {
-    const mode = types[fixture.typeKey]?.type.modes[fixture.modeKey];
-    return {
-      id: fixture.id,
-      position: fixture.position,
-      shapes:
-        mode === undefined ? [] : placeShape(mode.shape, elementsOf(mode)),
-    };
-  });
+/** The Frame handle under a pointer, from the gizmo's data attributes; undefined off any Frame. */
+function frameHandleAt(
+  target: SVGElement,
+): { readonly layerId: string; readonly handle: FrameHandle } | undefined {
+  const handle = target.closest<SVGElement>("[data-handle]")?.dataset.handle;
+  const layerId = target.closest<SVGElement>("[data-frame]")?.dataset.frame;
+  if (layerId === undefined || !isFrameHandle(handle)) return undefined;
+  return { layerId, handle };
 }
 
 type Gesture =
   | { readonly kind: "pan"; readonly px: number; readonly py: number }
+  | {
+      readonly kind: "frame";
+      readonly layerId: string;
+      readonly handle: FrameHandle;
+      readonly start: Frame;
+      readonly from: { readonly x: number; readonly y: number };
+    }
   | {
       readonly kind: "marquee";
       readonly start: { readonly x: number; readonly y: number };

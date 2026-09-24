@@ -25,6 +25,7 @@ import { installationRename } from "./installation.rename.ts";
 import { layerBindingSet } from "./layer.binding.set.ts";
 import { layerCreate } from "./layer.create.ts";
 import { layerDuplicate } from "./layer.duplicate.ts";
+import { layerFrameSet } from "./layer.frame.set.ts";
 import { layerMove } from "./layer.move.ts";
 import { layerRemove } from "./layer.remove.ts";
 import { layerRename } from "./layer.rename.ts";
@@ -125,6 +126,7 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   layerUngroup,
   layerDuplicate,
   layerUpdate,
+  layerFrameSet,
   layerTargetsAdd,
   layerTargetsRemove,
   layerTargetsSpread,

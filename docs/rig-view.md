@@ -19,10 +19,10 @@ sheet's colour swatches laid out in space, not a render.
 
 A Fixture has a Position: `x`, `y`, `z` in metres and a rotation about each
 axis. The origin is centre stage on the floor, `x` to the right as the
-audience sees it, `y` up, `z` toward the audience. The front view uses `x`,
-`y` and the rotation about `z`; the rest is stored now so a plan view, other
-2D views, a 3D view and the geometry Visuals in
-docs/moving-heads-and-geometry.md read the same numbers later.
+audience sees it, `y` up, `z` toward the audience. The front view and the
+Geometry Visuals use `x`, `y` and the rotation about `z`; the rest is
+stored now so a plan view, other 2D views and a 3D view read the same
+numbers later.
 
 A new Fixture lands one shape width to the right of the rightmost existing
 Fixture, on the floor line, so ten new pars read as a row instead of a pile at
@@ -87,7 +87,12 @@ offers "Add to Look Layer", "Add to Set" and "New Set", and a Layer or Set
 can also pick from the whole rig with its own "Add" dialog. Drag on a shape
 moves the Fixture. When a Layer or a Fixture Set
 is selected the view outlines its Targets or members, so what a Layer
-reaches is visible without reading the inspector. Zoom and pan are per Studio
+reaches is visible without reading the inspector. A selected Layer running
+a Geometry Visual also shows its Frame, with the Visual's figure inside it
+from the streamed pose (the band, the wedge, the rings); its outline
+drags, its edges and corners resize, a handle above it rotates, and the
+fixtures inside stay clickable ([geometry-visuals.md](geometry-visuals.md)).
+Zoom and pan are per Studio
 session and never saved; the view opens framing the whole rig with a small
 margin. Hover shows the name.
 

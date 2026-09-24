@@ -239,6 +239,29 @@ describe("live protocol", () => {
     );
     studio.frames(created.id, []);
     expect(view.frameOf(universeId)).toBeUndefined();
+
+    // A Geometry Visual's pose streams while its Scene plays, null otherwise.
+    await studio.command(created.id, "scene.create", {
+      id: "verse",
+      name: "Verse",
+    });
+    await studio.command(created.id, "layer.create", {
+      id: "wipe",
+      kind: "visual",
+      visual: "wipe",
+      sceneId: "verse",
+      targets: ["par/root"],
+    });
+    studio.poses(created.id, ["wipe"]);
+    await waitFor(() => (view.poseOf("wipe") === null ? true : undefined));
+    await studio.command(created.id, "address.trigger", {
+      address: "scene/verse/play",
+    });
+    await waitFor(() =>
+      typeof view.poseOf("wipe")?.centre === "number" ? true : undefined,
+    );
+    studio.poses(created.id, []);
+    expect(view.poseOf("wipe")).toBeUndefined();
     studio.close();
   });
 

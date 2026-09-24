@@ -99,15 +99,17 @@ The direction here, in three steps, each usable on its own:
 1. **Order.** A spread Set hands each Target its `index` and the `count`.
    A sweep is alpha as a function of `index / count` over time. This exists
    as soon as Spread does and covers a truss of bars.
-2. **Position.** A Fixture gets a position and orientation in a stage space
-   (metres, origin at centre stage, entered in Studio the way Difracta's
-   Surfaces are calibrated, or imported from MVR). A Mode may add per-Element
-   offsets from its geometry (the Panels of a bar sit 12 cm apart). Each
-   Target then carries `position`, and a Visual asks for it the way a Difracta
-   Visual asks for a Path: a declared need, so a Layer over a Set with no
-   positions says so. A sweep is alpha as a function of `x`; a gradient is
-   colour as a function of `x`; a "from the drummer outward" is distance from
-   a point. The bar's Panels get positions for free from the Mode.
+2. **Position.** Built, as [geometry-visuals.md](geometry-visuals.md)
+   says. A Fixture has a Position in stage space (metres, origin at centre
+   stage, dragged in the Rig View), and a Mode's Shape Template places its
+   Elements around it, so the bar's Panels get points for free. A Geometry
+   Visual (Wipe, Radar, Spectrum, Ripple) is handed each Target's point in
+   its Layer's Frame, a rectangle placed on the stage, rather than a
+   declared need for stage metres: the Frame is the calibration, set once
+   like anchors, and the Visual's Parameters are fractions of it. A wipe is
+   alpha as a function of the point's `x` across the Frame; a gradient is
+   colour as a function of it; a ripple is distance from the Frame's
+   centre.
 3. **Pointing.** With positions and orientations, a mover can be aimed at a
    point on stage instead of at pan and tilt angles: a Look Layer row `focus`
    in stage coordinates, converted per Element by inverse kinematics. This is
@@ -115,7 +117,8 @@ The direction here, in three steps, each usable on its own:
    sweeps a point across the stage moves every mover to follow it. It is the
    furthest step and needs calibration to be trustworthy.
 
-What this means for the model now: Targets carry metadata (index, count, and
-later position and tags), Visuals declare which metadata they need, and Sets
-by rule keep their order stable. A grid on a Set is then a fallback for rigs
-nobody measured, not the primary geometry.
+What this means for the model: Targets carry metadata (index and count for
+every Visual, a point in the Frame for a Geometry Visual), Visuals say
+which family they are, and Sets by rule keep their order stable. A grid on
+a Set is not needed; the Rig View's positions and the Frame do that job for
+rigs nobody measured too.

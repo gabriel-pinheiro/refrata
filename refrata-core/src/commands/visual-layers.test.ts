@@ -223,12 +223,13 @@ describe("a Visual Layer", () => {
   });
 });
 
-describe("Resolve with Visuals", () => {
-  const dimmer = (document: Document, player: VisualPlayer, dt: number) => {
-    const resolved = resolveDocument(document, player.step(document, dt));
-    return (ref: string) => resolved.get(ref)?.dimmer as number;
-  };
+/** Steps the player once and reads the resolved dimmer of an Element. */
+const dimmer = (document: Document, player: VisualPlayer, dt: number) => {
+  const resolved = resolveDocument(document, player.step(document, dt));
+  return (ref: string) => resolved.get(ref)?.dimmer as number;
+};
 
+describe("Resolve with Visuals", () => {
   it("gates the look below with a Shutter and leaves its color alone", () => {
     const document = withVisual("shutter", [
       ["address.edit", { address: "layer/fx/param/rate", value: 4 }],
@@ -340,5 +341,78 @@ describe("Resolve with Visuals", () => {
     ]);
     const player = new VisualPlayer();
     expect(dimmer(document, player, 0.025)("s1/panel-1")).toBeCloseTo(0.25);
+  });
+});
+
+describe("a Layer of a Geometry Visual", () => {
+  it("gets a Frame fitted to its Targets, keeps it across Visuals with geometry and drops it otherwise", () => {
+    const document = withVisual("wipe");
+    const frame = visualLayer(document, "fx").frame;
+    expect(frame).toBeDefined();
+    expect(frame?.rotation).toBe(0);
+    expect(visualLayer(withVisual("chase"), "fx").frame).toBeUndefined();
+    const moved = run(document, "layer.frame.set", {
+      layerId: "fx",
+      frame: { x: 5, rotation: 30 },
+    }).document;
+    expect(visualLayer(moved, "fx").frame).toEqual({
+      ...frame,
+      x: 5,
+      rotation: 30,
+    });
+    const radar = run(moved, "layer.visual.set", {
+      layerId: "fx",
+      visual: "radar",
+    }).document;
+    expect(visualLayer(radar, "fx").frame).toEqual({
+      ...frame,
+      x: 5,
+      rotation: 30,
+    });
+    const refitted = run(radar, "layer.frame.set", {
+      layerId: "fx",
+      fit: true,
+    }).document;
+    expect(visualLayer(refitted, "fx").frame).toEqual(frame);
+    const chase = run(refitted, "layer.visual.set", {
+      layerId: "fx",
+      visual: "chase",
+    }).document;
+    expect(visualLayer(chase, "fx").frame).toBeUndefined();
+    expect(
+      failure(chase, "layer.frame.set", { layerId: "fx", frame: { x: 1 } }),
+    ).toContain("not a Geometry Visual");
+    expect(
+      failure(document, "layer.frame.set", {
+        layerId: "fx",
+        frame: { width: 0 },
+      }),
+    ).toContain("width");
+  });
+
+  it("wipes across the spread Set by where the Strobes stand and reports its pose", () => {
+    const document = withVisual("wipe", [
+      [
+        "layer.targets.spread",
+        { layerId: "fx", ref: "set:panels", spread: true },
+      ],
+      ["address.edit", { address: "layer/fx/param/rate", value: 0 }],
+      ["address.edit", { address: "layer/fx/param/width", value: 0.3 }],
+      ["address.edit", { address: "layer/fx/param/softness", value: 0 }],
+      [
+        "layer.frame.set",
+        { layerId: "fx", frame: { x: 2, width: 4, height: 2, rotation: 0 } },
+      ],
+    ]);
+    const player = new VisualPlayer();
+    // At phase 0 the band is entering at the Frame's left edge, which is at
+    // x 0: s1's panels just left of the origin are under it, s2's to the
+    // right are not.
+    const read = dimmer(document, player, 0);
+    expect(read("s1/panel-1")).toBe(1);
+    expect(read("s2/panel-4")).toBeCloseTo(0.4);
+    expect(player.poses().get("fx")).toEqual({ centre: -0.15 });
+    player.restart();
+    expect(player.poses().size).toBe(0);
   });
 });

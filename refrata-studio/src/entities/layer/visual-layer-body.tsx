@@ -24,6 +24,7 @@ import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand } from "@/lib/client";
 
+import { FrameFields } from "./frame-fields";
 import { VisualBindings } from "./visual-bindings";
 import { VisualPicker } from "./visual-picker";
 
@@ -33,7 +34,8 @@ const MacroIcon = macroIcons.macro;
  * What a Visual Layer has beyond any Layer: the Visual it runs, with a way
  * to choose another; one row per Visual Parameter, each an Address a
  * Controller can take; the Slot Bindings; and a button per Cue, whose menu
- * makes the Macro a hub's pad needs.
+ * makes the Macro a hub's pad needs. A Geometry Visual's Layer shows its
+ * Frame after the Targets.
  * A Layer whose Visual the Catalog does not know says so and still lets
  * the person choose another.
  */
@@ -87,6 +89,9 @@ export function VisualLayerBody({
         )}
       </InspectorSection>
       {children}
+      {definition?.geometry !== undefined && (
+        <FrameFields view={view} layer={layer} />
+      )}
       {definition !== undefined && (
         <>
           <InspectorSection storageKey="visual-parameters" label="Parameters">
