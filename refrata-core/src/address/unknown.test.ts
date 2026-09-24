@@ -79,12 +79,14 @@ describe("unknown addresses", () => {
   });
 
   it("lists the Cues when a trigger names one the Visual does not declare", () => {
-    expect(error(fireAddress(document, "layer/wave/cue/burst"))).toBe(
+    expect(
+      error(fireAddress(document, "layer/wave/cue/burst", Math.random)),
+    ).toBe(
       "Unknown address “layer/wave/cue/burst”: LFO declares the Cues sync. See `refrata visuals lfo`.",
     );
-    expect(error(fireAddress(document, "layer/fan/cue/burst"))).toMatch(
-      /: Fan declares no Cues\. See `refrata visuals fan`\.$/,
-    );
+    expect(
+      error(fireAddress(document, "layer/fan/cue/burst", Math.random)),
+    ).toMatch(/: Fan declares no Cues\. See `refrata visuals fan`\.$/);
   });
 
   it("names a Look Layer's Targets and a Target's Attributes for a row it lacks", () => {
@@ -110,7 +112,7 @@ describe("unknown addresses", () => {
     expect(unknownAddress(document, "layer/wave/row/all/dimmer")).toBe(
       "Unknown address “layer/wave/row/all/dimmer”: Layer “Breathe” is a Visual Layer; it has Parameters and Cues, not rows.",
     );
-    expect(error(fireAddress(document, "layer/g/cue/x"))).toBe(
+    expect(error(fireAddress(document, "layer/g/cue/x", Math.random))).toBe(
       "Unknown address “layer/g/cue/x”: Layer “Pack” is a Group; it has no Parameters, Cues or rows.",
     );
   });
@@ -119,7 +121,7 @@ describe("unknown addresses", () => {
     expect(error(writeAddress(document, "layer/wave/nope", 1))).toBe(
       "Unknown address “layer/wave/nope”.",
     );
-    expect(error(fireAddress(document, "scene/zz/play"))).toBe(
+    expect(error(fireAddress(document, "scene/zz/play", Math.random))).toBe(
       "Unknown address “scene/zz/play”.",
     );
   });

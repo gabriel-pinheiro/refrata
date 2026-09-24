@@ -1,23 +1,40 @@
 import { z } from "zod";
 
-import { AddressValueSchema, type MacroAction } from "../document/document.ts";
+import {
+  AddressValueSchema,
+  ChanceSchema,
+  type MacroAction,
+} from "../document/document.ts";
 import type { Document } from "../document/document.ts";
 import { generateId } from "../ids.ts";
 import { resolveAddress } from "./address.ts";
 import { actionProblem } from "./fire.ts";
 import { unknownAddress } from "./unknown.ts";
 
-/** A Macro action as a command receives it: without its id. */
+/** A Macro action as a command receives it: without its id; `chance` absent means always. */
 export const ActionInputSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("set"),
       address: z.string().min(1),
       value: AddressValueSchema,
+      chance: ChanceSchema.optional(),
     })
     .strict(),
-  z.object({ kind: z.literal("toggle"), address: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal("trigger"), address: z.string().min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal("toggle"),
+      address: z.string().min(1),
+      chance: ChanceSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("trigger"),
+      address: z.string().min(1),
+      chance: ChanceSchema.optional(),
+    })
+    .strict(),
 ]);
 export type ActionInput = z.infer<typeof ActionInputSchema>;
 
@@ -25,8 +42,9 @@ export type ActionInput = z.infer<typeof ActionInputSchema>;
  * The actions a command is about to store, each given its id, or why one
  * cannot be: it must resolve and fit its Address now. A Link on the Address
  * is not refused, since the Macro may run after the Link goes, and the
- * inspector marks it meanwhile.
+ * inspector marks it meanwhile. An action's Chance is optional and 0 to 1.
  */
+
 export function newActions(
   document: Document,
   inputs: readonly ActionInput[],

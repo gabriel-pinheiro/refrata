@@ -7,13 +7,14 @@ import { accepted, defineCommand, rejected } from "../command/command.ts";
  * Appends actions to a Macro, or inserts them after one of its actions. Any
  * number at once, so a picker that captured fifteen opacities is one
  * command and one undo step. Each action must resolve and fit its Address
- * now.
+ * now. An action's Chance is optional and 0 to 1.
  */
 export const macroActionsAdd = defineCommand({
   name: "macro.actions.add",
   kind: "authoring",
   description:
-    "Add actions to a Macro: set an Address, toggle a switch or fire a trigger.",
+    "Add actions to a Macro: set an Address, toggle a switch or fire a trigger, each with an optional chance (0 to 1).",
+
   payload: z
     .object({
       macroId: z.string().min(1),

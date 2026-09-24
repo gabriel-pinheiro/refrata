@@ -144,41 +144,51 @@ export const AddressValueSchema = z.union([
 ]);
 
 /**
+ * An action's Chance: the probability, 0 to 1, that it fires once its
+ * Macro's Run Mode picked it. Absent means always.
+ */
+export const ChanceSchema = z.number().min(0).max(1);
+
+/** Fields every action has, whatever its kind. */
+const ActionBase = {
+  id: z.string().min(1),
+  address: z.string().min(1),
+  chance: ChanceSchema.optional(),
+};
+
+/**
  * One step of a Macro, on one Address: `set` writes a value, `toggle` flips
  * a boolean, `trigger` fires a trigger Address such as another Macro's run.
  */
 export const MacroActionSchema = z.discriminatedUnion("kind", [
   z
     .object({
-      id: z.string().min(1),
+      ...ActionBase,
       kind: z.literal("set"),
-      address: z.string().min(1),
       value: AddressValueSchema,
     })
     .strict(),
-  z
-    .object({
-      id: z.string().min(1),
-      kind: z.literal("toggle"),
-      address: z.string().min(1),
-    })
-    .strict(),
-  z
-    .object({
-      id: z.string().min(1),
-      kind: z.literal("trigger"),
-      address: z.string().min(1),
-    })
-    .strict(),
+  z.object({ ...ActionBase, kind: z.literal("toggle") }).strict(),
+  z.object({ ...ActionBase, kind: z.literal("trigger") }).strict(),
 ]);
 /** Action ids are plain strings: unique within their Macro, never a table key. */
 export type MacroAction = z.infer<typeof MacroActionSchema>;
 export type MacroActionKind = MacroAction["kind"];
 
 /**
+ * How a Macro's run chooses among its actions: `all` runs every one, `one`
+ * picks one at random, `some` picks `count` at random, `sequence` runs the
+ * next one in order each time and wraps.
+ */
+export const RUN_MODES = ["all", "one", "some", "sequence"] as const;
+export type RunMode = (typeof RUN_MODES)[number];
+
+/**
  * A Macro is a named, ordered list of actions run as one performance step
- * from its trigger Address `macro/<id>/run`: a look, a hit, a state. A Group
- * only arranges Macros in the navigator.
+ * from its trigger Address `macro/<id>/run`: a look, a hit, a state. Its
+ * Run Mode says which actions a run picks; `count` is how many when the
+ * mode is `some`, kept while another mode is on. A Group only arranges
+ * Macros in the navigator.
  */
 export const MacroSchema = z.discriminatedUnion("kind", [
   z
@@ -186,6 +196,8 @@ export const MacroSchema = z.discriminatedUnion("kind", [
       ...MacroBase,
       kind: z.literal("macro"),
       actions: z.array(MacroActionSchema),
+      mode: z.enum(RUN_MODES).default("all"),
+      count: z.number().int().min(1).default(1),
     })
     .strict(),
   z.object({ ...MacroBase, kind: z.literal("group") }).strict(),
@@ -219,6 +231,13 @@ export const OperationalSchema = z
     /** Running Actions by `<fixtureId>/<actionKey>`; true while the Runtime holds the byte. */
     actions: z.record(z.string(), z.boolean()),
     tester: TesterSchema.nullable(),
+    /**
+     * Where each Sequence Macro is, by Macro id: the index of the action
+     * its next run fires. Show state, so every Macro starts at the top
+     * when the document opens; read modulo the action count, so editing
+     * the list never breaks it.
+     */
+    sequence: z.record(z.string(), z.number().int().nonnegative()),
   })
   .strict();
 export type Operational = z.infer<typeof OperationalSchema>;
@@ -324,6 +343,7 @@ export const defaultOperational: Operational = {
   highlight: {},
   actions: {},
   tester: null,
+  sequence: {},
 };
 
 /** The name of the Universe every new Installation starts with. */

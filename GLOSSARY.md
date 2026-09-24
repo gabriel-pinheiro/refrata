@@ -8,8 +8,9 @@ The base is [Difracta](../difracta/docs/GLOSSARY.md): one Runtime holds one
 document, a web Studio edits it through commands, everything controllable is an
 Address, and performance input arrives over OSC/OSCQuery from a hub such as
 Chataigne. Terms Difracta already defines with the same meaning (Runtime, Studio,
-Command, Address, Revision, Inspector, Navigator, Group, Controller, Macro,
-Autosave, Catalog, Parameter Schema) are not repeated; only the terms that differ or are new are here.
+Command, Address, Revision, Inspector, Navigator, Group, Controller, Macro
+with its Run Mode and its actions' Chance, Autosave, Catalog, Parameter
+Schema) are not repeated; only the terms that differ or are new are here.
 
 Five sections, read bottom-up: the wire, the fixture library, the Rig,
 composition, and the Rig View. Rig-side terms end with an **Elsewhere** line saying what grandMA3

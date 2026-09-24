@@ -5,6 +5,7 @@ import {
   TABLE_SCHEMAS,
   type CommandRegistry,
   type Document,
+  type MacroRun,
   type Patch,
 } from "@refrata/core";
 import {
@@ -39,6 +40,8 @@ export type SessionCommandResult =
       readonly warnings?: readonly string[];
       /** Entities the command added, so a caller learns the ids it generated. */
       readonly created?: readonly CreatedEntity[];
+      /** After a Macro run: how many actions its Run Mode picked, and how many passed their Chance. */
+      readonly run?: MacroRun;
     }
   | {
       readonly ok: false;
@@ -223,6 +226,7 @@ export class DocumentSession {
     if (!result.ok) return result;
     const warnings =
       result.warnings.length === 0 ? {} : { warnings: result.warnings };
+    const run = result.run === undefined ? {} : { run: result.run };
     if (result.patches.length === 0) {
       this.#announce(result.events, sessionId);
       return {
@@ -230,6 +234,7 @@ export class DocumentSession {
         revision: this.#revision,
         changed: result.events.length > 0,
         ...warnings,
+        ...run,
       };
     }
 
@@ -257,6 +262,7 @@ export class DocumentSession {
       changed: true,
       label: result.label,
       ...warnings,
+      ...run,
       ...(created.length === 0 ? {} : { created }),
     };
   }

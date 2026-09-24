@@ -19,11 +19,13 @@ import { useSelection } from "@/selection/selection";
 import { ActionPicker } from "./action-picker";
 import { ActionRow } from "./action-row";
 import { useRunMacro } from "./run-macro";
+import { RunModeField } from "./run-mode-field";
 
 /**
- * A Macro's name, a Run button, and its actions in the order they run:
- * each with its target and value, draggable to reorder, marked when it
- * would be skipped, and a picker that adds many at once.
+ * A Macro's name, a Run button, its Run Mode, and its actions in the order
+ * they run: each with its target, Chance and value, draggable to reorder,
+ * marked when it would be skipped or is next in a Sequence, and a picker
+ * that adds many at once.
  */
 export function MacroInspector({
   view,
@@ -38,6 +40,11 @@ export function MacroInspector({
   const macro = useDocumentPath<Macro>(view, ["macros", id]);
   // Actions read the whole document: their targets are anywhere in it.
   const document = useSignal(view.document);
+  const position = useDocumentPath<number>(view, [
+    "operational",
+    "sequence",
+    id,
+  ]);
   const [picking, setPicking] = useState(false);
 
   useEffect(() => {
@@ -49,6 +56,12 @@ export function MacroInspector({
     resolved: resolveAddress(document, action.address),
     problem: actionProblem(document, action),
   });
+  const nextIndex =
+    macro.kind === "macro" &&
+    macro.mode === "sequence" &&
+    macro.actions.length > 0
+      ? (position ?? 0) % macro.actions.length
+      : -1;
 
   return (
     <>
@@ -62,14 +75,25 @@ export function MacroInspector({
           }
         />
         {macro.kind === "macro" && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-self-start"
-            onClick={() => run(macro)}
-          >
-            <Play /> Run
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-self-start"
+              onClick={() => run(macro)}
+            >
+              <Play /> Run
+            </Button>
+            <RunModeField
+              macro={macro}
+              onMode={(mode) =>
+                void command("macro.mode.set", { macroId: id, mode })
+              }
+              onCount={(count) =>
+                void command("macro.mode.set", { macroId: id, count })
+              }
+            />
+          </>
         )}
       </div>
       {macro.kind === "macro" && (
@@ -85,7 +109,7 @@ export function MacroInspector({
           {macro.actions.length === 0 ? (
             <p className="text-[0.6875rem]/relaxed text-muted-foreground">
               {macro.name} does nothing yet. Add actions: each sets, toggles or
-              fires one Address, in this order.
+              fires one Address, in this order, with a chance of its own.
             </p>
           ) : (
             <SortableList
@@ -106,7 +130,7 @@ export function MacroInspector({
                 role="list"
                 aria-label="Actions"
               >
-                {macro.actions.map((action) => {
+                {macro.actions.map((action, index) => {
                   const { resolved, problem } = describe(action);
                   return (
                     <SortableItem key={action.id} id={action.id}>
@@ -114,6 +138,7 @@ export function MacroInspector({
                         action={action}
                         resolved={resolved}
                         problem={problem}
+                        next={index === nextIndex}
                         onValue={(value) =>
                           command("macro.action.update", {
                             macroId: macro.id,
@@ -126,6 +151,13 @@ export function MacroInspector({
                             macroId: macro.id,
                             actionId: action.id,
                             kind,
+                          })
+                        }
+                        onChance={(chance) =>
+                          void command("macro.action.update", {
+                            macroId: macro.id,
+                            actionId: action.id,
+                            chance,
                           })
                         }
                         onRemove={() =>

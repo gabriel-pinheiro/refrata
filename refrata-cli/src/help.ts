@@ -189,7 +189,19 @@ Working from a shell
                  {"kind":"toggle","address":"installation/blackout"}]}'
              trigger macro/Hit/run
 
+  Macro      A Macro's Run Mode picks which actions a run performs: all
+             (default), one at random, some at random, or the next in
+             sequence. Each action may have a chance, 0 to 1, of firing
+             once picked; absent means always.
+             run macro.mode.set '{"macroId":"Shimmer","mode":"some","count":3}'
+             run macro.actions.add '{"macroId":"Shimmer","actions":[{"kind":
+                 "trigger","address":"layer/Wash/cue/fire","chance":0.4}]}'
+             run macro.action.update '{"macroId":"Shimmer","actionId":"<id>",
+                 "chance":0.2}'   (null for always)
+             trigger macro/Shimmer/run says how many were picked and fired.
+
   --json     Every command prints one JSON value; a create's reply has
+
              created: [{table, id, name}]. Errors are one JSON object on
              stderr, {"error", "issues"?}, with exit code 1.
 `;

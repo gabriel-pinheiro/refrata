@@ -59,7 +59,13 @@ export const macroCreate = defineCommand({
     };
     const macro: Macro =
       payload.kind === "macro"
-        ? { ...base, kind: "macro", actions: [...actions] }
+        ? {
+            ...base,
+            kind: "macro",
+            actions: [...actions],
+            mode: "all",
+            count: 1,
+          }
         : { ...base, kind: "group" };
     return accepted([{ op: "set", path: ["macros", macroId], value: macro }]);
   },

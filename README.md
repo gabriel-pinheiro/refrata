@@ -300,7 +300,11 @@ reaches anything else through a Macro (Scene play, a Cue, Blackout, a
 Layer's `enabled`), and a held pad is two Macros, one at press and one at
 release. "Make a Macro" on a Scene's or a Cue button's menu, or `refrata
 macros add "Play Chorus" --trigger scene/Chorus/play`, makes the Macro a pad
-needs. Paths carry ids, so a rename never breaks a mapping; the name, with
+needs. A Macro's Run Mode picks which actions a run performs (all, one at
+random, some at random, or the next in sequence) and each action may carry a
+Chance of firing once picked, so one pad can shimmer a wall of Cues at 40%
+each. Paths carry ids, so a rename never breaks a mapping; the name, with
+
 its Group, is the leaf's description. Controller values stream back to the
 clients that asked to LISTEN.
 

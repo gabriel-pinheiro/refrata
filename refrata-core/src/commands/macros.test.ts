@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { actionProblem } from "../address/fire.ts";
 import { executeCommand } from "../command/execute.ts";
+import { seededRandom } from "../command/random.ts";
 import {
   emptyDocument,
   type Document,
@@ -12,8 +13,13 @@ import { createBuiltInRegistry } from "./index.ts";
 
 const registry = createBuiltInRegistry();
 
-function run(document: Document, name: string, payload: unknown) {
-  const result = executeCommand(registry, document, name, payload);
+function run(
+  document: Document,
+  name: string,
+  payload: unknown,
+  random: () => number = Math.random,
+) {
+  const result = executeCommand(registry, document, name, payload, random);
   if (!result.ok) throw new Error(result.error);
   return result;
 }
@@ -356,5 +362,291 @@ describe("macro.create placement", () => {
     expect(result.ok).toBe(false);
     if (!result.ok)
       expect(result.error).toBe("Macro “g” is not among the siblings.");
+  });
+});
+
+describe("Chance and Run Mode commands", () => {
+  it("stores each action's Chance and changes it alone, triggers included", () => {
+    let document = stage();
+    document = run(document, "macro.actions.add", {
+      macroId: "look",
+      actions: [
+        {
+          kind: "set",
+          address: "controller/energy/value",
+          value: 0.5,
+          chance: 0.4,
+        },
+        { kind: "trigger", address: "macro/hit/run" },
+      ],
+    }).document;
+    const [energy, hit] = macro(document, "look").actions;
+    expect(energy?.chance).toBe(0.4);
+    expect(hit?.chance).toBeUndefined();
+    const changed = run(document, "macro.action.update", {
+      macroId: "look",
+      actionId: hit?.id,
+      chance: 0.2,
+    });
+    expect(changed.label).toBe("Change Chance");
+    expect(changed.coalesceKey).toBe(
+      `macro.action.update:${hit?.id ?? ""}:chance`,
+    );
+    document = changed.document;
+    expect(macro(document, "look").actions[1]).toMatchObject({
+      kind: "trigger",
+      chance: 0.2,
+    });
+    document = run(document, "macro.action.update", {
+      macroId: "look",
+      actionId: energy?.id,
+      value: 0.75,
+    }).document;
+    expect(macro(document, "look").actions[0]).toMatchObject({
+      value: 0.75,
+      chance: 0.4,
+    });
+    document = run(document, "macro.action.update", {
+      macroId: "look",
+      actionId: energy?.id,
+      chance: null,
+    }).document;
+    expect(macro(document, "look").actions[0]?.chance).toBeUndefined();
+    expect(
+      failure(document, "macro.action.update", {
+        macroId: "look",
+        actionId: hit?.id,
+        value: 1,
+      }),
+    ).toMatch(/only its chance/);
+    expect(
+      failure(document, "macro.actions.add", {
+        macroId: "look",
+        actions: [{ kind: "trigger", address: "macro/hit/run", chance: 2 }],
+      }),
+    ).toMatch(/chance/);
+    // macro.create takes its actions with their Chance too.
+    document = run(document, "macro.create", {
+      id: "born",
+      actions: [{ kind: "trigger", address: "macro/hit/run", chance: 0.1 }],
+    }).document;
+    expect(macro(document, "born")).toMatchObject({
+      mode: "all",
+      count: 1,
+      actions: [{ chance: 0.1 }],
+    });
+  });
+
+  it("sets the Run Mode and keeps the count across modes", () => {
+    let document = stage();
+    expect(macro(document, "hit")).toMatchObject({ mode: "all", count: 1 });
+    const set = run(document, "macro.mode.set", {
+      macroId: "hit",
+      mode: "some",
+      count: 3,
+    });
+    expect(set.label).toBe("Change Run Mode");
+    document = set.document;
+    expect(macro(document, "hit")).toMatchObject({ mode: "some", count: 3 });
+    document = run(document, "macro.mode.set", {
+      macroId: "hit",
+      mode: "sequence",
+    }).document;
+    expect(macro(document, "hit")).toMatchObject({
+      mode: "sequence",
+      count: 3,
+    });
+    expect(run(document, "macro.mode.set", { macroId: "hit" }).patches).toEqual(
+      [],
+    );
+    expect(
+      failure(document, "macro.mode.set", { macroId: "hit", count: 0 }),
+    ).toMatch(/count/);
+    expect(
+      failure(document, "macro.mode.set", { macroId: "nope", mode: "one" }),
+    ).toMatch(/not a Macro/);
+    const copy = run(document, "macro.duplicate", {
+      macroId: "hit",
+      id: "hit2",
+    }).document;
+    expect(macro(copy, "hit2")).toMatchObject({ mode: "sequence", count: 3 });
+  });
+});
+
+describe("Run Modes", () => {
+  /**
+   * A Macro of four actions, each visible on its own: a Blackout toggle, an
+   * Energy set, a Tint set and a Depth set.
+   */
+  function shimmer(mode: string, count = 1, chance?: number): Document {
+    let document = stage();
+    document = run(document, "controller.create", {
+      id: "depth",
+      kind: "number",
+      name: "Depth",
+    }).document;
+    const roll = chance === undefined ? {} : { chance };
+    document = run(document, "macro.actions.add", {
+      macroId: "hit",
+      actions: [
+        { kind: "toggle", address: "installation/blackout", ...roll },
+        {
+          kind: "set",
+          address: "controller/energy/value",
+          value: 0.5,
+          ...roll,
+        },
+        {
+          kind: "set",
+          address: "controller/tint/value",
+          value: [1, 0, 0, 1],
+          ...roll,
+        },
+        { kind: "set", address: "controller/depth/value", value: 0.5, ...roll },
+      ],
+    }).document;
+    return run(document, "macro.mode.set", { macroId: "hit", mode, count })
+      .document;
+  }
+
+  /** Which of the four actions a run performed, by index, against the document it ran on. */
+  function performed(
+    before: Document,
+    result: ReturnType<typeof run>,
+  ): number[] {
+    const after = result.document;
+    const done: number[] = [];
+    if (after.operational.blackout !== before.operational.blackout)
+      done.push(0);
+    if (after.controllers.energy !== before.controllers.energy) done.push(1);
+    if (after.controllers.tint !== before.controllers.tint) done.push(2);
+    if (after.controllers.depth !== before.controllers.depth) done.push(3);
+    return done;
+  }
+
+  const fire = (document: Document, random?: () => number) =>
+    run(document, "address.trigger", { address: "macro/hit/run" }, random);
+
+  it("runs every action in All", () => {
+    const document = shimmer("all");
+    const result = fire(document);
+    expect(performed(document, result)).toEqual([0, 1, 2, 3]);
+    expect(result.run).toEqual({ picked: 4, fired: 4 });
+  });
+
+  it("picks one action at random in One", () => {
+    const document = shimmer("one");
+    const seen = new Set<number>();
+    for (let seed = 1; seed <= 12; seed += 1) {
+      const result = fire(document, seededRandom(seed));
+      const done = performed(document, result);
+      expect(done).toHaveLength(1);
+      expect(result.run).toEqual({ picked: 1, fired: 1 });
+      seen.add(done[0] ?? -1);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it("picks distinct actions in Some and runs them in list order", () => {
+    const document = shimmer("some", 2);
+    for (let seed = 1; seed <= 12; seed += 1) {
+      const result = fire(document, seededRandom(seed));
+      expect(performed(document, result)).toHaveLength(2);
+      expect(result.run).toEqual({ picked: 2, fired: 2 });
+    }
+    // Two sets of the same Address land in list order whichever was drawn first.
+    let ordered = shimmer("some", 9);
+    ordered = run(ordered, "macro.actions.add", {
+      macroId: "hit",
+      actions: [
+        { kind: "set", address: "controller/energy/value", value: 0.75 },
+      ],
+    }).document;
+    const result = fire(ordered, seededRandom(7));
+    expect(result.document.controllers.energy).toMatchObject({ value: 0.75 });
+    expect(performed(ordered, result)).toEqual([0, 1, 2, 3]);
+    expect(result.run).toEqual({ picked: 5, fired: 5 });
+  });
+
+  it("walks the actions in Sequence, wraps, and survives edits to the list", () => {
+    let document = shimmer("sequence");
+    let result = fire(document);
+    expect(performed(document, result)).toEqual([0]);
+    expect(result.run).toEqual({ picked: 1, fired: 1 });
+    expect(result.document.operational.sequence.hit).toBe(1);
+    expect(result.document.operational.blackout).toBe(true);
+    // Only show state moved: nothing the file holds.
+    expect(
+      result.patches.every((patch) => patch.path[0] === "operational"),
+    ).toBe(true);
+    document = result.document;
+    result = fire(document);
+    expect(performed(document, result)).toEqual([1]);
+    document = result.document;
+    result = fire(document);
+    expect(performed(document, result)).toEqual([2]);
+    document = result.document;
+    result = fire(document);
+    expect(performed(document, result)).toEqual([3]);
+    expect(result.document.operational.sequence.hit).toBe(0);
+    document = result.document;
+    // Wrapped: the toggle runs again and Blackout comes off.
+    result = fire(document);
+    expect(performed(document, result)).toEqual([0]);
+    expect(result.document.operational.blackout).toBe(false);
+    document = result.document;
+    // Position 1 with the list cut to one action lands on that action.
+    for (const action of macro(document, "hit").actions.slice(1))
+      document = run(document, "macro.action.remove", {
+        macroId: "hit",
+        actionId: action.id,
+      }).document;
+    result = fire(document);
+    expect(performed(document, result)).toEqual([0]);
+    expect(result.document.operational.sequence.hit).toBe(0);
+  });
+
+  it("rolls each picked action's Chance, silently, and still advances a Sequence", () => {
+    const never = shimmer("all", 1, 0);
+    const none = fire(never);
+    expect(performed(never, none)).toEqual([]);
+    expect(none.warnings).toEqual([]);
+    expect(none.run).toEqual({ picked: 4, fired: 0 });
+    const always = shimmer("all", 1, 1);
+    expect(performed(always, fire(always))).toEqual([0, 1, 2, 3]);
+    const half = shimmer("all", 1, 0.5);
+    const seeded = fire(half, seededRandom(3));
+    expect(seeded.run?.picked).toBe(4);
+    expect(performed(half, seeded)).toHaveLength(seeded.run?.fired ?? -1);
+    expect(seeded.run?.fired).toBeGreaterThan(0);
+    expect(seeded.run?.fired).toBeLessThan(4);
+    const stepped = fire(shimmer("sequence", 1, 0));
+    expect(stepped.document.operational.blackout).toBe(false);
+    expect(stepped.run).toEqual({ picked: 1, fired: 0 });
+    expect(stepped.document.operational.sequence.hit).toBe(1);
+  });
+
+  it("runs a nested Macro once whatever its mode, and an empty one picks nothing", () => {
+    let document = shimmer("one");
+    document = run(document, "macro.actions.add", {
+      macroId: "look",
+      actions: [
+        { kind: "trigger", address: "macro/hit/run" },
+        { kind: "trigger", address: "macro/hit/run" },
+      ],
+    }).document;
+    const result = run(document, "address.trigger", {
+      address: "macro/look/run",
+    });
+    expect(result.run).toEqual({ picked: 2, fired: 2 });
+    expect(result.warnings).toEqual(["Hit: already ran during this run."]);
+    expect(performed(document, result)).toHaveLength(1);
+    const empty = run(
+      run(document, "macro.create", { id: "e" }).document,
+      "address.trigger",
+      { address: "macro/e/run" },
+    );
+    expect(empty.run).toEqual({ picked: 0, fired: 0 });
+    expect(empty.patches).toEqual([]);
   });
 });

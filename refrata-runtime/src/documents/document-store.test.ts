@@ -367,6 +367,7 @@ describe("DocumentStore", () => {
           highlight: {},
           actions: {},
           tester: null,
+          sequence: {},
         },
       }),
     );
