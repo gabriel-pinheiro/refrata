@@ -54,8 +54,10 @@ export function VisualPicker({
   );
   const definition = CATALOG[highlighted];
   const options = useRef<(HTMLButtonElement | null)[]>([]);
-  // Focus follows the highlight, so the ring and the notes name one Visual.
-  // The keys are handled on the listbox alone, so Enter on Cancel cancels.
+  // Focus follows the highlight and the highlight follows focus, so the ring
+  // and the notes name one Visual. Only the highlighted option is a Tab stop,
+  // so Tab leaves the list for Cancel in one press. The keys are handled on
+  // the listbox alone, so Enter on Cancel cancels.
   useEffect(() => options.current[highlighted]?.focus(), [highlighted]);
 
   function submit(): void {
@@ -104,11 +106,13 @@ export function VisualPicker({
                   options.current[index] = element;
                 }}
                 aria-selected={index === highlighted}
+                tabIndex={index === highlighted ? 0 : -1}
                 className={cn(
                   "flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-accent/40",
                   index === highlighted && "bg-selection/15 text-selection",
                 )}
                 onClick={() => setHighlighted(index)}
+                onFocus={() => setHighlighted(index)}
                 onDoubleClick={submit}
               >
                 <span className="font-medium">{candidate.name}</span>
