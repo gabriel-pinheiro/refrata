@@ -78,9 +78,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
     <NavigatorSection
       storageKey="universe"
       label="Universes"
-      empty={
-        universes.length === 0 ? "No Universes. Press + to add one." : undefined
-      }
+      empty={universes.length === 0 ? "No Universes yet." : undefined}
       onCreate={addUniverse}
     >
       <SortableList

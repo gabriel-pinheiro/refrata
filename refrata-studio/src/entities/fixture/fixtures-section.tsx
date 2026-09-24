@@ -76,9 +76,7 @@ export function FixturesSection({ view }: { readonly view: DocumentView }) {
       <NavigatorSection
         storageKey="fixture"
         label="Fixtures"
-        empty={
-          roots.length === 0 ? "No Fixtures. Press + to add one." : undefined
-        }
+        empty={roots.length === 0 ? "No Fixtures yet." : undefined}
         createItems={createItems(null)}
       >
         <FixtureRows
