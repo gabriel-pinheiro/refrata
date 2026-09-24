@@ -3,6 +3,7 @@ import { z } from "zod";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { isTargetedLayer, type Target } from "../document/composition.ts";
 import { targetProblem } from "../document/targets.ts";
+import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 /**
  * Appends Targets to a Look or Visual Layer, or inserts them after one of its
@@ -27,7 +28,7 @@ export const layerTargetsAdd = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (!isTargetedLayer(layer))
-      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
+      return rejected(notLayerOf(document, payload.layerId, "targeted"));
     const present = new Set(layer.targets.map((target) => target.ref));
     const added: Target[] = [];
     for (const ref of new Set(payload.targets)) {
@@ -45,7 +46,7 @@ export const layerTargetsAdd = defineCommand({
           : layer.targets.findIndex((target) => target.ref === payload.after) +
             1;
     if (at === 0 && payload.after !== null && payload.after !== undefined)
-      return rejected(`“${payload.after}” is not a Target of the Layer.`);
+      return rejected(notTargetOf(document, payload.after, layer.name));
     const targets = [
       ...layer.targets.slice(0, at),
       ...added,

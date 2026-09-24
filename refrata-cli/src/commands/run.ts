@@ -78,16 +78,17 @@ export function registerRun(program: Command, cli: Cli): void {
   program
     .command("run <command> [payload]")
     .description(
-      'Run any command with a JSON payload, e.g. run controller.create \'{"kind":"number","name":"Energy"}\'. Entity fields take names as well as ids; the reply lists what was created.',
+      'Run any command with a JSON payload, e.g. run controller.create \'{"kind":"number","name":"Energy"}\'. Entity fields take names as well as ids. `commands` lists the commands, `describe <command>` shows its payload; a create\'s reply lists what it made, with the name it got.',
     )
     .action((name: string, payload: string | undefined) =>
       cli.withDocument(async (client, summary) => {
         const { document } = await cli.replica(client, summary.id);
-        const result = await client.command<CommandResult>(
+        const reply = await client.command<CommandResult>(
           summary.id,
           name,
           resolvePayloadNames(document, name, parseJsonArgument(payload)),
         );
+        const result = await cli.named(client, summary.id, reply);
         cli.print(result, () => formatCommandResult(result, name));
       }),
     );

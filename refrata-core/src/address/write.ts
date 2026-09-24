@@ -7,6 +7,7 @@ import {
   type ResolvedAddress,
 } from "./address.ts";
 import { linkAt } from "./links.ts";
+import { unknownAddress } from "./unknown.ts";
 
 export type Written =
   | {
@@ -29,7 +30,7 @@ export function writeAddress(
 ): Written {
   const resolved = resolveAddress(document, address);
   if (resolved === undefined)
-    return { ok: false, error: `Unknown address “${address}”.` };
+    return { ok: false, error: unknownAddress(document, address) };
   if (resolved.type === "trigger")
     return {
       ok: false,
@@ -57,7 +58,7 @@ export function writeAddress(
 export function toggleAddress(document: Document, address: string): Written {
   const resolved = resolveAddress(document, address);
   if (resolved === undefined)
-    return { ok: false, error: `Unknown address “${address}”.` };
+    return { ok: false, error: unknownAddress(document, address) };
   if (resolved.type !== "boolean")
     return { ok: false, error: `Address “${address}” is not a boolean.` };
   const current = getAtPath(document, resolved.path) === true;

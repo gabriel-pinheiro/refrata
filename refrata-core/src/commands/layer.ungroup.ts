@@ -6,6 +6,7 @@ import { uniqueName } from "../document/names.ts";
 import { orderKeysAfter } from "../document/order.ts";
 import type { Patch } from "../document/patch.ts";
 import { dropLayerReferences } from "./layer.remove.ts";
+import { notLayerOf } from "./kind-problems.ts";
 
 /**
  * Dissolves a Group: its contents take its place, in their order. The Group
@@ -21,7 +22,7 @@ export const layerUngroup = defineCommand({
   apply({ document, payload }) {
     const group = document.layers[payload.layerId];
     if (group?.kind !== "group")
-      return rejected(`“${payload.layerId}” is not a Layer Group.`);
+      return rejected(notLayerOf(document, payload.layerId, "group"));
     const children = childLayers(document.layers, group.sceneId, group.id);
     const siblings = childLayers(
       document.layers,

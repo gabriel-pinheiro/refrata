@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { isRuleSet } from "../document/fixture-sets.ts";
+import { notFixtureSet, notMemberOf } from "./kind-problems.ts";
 
 /** Places a member after another (or first): the order effects will spread along. */
 export const setMembersMove = defineCommand({
@@ -21,19 +22,19 @@ export const setMembersMove = defineCommand({
   apply({ document, payload }) {
     const set = document.fixtureSets[payload.setId];
     if (set?.kind !== "set")
-      return rejected(`“${payload.setId}” is not a Fixture Set.`);
+      return rejected(notFixtureSet(document, payload.setId));
     if (isRuleSet(set))
       return rejected(
         `${set.name} is a Set by rule; its members come from its Rules.`,
       );
     if (!set.members.includes(payload.ref))
-      return rejected(`“${payload.ref}” is not a member of ${set.name}.`);
+      return rejected(notMemberOf(document, payload.ref, set.name));
     if (payload.after === payload.ref)
       return rejected("A member cannot be placed after itself.");
     const rest = set.members.filter((ref) => ref !== payload.ref);
     const at = payload.after === null ? 0 : rest.indexOf(payload.after) + 1;
     if (at === 0 && payload.after !== null)
-      return rejected(`“${payload.after}” is not a member of ${set.name}.`);
+      return rejected(notMemberOf(document, payload.after, set.name));
     const members = [...rest.slice(0, at), payload.ref, ...rest.slice(at)];
     if (members.every((ref, index) => ref === set.members[index]))
       return accepted([]);

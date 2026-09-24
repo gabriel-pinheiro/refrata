@@ -67,11 +67,12 @@ export function registerSets(program: Command, cli: Cli): void {
                 name,
                 members: refs.map((text) => resolveElementRef(document, text)),
               };
-        const result = await client.command<CommandResult>(
+        const reply = await client.command<CommandResult>(
           summary.id,
           "set.create",
           payload,
         );
+        const result = await cli.named(client, summary.id, reply);
         cli.print(result, () =>
           withNotes(
             parsed.flatMap((rule) => rule.notes),

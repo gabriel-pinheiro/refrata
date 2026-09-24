@@ -115,15 +115,20 @@ Working from a shell
              a pad needs; --trigger layer/Chase/cue/step fires a Cue. A held
              pad is two Macros, one at press and one at release.
 
-  Write      run <command> [json]  any command; ids come back in "created".
+  Write      run <command> [json]  any command; "created" names what it made.
              edit <Address> <value>  authoring change, undoable.
-             set <Address> <value>   show control, never undone.
-             trigger <Address...>    a Macro's run.
+             set <Address> <value>   show control, not undoable.
+             trigger <Address...>    Cues, a Scene's play, a Macro's run.
              link, unlink, undo, redo.
 
   Save       Authoring (run, edit, link, undo) changes the open Installation
              in memory; "documents save" writes it, and "health" says
-             "unsaved changes" until then. set and trigger are never saved.
+             "unsaved changes" until then. set and trigger are not undoable
+             and not part of history, but a value set on a document Address
+             (a Controller's value, layer/Wash/opacity, master, a Scene
+             played) is saved with the Installation too; Blackout,
+             Highlight, Actions and Cues are performance state and never
+             saved.
              "health" also says "documents pinned" or "documents free": a
              pinned runtime keeps its one file and refuses documents new,
              open, close and save <other path>.
@@ -182,6 +187,6 @@ Working from a shell
              trigger macro/Hit/run
 
   --json     Every command prints one JSON value; a create's reply has
-             created: [{table, id}]. Errors are one JSON object on stderr,
-             {"error", "issues"?}, with exit code 1.
+             created: [{table, id, name}]. Errors are one JSON object on
+             stderr, {"error", "issues"?}, with exit code 1.
 `;

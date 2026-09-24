@@ -1,6 +1,7 @@
 import type { MemberSet, Rule } from "../document/composition.ts";
 import { isRuleSet } from "../document/fixture-sets.ts";
 import type { Document } from "../document/document.ts";
+import { notFixtureSet } from "./kind-problems.ts";
 
 /** A Rule as stored: each Tag once, in the order given. */
 export const cleanRule = (tags: readonly string[]): Rule => [...new Set(tags)];
@@ -23,7 +24,7 @@ export function ruleSetOf(
   | (MemberSet & { readonly rules: readonly Rule[] })
   | { readonly error: string } {
   const set = document.fixtureSets[setId];
-  if (set?.kind !== "set") return { error: `“${setId}” is not a Fixture Set.` };
+  if (set?.kind !== "set") return { error: notFixtureSet(document, setId) };
   if (!isRuleSet(set))
     return { error: `${set.name} is a Set by list; it has no Rules.` };
   return set;

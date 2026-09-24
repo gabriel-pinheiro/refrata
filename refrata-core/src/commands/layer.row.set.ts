@@ -17,6 +17,7 @@ import {
 import type { Patch } from "../document/patch.ts";
 import { ParameterValueSchema, validateParameterValue } from "../parameters.ts";
 import { ATTRIBUTES, isAttributeKey } from "../rig/attributes.ts";
+import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 function controlledBy(document: Document, address: string): string | undefined {
   const link = linkAt(document, address);
@@ -57,14 +58,14 @@ export const layerRowSet = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (layer?.kind !== "look")
-      return rejected(`“${payload.layerId}” is not a Look Layer.`);
+      return rejected(notLayerOf(document, payload.layerId, "look"));
     const attribute = payload.attribute;
     if (!isAttributeKey(attribute))
       return rejected(`“${attribute}” is not an Attribute.`);
     const patches: Patch[] = [];
     for (const ref of new Set(payload.targets)) {
       if (!hasRowRef(layer, ref))
-        return rejected(`“${ref}” is not a Target of ${layer.name}.`);
+        return rejected(notTargetOf(document, ref, layer.name));
       if (!rowRefAttributes(document, layer, ref).includes(attribute))
         return rejected(
           `${rowRefLabel(document, ref)} has no ${ATTRIBUTES[attribute].label}.`,

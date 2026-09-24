@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { isTargetedLayer } from "../document/composition.ts";
+import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 /**
  * Sets Spread on one Target entry: on, a Set counts as its members and an
@@ -23,10 +24,10 @@ export const layerTargetsSpread = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (!isTargetedLayer(layer))
-      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
+      return rejected(notLayerOf(document, payload.layerId, "targeted"));
     const target = layer.targets.find((entry) => entry.ref === payload.ref);
     if (target === undefined)
-      return rejected(`“${payload.ref}” is not a Target of ${layer.name}.`);
+      return rejected(notTargetOf(document, payload.ref, layer.name));
     if (target.spread === payload.spread) return accepted([]);
     return accepted([
       {

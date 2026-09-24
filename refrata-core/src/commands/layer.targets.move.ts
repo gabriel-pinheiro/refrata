@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { isTargetedLayer } from "../document/composition.ts";
+import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 /** Places a Target after another (or first): order decides which Target wins where two reach one Element. */
 export const layerTargetsMove = defineCommand({
@@ -22,10 +23,10 @@ export const layerTargetsMove = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (!isTargetedLayer(layer))
-      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
+      return rejected(notLayerOf(document, payload.layerId, "targeted"));
     const moving = layer.targets.find((t) => t.ref === payload.target);
     if (moving === undefined)
-      return rejected(`“${payload.target}” is not a Target of the Layer.`);
+      return rejected(notTargetOf(document, payload.target, layer.name));
     if (payload.after === payload.target)
       return rejected("A Target cannot be placed after itself.");
     const rest = layer.targets.filter((t) => t.ref !== payload.target);
@@ -34,7 +35,7 @@ export const layerTargetsMove = defineCommand({
         ? 0
         : rest.findIndex((t) => t.ref === payload.after) + 1;
     if (at === 0 && payload.after !== null)
-      return rejected(`“${payload.after}” is not a Target of the Layer.`);
+      return rejected(notTargetOf(document, payload.after, layer.name));
     const targets = [...rest.slice(0, at), moving, ...rest.slice(at)];
     if (targets.every((t, index) => t === layer.targets[index]))
       return accepted([]);

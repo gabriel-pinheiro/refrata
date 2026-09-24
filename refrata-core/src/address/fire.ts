@@ -3,6 +3,7 @@ import { applyPatches, type Patch } from "../document/patch.ts";
 import { addressValueProblem, resolveAddress } from "./address.ts";
 import { linkAt } from "./links.ts";
 import { toggleAddress, writeAddress } from "./write.ts";
+import { unknownAddress } from "./unknown.ts";
 
 /** What firing a trigger Address did: patches to commit, events to announce, actions that could not run. */
 export interface Fired {
@@ -27,7 +28,7 @@ export type FireOutcome =
 export function fireAddress(document: Document, address: string): FireOutcome {
   const resolved = resolveAddress(document, address);
   if (resolved === undefined)
-    return { ok: false, error: `Unknown address “${address}”.` };
+    return { ok: false, error: unknownAddress(document, address) };
   if (resolved.type !== "trigger")
     return { ok: false, error: `Address “${address}” is not a trigger.` };
   return { ok: true, ...fireResolved(document, address, new Set()) };

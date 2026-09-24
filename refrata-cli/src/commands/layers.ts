@@ -79,7 +79,7 @@ export function registerLayers(program: Command, cli: Cli): void {
             : local.visual === undefined
               ? "look"
               : "visual";
-          const result = await client.command<CommandResult>(
+          const reply = await client.command<CommandResult>(
             summary.id,
             "layer.create",
             {
@@ -100,6 +100,7 @@ export function registerLayers(program: Command, cli: Cli): void {
                       }),
             },
           );
+          const result = await cli.named(client, summary.id, reply);
           cli.print(result, () => formatCommandResult(result, "layer.create"));
         }),
     );

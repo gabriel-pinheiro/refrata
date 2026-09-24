@@ -5,6 +5,7 @@ import { isTargetedLayer } from "../document/composition.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
 import { dropLayerReferences } from "./layer.remove.ts";
+import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 /** Removing a Target drops its rows, and with them every Link and Macro action on them. */
 export const layerTargetsRemove = defineCommand({
@@ -22,11 +23,11 @@ export const layerTargetsRemove = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (!isTargetedLayer(layer))
-      return rejected(`“${payload.layerId}” has no Targets; it is a Group.`);
+      return rejected(notLayerOf(document, payload.layerId, "targeted"));
     const going = new Set(payload.targets);
     for (const ref of going)
       if (!layer.targets.some((target) => target.ref === ref))
-        return rejected(`“${ref}” is not a Target of the Layer.`);
+        return rejected(notTargetOf(document, ref, layer.name));
     const patches: Patch[] = dropLayerReferences(
       document,
       [...going].map((ref) => `layer/${layer.id}/row/${ref}/`),

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { isRuleSet } from "../document/fixture-sets.ts";
 import { memberProblem } from "../document/targets.ts";
+import { notFixtureSet, notMemberOf } from "./kind-problems.ts";
 
 /** Appends Elements to a Set, or inserts them after one of its members; a member already there stays where it is. */
 export const setMembersAdd = defineCommand({
@@ -22,7 +23,7 @@ export const setMembersAdd = defineCommand({
   apply({ document, payload }) {
     const set = document.fixtureSets[payload.setId];
     if (set?.kind !== "set")
-      return rejected(`“${payload.setId}” is not a Fixture Set.`);
+      return rejected(notFixtureSet(document, payload.setId));
     if (isRuleSet(set))
       return rejected(
         `${set.name} is a Set by rule; its members come from its Rules.`,
@@ -43,7 +44,7 @@ export const setMembersAdd = defineCommand({
           ? 0
           : set.members.indexOf(payload.after) + 1;
     if (at === 0 && payload.after !== null && payload.after !== undefined)
-      return rejected(`“${payload.after}” is not a member of ${set.name}.`);
+      return rejected(notMemberOf(document, payload.after, set.name));
     const members = [
       ...set.members.slice(0, at),
       ...added,

@@ -75,7 +75,7 @@ export function registerRig(program: Command, cli: Cli): void {
             "library.get",
             { key: typeKey },
           );
-          const result = await client.command<CommandResult>(
+          const reply = await client.command<CommandResult>(
             summary.id,
             "fixture.create",
             {
@@ -98,6 +98,7 @@ export function registerRig(program: Command, cli: Cli): void {
               ...(local.unpatched ? { unpatched: true } : {}),
             },
           );
+          const result = await cli.named(client, summary.id, reply);
           cli.print(result, () =>
             formatCommandResult(result, "fixture.create"),
           );

@@ -7,6 +7,7 @@ import { defaultBindings } from "../document/visual-layers.ts";
 import { defaultParameterValues } from "../parameters.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
 import { dropLayerReferences } from "./layer.remove.ts";
+import { notLayerOf } from "./kind-problems.ts";
 
 /**
  * Gives a Visual Layer another Visual of the Catalog. Parameter Values and
@@ -27,7 +28,7 @@ export const layerVisualSet = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (layer?.kind !== "visual")
-      return rejected(`“${payload.layerId}” is not a Visual Layer.`);
+      return rejected(notLayerOf(document, payload.layerId, "visual"));
     const definition = visualDefinition(payload.visual);
     if (definition === undefined)
       return rejected(`“${payload.visual}” is not a Visual of the Catalog.`);

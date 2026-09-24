@@ -108,7 +108,7 @@ export function registerTree(program: Command, cli: Cli): void {
     .action((name: string, options: { trigger?: string[]; group?: string }) =>
       cli.withDocument(async (client, summary) => {
         const { document } = await cli.replica(client, summary.id);
-        const result = await client.command<CommandResult>(
+        const reply = await client.command<CommandResult>(
           summary.id,
           "macro.create",
           {
@@ -122,6 +122,7 @@ export function registerTree(program: Command, cli: Cli): void {
             })),
           },
         );
+        const result = await cli.named(client, summary.id, reply);
         cli.print(result, () => formatCommandResult(result, "macro.create"));
       }),
     );

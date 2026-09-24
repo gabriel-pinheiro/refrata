@@ -7,6 +7,7 @@ import { dropActions } from "../document/macros.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
 import { ATTRIBUTES, isAttributeKey } from "../rig/attributes.ts";
+import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 /**
  * Releasing a row removes it, so what is below shows through (an "All
@@ -30,12 +31,12 @@ export const layerRowRelease = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (layer?.kind !== "look")
-      return rejected(`“${payload.layerId}” is not a Look Layer.`);
+      return rejected(notLayerOf(document, payload.layerId, "look"));
     const addresses = new Set<string>();
     const patches: Patch[] = [];
     for (const ref of new Set(payload.targets)) {
       if (!hasRowRef(layer, ref))
-        return rejected(`“${ref}” is not a Target of ${layer.name}.`);
+        return rejected(notTargetOf(document, ref, layer.name));
       addresses.add(rowAddress(layer.id, ref, payload.attribute));
       if (storedRow(layer, ref, payload.attribute) !== undefined)
         patches.push({

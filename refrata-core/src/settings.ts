@@ -69,6 +69,8 @@ export const settings = {
   },
   cli: {
     connectTimeoutMs: 3_000,
+    /** How long a reply waits for its own change to reach the CLI's replica, to name what a command created. */
+    replicaCatchUpTimeoutMs: 1_000,
     /** How long `refrata highlight` holds an Element lit before releasing it. */
     highlightHoldMs: 2_000,
     /** How long `refrata tester` holds its channels before releasing them, unless told otherwise. */

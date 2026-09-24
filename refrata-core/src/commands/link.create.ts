@@ -11,6 +11,7 @@ import { accepted, defineCommand, rejected } from "../command/command.ts";
 import type { Controller, Document, Link } from "../document/document.ts";
 import type { Patch } from "../document/patch.ts";
 import { generateId } from "../ids.ts";
+import { unknownAddress } from "../address/unknown.ts";
 
 /**
  * Patches linking `controller` to each Address, or why one of them cannot
@@ -27,7 +28,7 @@ export function linkPatches(
   for (const address of new Set(addresses)) {
     const resolved = resolveAddress(document, address);
     if (resolved === undefined)
-      return { error: `Unknown address “${address}”.` };
+      return { error: unknownAddress(document, address) };
     const problem = linkProblem(controller, resolved);
     if (problem !== undefined) return { error: problem };
     const anchorProblem =

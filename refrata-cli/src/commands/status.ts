@@ -22,13 +22,13 @@ export function registerStatus(program: Command, cli: Cli): void {
           );
           return;
         }
-        const { view } = await cli.replica(client, summary.id);
+        const { document, view } = await cli.replica(client, summary.id);
         const live = liveStatus(view.liveState.get());
         cli.print({ sessionId, documents, document: summary, live }, () =>
           [
             connected,
             `  ${summary.name}  ${summary.id}  ${summary.path ?? "(unsaved)"}${summary.dirty ? "  unsaved changes" : ""}  revision ${String(summary.revision)}`,
-            ...formatLiveStatus(live).map((line) => `  ${line}`),
+            ...formatLiveStatus(live, document).map((line) => `  ${line}`),
           ].join("\n"),
         );
       }),

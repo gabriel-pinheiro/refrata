@@ -5,6 +5,7 @@ import type { Document } from "../document/document.ts";
 import { generateId } from "../ids.ts";
 import { resolveAddress } from "./address.ts";
 import { actionProblem } from "./fire.ts";
+import { unknownAddress } from "./unknown.ts";
 
 /** A Macro action as a command receives it: without its id. */
 export const ActionInputSchema = z.discriminatedUnion("kind", [
@@ -35,7 +36,7 @@ export function newActions(
     const action: MacroAction = { ...input, id: generateId("action") };
     const resolved = resolveAddress(document, action.address);
     if (resolved === undefined)
-      return { error: `Unknown address “${action.address}”.` };
+      return { error: unknownAddress(document, action.address) };
     const problem = actionProblem(document, action);
     if (problem !== undefined && !problem.includes("is controlled by"))
       return { error: `${resolved.label}: ${problem}` };

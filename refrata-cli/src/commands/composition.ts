@@ -34,11 +34,12 @@ export function registerComposition(program: Command, cli: Cli): void {
     )
     .action((name: string) =>
       cli.withDocument(async (client, summary) => {
-        const result = await client.command<CommandResult>(
+        const reply = await client.command<CommandResult>(
           summary.id,
           "scene.create",
           { name },
         );
+        const result = await cli.named(client, summary.id, reply);
         cli.print(result, () => formatCommandResult(result, "scene.create"));
       }),
     );

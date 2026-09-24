@@ -4,6 +4,7 @@ import { accepted, defineCommand, rejected } from "../command/command.ts";
 import type { SlotBinding } from "../document/composition.ts";
 import { bindingProblem, defaultBinding } from "../document/visual-layers.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
+import { notLayerOf } from "./kind-problems.ts";
 
 /**
  * Binds one Slot of a Visual Layer to an Attribute, or to none. A number
@@ -31,7 +32,7 @@ export const layerBindingSet = defineCommand({
   apply({ document, payload }) {
     const layer = document.layers[payload.layerId];
     if (layer?.kind !== "visual")
-      return rejected(`“${payload.layerId}” is not a Visual Layer.`);
+      return rejected(notLayerOf(document, payload.layerId, "visual"));
     const slot = visualDefinition(layer.visual)?.slots.find(
       (candidate) => candidate.key === payload.slot,
     );
