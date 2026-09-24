@@ -23,6 +23,7 @@ import type { RuntimeProcess } from "./runtime-process.ts";
 import type { Session, SessionStart } from "./session.ts";
 import type { StartUpMode } from "./start-up-mode.ts";
 import { StartupSettings } from "./startup-settings.ts";
+import { StudioZoom } from "./studio-zoom.ts";
 import { openStudioWindow } from "./studio-visit.ts";
 
 export interface DesktopModesOptions {
@@ -77,6 +78,7 @@ export class DesktopModes {
       runtimeLog: options.runtime.logFile,
       onConnectTo: () => this.connectTo(),
       startup: new StartupSettings(options.state),
+      zoom: new StudioZoom(options.state),
     });
     this.#files = new FilesFromOs({
       busy: () => this.#busy,

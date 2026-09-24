@@ -48,14 +48,17 @@ function confine(contents: WebContents, origin: string): void {
  * No menu either (`removeMenu`; on macOS the one menu belongs to the app, and
  * its items leave this window alone, see `native-menu.ts`): the native bar is
  * Studio's menu, and its items mean nothing to another page. With the bar go
- * its shortcuts, so no key zooms, reloads or opens developer tools here.
+ * its shortcuts, so no key reloads or opens developer tools here. Nothing
+ * zooms it either (`zoomMode: "disabled"`): not Ctrl and the wheel, and not
+ * Studio's zoom, which Chromium would otherwise share with every page of the
+ * same host.
  */
 function openPageWindow(url: string, origin: string): void {
   const window = new BrowserWindow({
     width: 1280,
     height: 720,
     backgroundColor: BACKGROUND,
-    webPreferences: pageSecurity,
+    webPreferences: { ...pageSecurity, zoomMode: "disabled" },
   });
   window.removeMenu();
   confine(window.webContents, origin);
@@ -106,6 +109,9 @@ export function createStudioWindow(
       ...pageSecurity,
       preload: options.preload,
       additionalArguments: [`${BRIDGE_ORIGIN_ARGUMENT}${options.origin}`],
+      // Its zoom is its own (`studio-zoom.ts` sets it), not its host's, which
+      // Chromium would share with the runtime's other pages.
+      zoomMode: "isolated",
     },
   });
   confine(window.webContents, options.origin);
