@@ -73,7 +73,7 @@ export function LayerInspector({
   return (
     <>
       <InspectorHeading name={layer.name} id={layer.id} />
-      <div className="grid gap-3 p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3">
         <NameField
           label="Name"
           value={layer.name}

@@ -83,6 +83,7 @@ export function SetsSection({ view }: { readonly view: DocumentView }) {
     <>
       <NavigatorSection
         storageKey="set"
+        holds={["set"]}
         label="Sets"
         empty={roots.length === 0 ? "No Fixture Sets yet." : undefined}
         createItems={createItems(null)}

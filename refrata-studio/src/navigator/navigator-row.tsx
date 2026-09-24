@@ -80,6 +80,10 @@ export function NavigatorRow({
       data-selected={selected || undefined}
       className={cn(
         "flex h-6 w-full items-center gap-1 rounded-sm text-xs text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+        // Keyboard focus on the selecting button reads as a hover with a
+        // quiet ring, apart from the selection's orange one.
+        !selected &&
+          "has-[[data-row-select]:focus-visible]:bg-sidebar-accent/60 has-[[data-row-select]:focus-visible]:text-sidebar-accent-foreground has-[[data-row-select]:focus-visible]:ring-1 has-[[data-row-select]:focus-visible]:ring-ring has-[[data-row-select]:focus-visible]:ring-inset",
         selected &&
           "bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-selection ring-inset",
         dimmed && "opacity-55",
@@ -106,6 +110,7 @@ export function NavigatorRow({
         ))}
       <button
         type="button"
+        data-row-select=""
         className={cn(
           "flex h-full min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none",
           onCreate === undefined &&

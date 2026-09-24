@@ -78,6 +78,7 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
   return (
     <NavigatorSection
       storageKey="universe"
+      holds={["universe", "output"]}
       label="Universes"
       empty={universes.length === 0 ? "No Universes yet." : undefined}
       onCreate={addUniverse}

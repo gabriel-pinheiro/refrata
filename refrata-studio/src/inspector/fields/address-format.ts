@@ -10,10 +10,14 @@ export function displayUnit(range: NumberRange): string {
   return range.percent === true ? "%" : (range.unit ?? "");
 }
 
-/** Decimals worth showing for a step: 1 → 0, 0.1 → 1, 0.25 → 2; two when there is no step. */
+/**
+ * Decimals worth showing for a step: 1 → 0, 0.1 → 1, 0.25 → 2; with no
+ * step, none for a percent (whole percents are fine enough to read) and two
+ * otherwise.
+ */
 export function decimalsFor(range: NumberRange): number {
   const step = range.step;
-  if (step === undefined) return 2;
+  if (step === undefined) return range.percent === true ? 0 : 2;
   const shown = step * displayScale(range);
   if (Number.isInteger(shown)) return 0;
   const text = shown.toString();

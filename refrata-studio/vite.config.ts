@@ -5,8 +5,17 @@ import { defineConfig } from "vite";
 
 const runtime = process.env.REFRATA_RUNTIME_URL ?? "http://127.0.0.1:4900";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: "/studio/",
+  // The dev server proxies /live, so the page's own host is not the
+  // runtime's; the status strip names this one instead.
+  define:
+    command === "serve"
+      ? {
+          "import.meta.env.VITE_REFRATA_PROXIED_RUNTIME":
+            JSON.stringify(runtime),
+        }
+      : {},
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src") },
@@ -28,4 +37,4 @@ export default defineConfig({
       "/document": { target: runtime },
     },
   },
-});
+}));

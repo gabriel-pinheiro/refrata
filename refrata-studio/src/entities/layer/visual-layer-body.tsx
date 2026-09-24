@@ -78,7 +78,7 @@ export function VisualLayerBody({
             </span>
           </p>
         ) : (
-          <div className="grid gap-0.5 text-xs">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-0.5 text-xs">
             <p className="font-medium">{definition.name}</p>
             <p className="text-[0.6875rem]/snug text-muted-foreground">
               {definition.description}

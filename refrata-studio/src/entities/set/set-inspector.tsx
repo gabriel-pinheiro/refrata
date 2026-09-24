@@ -40,7 +40,7 @@ export function SetInspector({
   return (
     <>
       <InspectorHeading name={set.name} id={set.id} />
-      <div className="grid gap-3 p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3">
         <NameField
           label="Name"
           value={set.name}
@@ -80,7 +80,10 @@ export function SetInspector({
                 void command("set.members.move", { setId: id, ref, after })
               }
             >
-              <ol className="grid gap-px" aria-label="Members">
+              <ol
+                className="grid grid-cols-[minmax(0,1fr)] gap-px"
+                aria-label="Members"
+              >
                 {set.members.map((ref) => (
                   <SortableItem key={ref} id={ref}>
                     <li className="flex h-6 items-center gap-1 rounded-sm pl-1 text-xs hover:bg-sidebar-accent/60">

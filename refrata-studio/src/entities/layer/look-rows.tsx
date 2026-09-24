@@ -177,7 +177,10 @@ function FamilyLines({
   return (
     <>
       {byFamily(attributes).map((group) => (
-        <div key={group.family} className="grid gap-1">
+        <div
+          key={group.family}
+          className="grid grid-cols-[minmax(0,1fr)] gap-1"
+        >
           <span className="text-[0.625rem] tracking-wider text-muted-foreground/70 uppercase">
             {FAMILY_LABELS[group.family]}
           </span>
@@ -261,7 +264,7 @@ export function TargetBlock({
         </span>
       </button>
       {open && (
-        <div className="grid gap-1.5 px-3 pt-0.5 pb-3">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 px-3 pt-0.5 pb-3">
           <SetTargetMembers
             view={view}
             document={document}

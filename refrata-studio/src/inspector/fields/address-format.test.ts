@@ -14,6 +14,8 @@ describe("address formatting", () => {
     expect(decimalsFor({ min: 0, max: 1, step: 0.01 })).toBe(2);
     expect(decimalsFor({ min: 0, max: 1, step: 0.25 })).toBe(2);
     expect(decimalsFor({ min: 0, max: 1 })).toBe(2);
+    expect(decimalsFor({ min: 0, max: 1, percent: true })).toBe(0);
+    expect(formatNumber(0.004, { min: 0, max: 1, percent: true })).toBe("0");
     expect(decimalsFor({ min: 0, max: 1, step: 0.01, percent: true })).toBe(0);
     expect(
       formatNumber(0.615, { min: 0, max: 1, step: 0.01, percent: true }),

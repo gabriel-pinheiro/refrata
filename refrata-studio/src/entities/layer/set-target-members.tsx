@@ -35,7 +35,7 @@ export function SetTargetMembers({
   const members = setMembers(document, set);
   const targeted = new Set(layer.targets.map((entry) => entry.ref));
   return (
-    <div className="grid gap-px">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-px">
       <button
         type="button"
         aria-expanded={open}
@@ -55,7 +55,10 @@ export function SetTargetMembers({
             {set.name} is empty.
           </p>
         ) : (
-          <ol className="grid gap-px" aria-label={`Members of ${set.name}`}>
+          <ol
+            className="grid grid-cols-[minmax(0,1fr)] gap-px"
+            aria-label={`Members of ${set.name}`}
+          >
             {members.map((ref) => (
               <li
                 key={ref}

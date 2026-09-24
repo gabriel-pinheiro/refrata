@@ -55,7 +55,7 @@ export function OutputInspector({
   return (
     <>
       <InspectorHeading name={OUTPUT_LABELS[output.kind]} id={output.id} />
-      <div className="grid gap-3 p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3">
         <SelectField
           label="Universe"
           value={output.universeId}

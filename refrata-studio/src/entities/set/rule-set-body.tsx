@@ -81,7 +81,10 @@ export function RuleSetBody({
             selectedId={undefined}
             onMove={move}
           >
-            <ol className="grid gap-1.5" aria-label="Rules">
+            <ol
+              className="grid grid-cols-[minmax(0,1fr)] gap-1.5"
+              aria-label="Rules"
+            >
               {rules.map((rule, index) => (
                 <SortableItem key={ids[index]} id={String(index)}>
                   <RuleLine
@@ -142,7 +145,10 @@ export function RuleSetBody({
             Nothing in the rig meets these Rules yet.
           </p>
         ) : (
-          <ol className="grid gap-px" aria-label="Members">
+          <ol
+            className="grid grid-cols-[minmax(0,1fr)] gap-px"
+            aria-label="Members"
+          >
             {members.map((ref) => (
               <li
                 key={ref}

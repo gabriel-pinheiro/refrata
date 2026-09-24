@@ -46,7 +46,7 @@ export function FixtureInspector({
   return (
     <>
       <InspectorHeading name={fixture.name} id={fixture.id} />
-      <div className="grid gap-3 p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3">
         <NameField
           label="Name"
           value={fixture.name}

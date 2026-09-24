@@ -9,7 +9,12 @@ import { Sun } from "lucide-react";
 import { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import { colorToHex, formatNumber } from "@/inspector/fields/address-format";
+import {
+  colorToHex,
+  displayUnit,
+  formatNumber,
+} from "@/inspector/fields/address-format";
+import { ValueWithUnit } from "@/inspector/fields/editable-readout";
 import { FieldRow } from "@/inspector/fields/field-row";
 import { InspectorSection } from "@/inspector/fields/inspector-section";
 import { useClient } from "@/lib/client";
@@ -79,8 +84,13 @@ function Readout({
     case "number":
       return (
         <span className="text-xs tabular-nums">
-          {formatNumber(typeof shown === "number" ? shown : 0, definition)}
-          {definition.percent === true ? "%" : (definition.unit ?? "")}
+          <ValueWithUnit
+            text={formatNumber(
+              typeof shown === "number" ? shown : 0,
+              definition,
+            )}
+            unit={displayUnit(definition)}
+          />
         </span>
       );
     case "color": {

@@ -1,9 +1,9 @@
 import { ExternalLink, Link } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { copyWithToast } from "@/lib/copy-text";
 
 /** A read-only value with a copy button and, when given, a link that opens it. */
 export function CopyField({
@@ -18,13 +18,10 @@ export function CopyField({
   readonly openHref?: string;
 }) {
   function copy(): void {
-    void navigator.clipboard
-      .writeText(value)
-      .then(() => toast.success(`${label} copied`))
-      .catch(() => toast.error(`Could not copy the ${label.toLowerCase()}.`));
+    copyWithToast(value, `${label} copied`);
   }
   return (
-    <div className="grid gap-1">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-1">
       <Label className="grid gap-1">
         <span className="text-xs text-muted-foreground">{label}</span>
         <Input readOnly value={value} className="font-mono text-[0.625rem]" />
@@ -42,6 +39,7 @@ export function CopyField({
           <Button
             size="sm"
             variant="outline"
+            nativeButton={false}
             render={<a href={openHref} target="_blank" rel="noreferrer" />}
           >
             <ExternalLink /> Open

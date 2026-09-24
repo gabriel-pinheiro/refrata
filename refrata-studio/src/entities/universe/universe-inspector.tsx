@@ -43,7 +43,7 @@ export function UniverseInspector({
   return (
     <>
       <InspectorHeading name={universe.name} id={universe.id} />
-      <div className="grid gap-3 p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3">
         <NameField
           label="Name"
           value={universe.name}
@@ -59,7 +59,7 @@ export function UniverseInspector({
             Add one from the navigator row's +.
           </p>
         ) : (
-          <ul className="grid gap-1 text-xs">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-1 text-xs">
             {own.map((output) => (
               <li key={output.id}>
                 <button
@@ -84,7 +84,7 @@ export function UniverseInspector({
             Nothing is patched here yet.
           </p>
         ) : (
-          <ul className="grid gap-1 text-xs">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-1 text-xs">
             {patched.map((fixture) => (
               <li key={fixture.id} className="flex justify-between gap-2">
                 <button

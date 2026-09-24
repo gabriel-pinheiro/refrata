@@ -56,7 +56,7 @@ export function TagsField({
   );
   const several = refs.length > 1;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
       {declared.length + own.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {declared.map((tag) => (

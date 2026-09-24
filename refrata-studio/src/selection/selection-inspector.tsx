@@ -27,7 +27,7 @@ export function SelectionInspector({ view }: { readonly view: DocumentView }) {
   const elements = selectedMembers(document, selected);
   return (
     <>
-      <div className="grid gap-1 p-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-1 p-3">
         <h2 className="text-sm font-medium">{summary(selected)}</h2>
         <p className="text-[0.6875rem]/relaxed text-muted-foreground">
           {refs === undefined
@@ -35,7 +35,10 @@ export function SelectionInspector({ view }: { readonly view: DocumentView }) {
             : "Shift-click adds, ctrl-click toggles, Escape clears."}
         </p>
       </div>
-      <ol className="grid gap-px px-3 pb-3" aria-label="Selected">
+      <ol
+        className="grid grid-cols-[minmax(0,1fr)] gap-px px-3 pb-3"
+        aria-label="Selected"
+      >
         {selected.map((item) => (
           <li
             key={selectionKey(item)}

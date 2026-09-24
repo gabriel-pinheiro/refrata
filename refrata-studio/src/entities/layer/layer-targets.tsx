@@ -72,7 +72,10 @@ export function LayerTargets({
               })
             }
           >
-            <ol className="grid gap-px" aria-label="Targets">
+            <ol
+              className="grid grid-cols-[minmax(0,1fr)] gap-px"
+              aria-label="Targets"
+            >
               {layer.targets.map((target) => {
                 const label = targetLabel(document, target.ref);
                 const count = visual
