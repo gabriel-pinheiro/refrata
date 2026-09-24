@@ -51,7 +51,7 @@ async function writeCopies(): Promise<{ a: string; b: string; id: string }> {
   const { store } = runtime;
   const a = path.join(dir, "a.refrata");
   const b = path.join(dir, "b.refrata");
-  const created = await store.create("Club");
+  const created = await store.create("Club", { blank: true });
   if (!created.ok) throw new Error(created.error);
   const { id } = created.result;
   const session = store.session(id);

@@ -89,7 +89,7 @@ describe("Tags in listings", () => {
       "by rule: 1. panel + odd  2. ghost (matches nothing)  3. every Fixture",
     );
     // The empty Rule makes both roots members, which drops the Panels under the Strobe.
-    expect(line).toContain("2 members: Strobe, Par");
+    expect(line).toContain("2 members: Par, Strobe");
   });
 
   it("prints what a spread Target expands to", () => {

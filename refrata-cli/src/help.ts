@@ -132,9 +132,10 @@ Working from a shell
              place, unsaved until "documents save" ("documents revert" goes
              back). Both work on any runtime, from any machine.
 
-  Order      A create lands first in its Group. Pass "after": <sibling
-             id|name> to place it below that sibling, or null for first;
-             entity.move, controller.move and macro.move rearrange.
+  Order      A create lands first in its Group, a Fixture last. Pass
+             "after": <sibling id|name> to place it below that sibling, or
+             null for first; entity.move, controller.move and macro.move
+             rearrange.
 
   Names      Wherever an Address or a payload field takes an entity id, its
              name works too: controller/Energy/value, '{"macroId":"Hit"}'.

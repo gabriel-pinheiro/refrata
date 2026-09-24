@@ -28,8 +28,10 @@ import { placeShape, shapeWidth } from "../rig/shapes.ts";
  * A new Fixture copies its Fixture Type into the Installation (pass
  * `fixtureType` unless the Installation holds the key already), takes the
  * next free address of its Universe (the first Universe unless told, or
- * stays unpatched when nothing fits), and lands one gap to the right of the
- * rightmost Fixture. A Group only arranges Fixtures in the navigator.
+ * stays unpatched when nothing fits), lands one gap to the right of the
+ * rightmost Fixture and last among its siblings (or right after the one
+ * `after` names), so a rule Set and a Chase run in patching order. A Group
+ * only arranges Fixtures in the navigator.
  */
 export const fixtureCreate = defineCommand({
   name: "fixture.create",
@@ -53,7 +55,7 @@ export const fixtureCreate = defineCommand({
       address: z.number().int().min(1).max(512).optional(),
       /** Leave the Fixture unpatched. */
       unpatched: z.boolean().optional(),
-      /** Sibling to land after; null or absent for first. */
+      /** Sibling to land after; absent for last, null for first. */
       after: z.string().min(1).nullable().optional(),
     })
     .strict(),
@@ -71,7 +73,11 @@ export const fixtureCreate = defineCommand({
         return rejected(`“${payload.parentId}” is not a Fixture Group.`);
     }
     const siblings = childFixtures(document.fixtures, payload.parentId);
-    const order = orderKeyForNew(siblings, payload.after ?? null, "Fixture");
+    const after =
+      payload.after === undefined
+        ? (siblings.at(-1)?.id ?? null)
+        : payload.after;
+    const order = orderKeyForNew(siblings, after, "Fixture");
     if (typeof order !== "string") return rejected(order.error);
     const taken = siblings.map((sibling) => sibling.name);
     if (payload.kind === "group") {

@@ -11,6 +11,7 @@ import {
   rowRefAttributes,
   rowRefDefinition,
   rowRefLabel,
+  rowRefStart,
   storedRow,
 } from "../document/look-rows.ts";
 import type { Patch } from "../document/patch.ts";
@@ -28,9 +29,12 @@ function controlledBy(document: Document, address: string): string | undefined {
  * Sets one Attribute's row on one or more row refs of a Look Layer: a
  * Target, or `ALL_TARGETS_REF` for the "All Targets" row every Target takes
  * unless its own row overrides it. The value, the alpha, or both; a row
- * that did not exist starts at the Parameter's Default and alpha 1, so
- * ticking an Attribute on is this command with neither. A row a Controller
- * drives refuses the hand edit, as every Address does.
+ * that did not exist starts at alpha 1 and the Element's Highlight for the
+ * Attribute when its Mode declares one, else the Parameter's Default, so
+ * ticking an Attribute on is this command with neither and lights the
+ * fixture. A Set row can name any Attribute of the vocabulary, since a rule
+ * Set's members may arrive later. A row a Controller drives refuses the
+ * hand edit, as every Address does.
  */
 export const layerRowSet = defineCommand({
   name: "layer.row.set",
@@ -79,7 +83,10 @@ export const layerRowSet = defineCommand({
           return rejected(`${definition.label} is controlled by ${owner}.`);
       }
       const row: LookRow = {
-        value: payload.value ?? existing?.value ?? definition.default,
+        value:
+          payload.value ??
+          existing?.value ??
+          rowRefStart(document, ref, attribute),
         alpha: payload.alpha ?? existing?.alpha ?? 1,
       };
       if (

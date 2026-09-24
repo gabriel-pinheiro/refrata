@@ -16,13 +16,21 @@ export function registerDocuments(program: Command, cli: Cli): void {
 
   documents
     .command("new <name>")
-    .description("Replace the open Installation with a new, unsaved one.")
+    .description(
+      "Replace the open Installation with a new, unsaved one: the starter, with Universe 1, a rule Set All (every Fixture) and Scene 1 playing a Look Layer Base that lights the Set at full white, so the first Fixture added shows.",
+    )
     .option("--discard", "drop unsaved changes of the current one", false)
-    .action((name: string, local: { discard: boolean }) =>
+    .option(
+      "--blank",
+      "start with only Universe 1 instead of the starter Set, Scene and Layer",
+      false,
+    )
+    .action((name: string, local: { discard: boolean; blank: boolean }) =>
       cli.withClient(async (client) => {
         const summary = await client.request<DocumentSummary>("documents.new", {
           name,
           discard: local.discard,
+          blank: local.blank,
         });
         cli.print(summary, () => `Created ${summary.name} (${summary.id}).`);
       }),

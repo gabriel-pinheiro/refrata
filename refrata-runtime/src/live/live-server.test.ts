@@ -80,6 +80,7 @@ describe("live protocol", () => {
 
     const created = await studio.request<{ id: string }>("documents.new", {
       name: "Living",
+      blank: true,
     });
     await waitFor(() => cli.document.get() ?? undefined);
 
@@ -157,6 +158,7 @@ describe("live protocol", () => {
     );
     const created = await studio.request<{ id: string }>("documents.new", {
       name: "Living",
+      blank: true,
     });
     await waitFor(() => cli.document.get() ?? undefined);
     const studioView = studio.openDocument(created.id, { live: true });
@@ -189,6 +191,7 @@ describe("live protocol", () => {
     );
     const created = await studio.request<{ id: string }>("documents.new", {
       name: "Club",
+      blank: true,
     });
     const view = studio.openDocument(created.id, { live: true });
     await waitFor(() => view.get());
@@ -250,6 +253,7 @@ describe("live protocol", () => {
     );
     const first = await studio.request<{ id: string }>("documents.new", {
       name: "First",
+      blank: true,
     });
     // An untouched new Installation has nothing to lose; a changed one does.
     await studio.command(first.id, "controller.create", {
@@ -258,10 +262,11 @@ describe("live protocol", () => {
       name: "Energy",
     });
     await expect(
-      studio.request("documents.new", { name: "Second" }),
+      studio.request("documents.new", { name: "Second", blank: true }),
     ).rejects.toThrow("unsaved changes");
     const second = await studio.request<{ id: string }>("documents.new", {
       name: "Second",
+      blank: true,
       discard: true,
     });
     await waitFor(() =>
@@ -285,6 +290,7 @@ describe("live protocol", () => {
     );
     const created = await studio.request<{ id: string }>("documents.new", {
       name: "Living",
+      blank: true,
     });
     await waitFor(() => cli.document.get() ?? undefined);
     const cliView = cli.openDocument(created.id);
@@ -335,7 +341,7 @@ describe("live protocol", () => {
     const store = new DocumentStore({ registry });
     const logged: string[] = [];
     const live = idleLiveServer(store, (message) => logged.push(message));
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     const socket = new FakeSocket();
     live.accept(socket as unknown as WebSocket, "127.0.0.1");
@@ -381,7 +387,7 @@ describe("live protocol", () => {
   it("replies with every payload issue, for commands and requests alike", async () => {
     const store = new DocumentStore({ registry: createBuiltInRegistry() });
     const live = idleLiveServer(store, () => undefined);
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     const socket = new FakeSocket();
     live.accept(socket as unknown as WebSocket, "127.0.0.1");

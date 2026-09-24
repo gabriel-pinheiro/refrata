@@ -514,11 +514,17 @@ export class LiveServer {
     try {
       switch (message.name) {
         case "documents.new": {
-          const { name, discard } = payload as {
+          const { name, discard, blank } = payload as {
             name: string;
             discard?: boolean;
+            blank?: boolean;
           };
-          reply(await store.create(name, discard ?? false));
+          reply(
+            await store.create(name, {
+              discard: discard ?? false,
+              blank: blank ?? false,
+            }),
+          );
           break;
         }
         case "documents.open": {

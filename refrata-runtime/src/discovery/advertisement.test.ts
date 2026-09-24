@@ -75,7 +75,7 @@ describe("runtime advertisement", () => {
   it("announces at once, then again when the document's name has settled", async () => {
     expect(announcer.announced).toEqual([{ version: "1.2.3" }]);
 
-    await store.create("Living");
+    await store.create("Living", { blank: true });
     const session = store.currentSession();
     session?.execute("installation.rename", { name: "Living r" }, "test");
     vi.advanceTimersByTime(900);
@@ -91,7 +91,7 @@ describe("runtime advertisement", () => {
   });
 
   it("stays quiet for changes that leave the record as it is", async () => {
-    await store.create("Living");
+    await store.create("Living", { blank: true });
     vi.advanceTimersByTime(1_000);
     expect(announcer.announced).toHaveLength(2);
 
@@ -119,13 +119,13 @@ describe("runtime advertisement", () => {
   });
 
   it("drops the name when the document closes, and stops with the runtime", async () => {
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     vi.advanceTimersByTime(1_000);
     await store.close(created.ok ? created.result.id : "", true);
     vi.advanceTimersByTime(1_000);
     expect(announcer.announced.at(-1)).toEqual({ version: "1.2.3" });
 
-    await store.create("Again");
+    await store.create("Again", { blank: true });
     await advertisement.close();
     vi.advanceTimersByTime(1_000);
     expect(announcer.closed).toBe(true);

@@ -38,7 +38,7 @@ async function savedShow(): Promise<{
   readonly copy: string;
 }> {
   const file = path.join(dir, "show.refrata");
-  const created = await store.create("Show");
+  const created = await store.create("Show", { blank: true });
   const documentId = created.ok ? created.result.id : "";
   const session = store.session(documentId)!;
   session.execute(

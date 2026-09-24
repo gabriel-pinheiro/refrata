@@ -50,11 +50,16 @@ export function ParameterRows({
           {element.name} has no Parameters of its own; its parts do.
         </p>
       ) : (
-        parameters.map(([key, parameter]) => (
-          <FieldRow key={key} label={parameter.definition.label}>
-            <Readout parameter={parameter} value={resolved?.[key]} />
-          </FieldRow>
-        ))
+        <>
+          {parameters.map(([key, parameter]) => (
+            <FieldRow key={key} label={parameter.definition.label}>
+              <Readout parameter={parameter} value={resolved?.[key]} />
+            </FieldRow>
+          ))}
+          <p className="text-[0.6875rem]/relaxed text-muted-foreground">
+            Values come from the playing Scene's Layers.
+          </p>
+        </>
       )}
     </InspectorSection>
   );

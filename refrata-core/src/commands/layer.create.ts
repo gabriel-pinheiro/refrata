@@ -7,23 +7,45 @@ import {
   LAYER_LABELS,
   type Layer,
 } from "../document/composition.ts";
+import { allSets } from "../document/fixture-sets.ts";
+import type { Document } from "../document/document.ts";
 import { childLayers } from "../document/layers.ts";
 import { uniqueName } from "../document/names.ts";
 import { targetProblem } from "../document/targets.ts";
 import { defaultBindings } from "../document/visual-layers.ts";
+import { setRef } from "../document/composition.ts";
 import { defaultParameterValues } from "../parameters.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
 import { orderKeyForNew } from "../document/tree.ts";
 import { generateId, id } from "../ids.ts";
 
+/** The Set named after the starter's, or the first Set in the navigator, or none. */
+export const DEFAULT_TARGET_SET_NAME = "All";
+
+/**
+ * What a Look or Visual Layer targets when the caller says nothing: the
+ * Set named `DEFAULT_TARGET_SET_NAME` (the starter Installation's, holding
+ * every Fixture), else the first Set in navigator order, else nothing.
+ */
+export function defaultLayerTargets(
+  document: Pick<Document, "fixtureSets">,
+): readonly string[] {
+  const sets = allSets(document.fixtureSets);
+  const set =
+    sets.find((candidate) => candidate.name === DEFAULT_TARGET_SET_NAME) ??
+    sets[0];
+  return set === undefined ? [] : [setRef(set.id)];
+}
+
 /**
  * A new Layer lands at the top of the Scene root or Group it was added to,
  * or right below the sibling `after` names. Every kind starts enabled,
  * opaque and cutting in and out (Layer Fade times 0, Linear). A Look Layer
- * blends normally, with the Targets given (or none) and no rows: every
- * Attribute released until a row is set. A Visual Layer starts the same
- * way with its Visual's default Parameter Values and default bindings; its
- * Targets arrive not spread.
+ * blends normally and has no rows: every Attribute released until a row is
+ * set. Its Targets are the ones given; given none (`targets` omitted) it
+ * takes `defaultLayerTargets`, and `null` leaves it without any. A Visual
+ * Layer starts the same way with its Visual's default Parameter Values and
+ * default bindings; its Targets arrive not spread.
  */
 export const layerCreate = defineCommand({
   name: "layer.create",
@@ -40,8 +62,8 @@ export const layerCreate = defineCommand({
       name: z.string().trim().min(1).max(120).optional(),
       /** The Catalog id of the Visual a Visual Layer runs; required for one. */
       visual: z.string().min(1).optional(),
-      /** Target refs the Layer starts with: Element refs or `set:<id>`. */
-      targets: z.array(z.string().min(1)).optional(),
+      /** Target refs the Layer starts with (Element refs or `set:<id>`); omitted for the default Set, null for none. */
+      targets: z.array(z.string().min(1)).nullable().optional(),
       /** Sibling to land below; null or absent for the top. */
       after: z.string().min(1).nullable().optional(),
     })
@@ -78,7 +100,13 @@ export const layerCreate = defineCommand({
     );
     const order = orderKeyForNew(siblings, payload.after ?? null, "Layer");
     if (typeof order !== "string") return rejected(order.error);
-    const targets = [...new Set(payload.targets ?? [])];
+    const targets = [
+      ...new Set(
+        payload.targets === undefined
+          ? defaultLayerTargets(document)
+          : (payload.targets ?? []),
+      ),
+    ];
     for (const ref of targets) {
       const problem = targetProblem(document, ref);
       if (problem !== undefined) return rejected(problem);

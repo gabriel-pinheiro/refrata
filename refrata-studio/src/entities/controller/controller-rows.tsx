@@ -1,5 +1,10 @@
 import type { DocumentView } from "@refrata/client";
-import { childControllers, type Controller, type Table } from "@refrata/core";
+import {
+  childControllers,
+  type Controller,
+  type Link,
+  type Table,
+} from "@refrata/core";
 import { Copy, Trash2, Ungroup } from "lucide-react";
 
 import {
@@ -16,6 +21,7 @@ import {
   NavigatorRow,
   type CreateItem,
 } from "@/navigator/navigator-row";
+import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
 import {
   isSelected,
@@ -43,6 +49,8 @@ export function ControllerRows({
   const { isExpanded, setExpanded } = useExpansion();
   const controllers =
     useDocumentPath<Table<Controller>>(view, ["controllers"]) ?? {};
+  const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
+  const linked = new Set(Object.values(links).map((link) => link.controllerId));
   const rows = childControllers(controllers, parentId);
   const moveInto = (controllerId: string, target: Controller): void =>
     void command("controller.move", {
@@ -104,6 +112,12 @@ export function ControllerRows({
                   }
                   createItems={group ? createItems(controller.id) : undefined}
                 >
+                  {!group && !linked.has(controller.id) && (
+                    <NavigatorWarning
+                      label="Not linked"
+                      explanation="This Controller moves nothing until an Address is linked to it, from that Address's row in an inspector."
+                    />
+                  )}
                   <ValueReadout controller={controller} />
                 </NavigatorRow>
               </ContextMenuTrigger>

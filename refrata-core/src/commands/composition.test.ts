@@ -209,6 +209,73 @@ describe("Layers", () => {
     expect(Object.keys(removal.document.links)).toEqual([]);
   });
 
+  it("targets the Set All, else the first Set, unless told which or none", () => {
+    let document = stage();
+    expect(
+      run(document, "layer.create", { id: "bare", sceneId: "verse" }),
+    ).toMatchObject({ document: { layers: { bare: { targets: [] } } } });
+    document = apply(document, [
+      ["set.create", { id: "wash", name: "Wash", members: ["par/root"] }],
+      ["set.create", { id: "all", name: "All", rules: [[]] }],
+    ]);
+    const first = run(document, "layer.create", { id: "a", sceneId: "verse" });
+    expect(first.document.layers.a).toMatchObject({
+      targets: [{ ref: "set:all", spread: false }],
+    });
+    const explicit = run(document, "layer.create", {
+      id: "b",
+      sceneId: "verse",
+      targets: ["strobe/root"],
+    });
+    expect(explicit.document.layers.b).toMatchObject({
+      targets: [{ ref: "strobe/root", spread: false }],
+    });
+    const none = run(document, "layer.create", {
+      id: "c",
+      sceneId: "verse",
+      targets: null,
+    });
+    expect(none.document.layers.c).toMatchObject({ targets: [] });
+    const withoutAll = run(
+      run(document, "set.remove", { setId: "all" }).document,
+      "layer.create",
+      { id: "d", sceneId: "verse", kind: "visual", visual: "chase" },
+    );
+    expect(withoutAll.document.layers.d).toMatchObject({
+      targets: [{ ref: "set:wash", spread: false }],
+    });
+    expect(
+      run(document, "layer.create", {
+        id: "g",
+        kind: "group",
+        sceneId: "verse",
+      }).document.layers.g,
+    ).not.toHaveProperty("targets");
+  });
+
+  it("sets any Attribute on a Set row, members or not, so a rule Set can wait for them", () => {
+    let document = apply(stage(), [
+      ["set.create", { id: "movers", name: "Movers", rules: [["mover"]] }],
+      ["layer.targets.add", { layerId: "base", targets: ["set:movers"] }],
+    ]);
+    document = run(document, "layer.row.set", {
+      layerId: "base",
+      targets: ["set:movers"],
+      attribute: "pan",
+      value: 90,
+    }).document;
+    expect(document.layers.base).toMatchObject({
+      rows: { "set:movers": { pan: { value: 90, alpha: 1 } } },
+    });
+    expect(
+      failure(document, "layer.row.set", {
+        layerId: "base",
+        targets: ["par/root"],
+        attribute: "pan",
+      }),
+    ).toContain("has no Pan");
+  });
+
   it("duplicates a Layer with its rows and Links", () => {
     let document = stage();
     document = apply(document, [
@@ -348,9 +415,11 @@ describe("Layers", () => {
       targets: ["par/root", "strobe/root"],
       attribute: "dimmer",
     }).document;
+    // A ticked row starts at the Element's Highlight (the Par's dimmer is
+    // full); the Strobe's root has no dimmer of its own, so the vocabulary's Default.
     expect(document.layers.base).toMatchObject({
       rows: {
-        "par/root": { dimmer: { value: 0, alpha: 1 } },
+        "par/root": { dimmer: { value: 1, alpha: 1 } },
         "strobe/root": { dimmer: { value: 0, alpha: 1 } },
       },
     });
@@ -361,7 +430,7 @@ describe("Layers", () => {
       alpha: 0.5,
     }).document;
     expect(document.layers.base).toMatchObject({
-      rows: { "par/root": { dimmer: { value: 0, alpha: 0.5 } } },
+      rows: { "par/root": { dimmer: { value: 1, alpha: 0.5 } } },
     });
     document = run(document, "address.edit", {
       address: "layer/base/row/par/root/dimmer",

@@ -25,7 +25,7 @@ beforeEach(async () => {
     autosaveIntervalMs: 60_000,
     log: () => undefined,
   });
-  await store.create("Living");
+  await store.create("Living", { blank: true });
   const session = store.currentSession();
   if (session === undefined) throw new Error("no session");
   for (const [name, payload] of [

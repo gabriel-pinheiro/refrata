@@ -70,6 +70,9 @@ function describeFade(layer: Layer): string {
   return parts.length === 0 ? "" : `  fade ${parts.join(", ")}`;
 }
 
+/** What Studio's navigator says of a Layer without Targets, so the two read alike. */
+export const NO_TARGETS = "No Targets";
+
 function describeLayer(document: Document, layer: Layer): string {
   const off = layerEffectivelyEnabled(document.layers, layer) ? "" : "  [off]";
   if (layer.kind === "group")
@@ -81,7 +84,7 @@ function describeLayer(document: Document, layer: Layer): string {
     )
     .join(", ");
   const kind = layer.kind === "look" ? "Look" : `Visual (${visualName(layer)})`;
-  return `${kind} “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}${describeFade(layer)}  targets: ${targets === "" ? "none" : targets}${off}`;
+  return `${kind} “${layer.name}”  ${layer.id}  opacity ${percent(layer.opacity)}  ${BLEND_MODE_LABELS[layer.blendMode].toLowerCase()}${describeFade(layer)}  ${targets === "" ? NO_TARGETS : `targets: ${targets}`}${off}`;
 }
 
 /** A Scene's stack topmost first, Groups indented; under a Look Layer its rows, All Targets first, then per Target; under a Visual Layer what `visualLayerLines` says. */

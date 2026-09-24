@@ -37,7 +37,7 @@ describe("GET /document", () => {
   });
 
   it("downloads what Save would write now, unsaved changes included, leaving the document as it was", async () => {
-    const created = await store.create("Sala / Térreo");
+    const created = await store.create("Sala / Térreo", { blank: true });
     const session = store.session(created.ok ? created.result.id : "")!;
     const response = await app.inject({ method: "GET", url });
     expect(response.statusCode).toBe(200);
@@ -75,7 +75,7 @@ describe("GET /document", () => {
 
 describe("PUT /document", () => {
   it("replaces the content whatever the content type, and answers the summary", async () => {
-    const created = await store.create("Show");
+    const created = await store.create("Show", { blank: true });
     const session = store.session(created.ok ? created.result.id : "")!;
     await store.save(session.id, path.join(dir, "show"));
     const copy = {
@@ -104,7 +104,7 @@ describe("PUT /document", () => {
   });
 
   it("is 409 over unsaved changes until discard=true", async () => {
-    const created = await store.create("Show");
+    const created = await store.create("Show", { blank: true });
     const session = store.session(created.ok ? created.result.id : "")!;
     session.execute(
       "controller.create",

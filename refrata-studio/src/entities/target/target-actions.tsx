@@ -1,6 +1,12 @@
 import type { DocumentView } from "@refrata/client";
 import { isSetRef } from "@refrata/core";
-import { ChevronDown, FolderPlus, Layers, Shapes } from "lucide-react";
+import {
+  ChevronDown,
+  FolderPlus,
+  Layers,
+  LayoutList,
+  Shapes,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,13 +28,16 @@ import { InspectorSection } from "@/inspector/fields/inspector-section";
 
 import { useTargetActions, type LayerChoices } from "./use-target-actions";
 
-const NO_LAYERS = "No Layer yet. Add one to a Scene first.";
-const NO_SETS = "No Fixture Set yet.";
+const NO_LAYERS = "No Layer yet: New Look Layer makes one.";
+const NO_SETS = "No Fixture Set by list yet.";
 
 /**
- * The inspector section for a selection that can be targeted: "Add to Look
- * Layer" (Layers under their Scene), "Add to Set" (hidden when a Set is in
- * the selection, since Sets hold Elements only) and "New Set".
+ * The inspector section for a selection that can be targeted: "Add to
+ * Layer" (Layers under their Scene), "New Look Layer" (on the playing
+ * Scene, made first when there is none), "Add to Set" (hidden when a Set
+ * is in the selection, since Sets hold Elements only) and "New Set". A
+ * menu with nothing to offer is disabled and says why beside it, since a
+ * disabled button shows no title.
  */
 export function TargetActionsSection({
   view,
@@ -49,7 +58,6 @@ export function TargetActionsSection({
           <DropdownMenuTrigger
             render={<Button variant="outline" size="sm" />}
             disabled={layers.length === 0}
-            title={layers.length === 0 ? NO_LAYERS : undefined}
           >
             <Layers /> Add to Layer <ChevronDown />
           </DropdownMenuTrigger>
@@ -60,12 +68,19 @@ export function TargetActionsSection({
             />
           </DropdownMenuContent>
         </DropdownMenu>
+        {layers.length === 0 && <Reason>{NO_LAYERS}</Reason>}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => actions.newLookLayer(refs)}
+        >
+          <LayoutList /> New Look Layer
+        </Button>
         {!holdsSet && (
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="outline" size="sm" />}
               disabled={actions.setChoices.length === 0}
-              title={actions.setChoices.length === 0 ? NO_SETS : undefined}
             >
               <Shapes /> Add to Set <ChevronDown />
             </DropdownMenuTrigger>
@@ -81,6 +96,9 @@ export function TargetActionsSection({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        {!holdsSet && actions.setChoices.length === 0 && (
+          <Reason>{NO_SETS}</Reason>
+        )}
         {!holdsSet && (
           <Button
             variant="outline"
@@ -93,6 +111,15 @@ export function TargetActionsSection({
       </div>
       {actions.dialog}
     </InspectorSection>
+  );
+}
+
+/** Why the control before it is disabled, visible where a disabled button's title is not. */
+function Reason({ children }: { readonly children: string }) {
+  return (
+    <span className="self-center text-[0.6875rem] text-muted-foreground">
+      {children}
+    </span>
   );
 }
 
@@ -156,6 +183,9 @@ export function TargetContextItems({
           ))}
         </ContextMenuSubContent>
       </ContextMenuSub>
+      <ContextMenuItem onClick={() => actions.newLookLayer(refs)}>
+        <LayoutList /> New Look Layer on selection
+      </ContextMenuItem>
       {!holdsSet && (
         <ContextMenuSub>
           <ContextMenuSubTrigger disabled={actions.setChoices.length === 0}>

@@ -52,7 +52,7 @@ afterEach(async () => {
 
 describe("DocumentStore", () => {
   it("creates, saves as a .refrata file, and reopens it", async () => {
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     expect(created.ok).toBe(true);
     const documentId = created.ok ? created.result.id : "";
     store
@@ -90,7 +90,7 @@ describe("DocumentStore", () => {
   });
 
   it("holds one document: new and open replace it, refusing to drop unsaved changes", async () => {
-    const created = await store.create("X");
+    const created = await store.create("X", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     store
       .session(documentId)!
@@ -100,8 +100,8 @@ describe("DocumentStore", () => {
         "test",
       );
     expect((await store.close(documentId)).ok).toBe(false);
-    expect((await store.create("Y")).ok).toBe(false);
-    const replaced = await store.create("Y", true);
+    expect((await store.create("Y", { blank: true })).ok).toBe(false);
+    const replaced = await store.create("Y", { discard: true, blank: true });
     expect(replaced.ok && replaced.result.name).toBe("Y");
     expect(store.session(documentId)).toBeUndefined();
     expect(store.current()?.name).toBe("Y");
@@ -113,8 +113,40 @@ describe("DocumentStore", () => {
     expect(opened.ok && opened.result.id).toBe(store.current()?.id);
   });
 
+  it("a new Installation is the starter with nothing to undo, or only Universe 1 when blank", async () => {
+    const created = await store.create("Club");
+    expect(created.ok && created.result).toMatchObject({ dirty: false });
+    const session = store.currentSession()!;
+    const { universes, fixtureSets, scenes, layers } = session.document;
+    const names = (table: Readonly<Record<string, { name: string }>>) =>
+      Object.values(table).map((entity) => entity.name);
+    expect(names(universes)).toEqual(["Universe 1"]);
+    expect(names(fixtureSets)).toEqual(["All"]);
+    expect(names(scenes)).toEqual(["Scene 1"]);
+    expect(names(layers)).toEqual(["Base"]);
+    expect(session.execute("history.undo", {}, "test").ok).toBe(false);
+
+    const blank = await store.create("Empty", { blank: true });
+    expect(blank.ok).toBe(true);
+    const empty = store.currentSession()!.document;
+    expect(names(empty.universes)).toEqual(["Universe 1"]);
+    expect([empty.fixtureSets, empty.scenes, empty.layers]).toEqual([
+      {},
+      {},
+      {},
+    ]);
+  });
+
+  it("writes a starter Installation for a missing path", async () => {
+    const filePath = path.join(dir, "fresh.refrata");
+    const opened = await store.openOrCreate(filePath);
+    expect(opened.ok && opened.result.name).toBe("fresh");
+    const parsed = parseDocumentFile(await readFile(filePath, "utf8"));
+    expect(parsed.ok && Object.keys(parsed.document.layers)).toHaveLength(1);
+  });
+
   it("a new Installation is clean until something changes it, and still needs a path to save", async () => {
-    const created = await store.create("X");
+    const created = await store.create("X", { blank: true });
     expect(created.ok && created.result).toMatchObject({
       dirty: false,
       path: null,
@@ -125,7 +157,7 @@ describe("DocumentStore", () => {
       error: "This Installation has no file yet; supply a path.",
     });
     // Nothing to lose, so new and open replace it without a discard.
-    const replaced = await store.create("Y");
+    const replaced = await store.create("Y", { blank: true });
     expect(replaced.ok).toBe(true);
     store
       .currentSession()!
@@ -135,11 +167,11 @@ describe("DocumentStore", () => {
         "test",
       );
     expect(store.current()?.dirty).toBe(true);
-    expect((await store.create("Z")).ok).toBe(false);
+    expect((await store.create("Z", { blank: true })).ok).toBe(false);
   });
 
   it("names files by absolute path only", async () => {
-    const created = await store.create("X");
+    const created = await store.create("X", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     const refused = await store.save(documentId, "living");
     expect(refused.ok).toBe(false);
@@ -170,7 +202,7 @@ describe("DocumentStore", () => {
   });
 
   it("discarding a dirty document also drops its autosaves", async () => {
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     await store.save(documentId, path.join(dir, "living"));
     store
@@ -178,12 +210,12 @@ describe("DocumentStore", () => {
       .execute("installation.rename", { name: "Changed" }, "test");
     const filePath = path.join(dir, "living.refrata");
     expect(await autosaveSaying(filePath, "Changed")).toHaveLength(1);
-    await store.create("Other", true);
+    await store.create("Other", { discard: true, blank: true });
     expect(await listAutosaves(filePath)).toEqual([]);
   });
 
   it("autosaves dirty documents, recovers on open, and reverts to the file", async () => {
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
@@ -248,7 +280,7 @@ describe("DocumentStore", () => {
   });
 
   it("keeps the sidecar at most one delay behind the last of several changes", async () => {
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
@@ -267,7 +299,7 @@ describe("DocumentStore", () => {
   });
 
   it("flush writes what changed since the last sidecar, and nothing otherwise", async () => {
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");
@@ -295,7 +327,7 @@ describe("DocumentStore", () => {
       autosaveIntervalMs: 60,
       autosaveMaxWaitMs: 120,
     });
-    const created = await store.create("Living");
+    const created = await store.create("Living", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     await store.save(documentId, path.join(dir, "living"));
     const filePath = path.join(dir, "living.refrata");

@@ -45,8 +45,11 @@ const strobe = (id: string) =>
 
 /** Strobes s1, s2, s3 and a Par; s1 and s2 on the left truss, the Par on the wall. */
 function rig(): Document {
-  // A new Fixture lands first, so the navigator reads s1, s2, s3, Par.
+  // A new Fixture lands last, so the navigator reads s1, s2, s3, Par.
   return apply(emptyDocument("Club"), [
+    strobe("s1"),
+    strobe("s2"),
+    strobe("s3"),
     [
       "fixture.create",
       {
@@ -57,9 +60,6 @@ function rig(): Document {
         name: "Par",
       },
     ],
-    strobe("s3"),
-    strobe("s2"),
-    strobe("s1"),
     [
       "fixture.tags.add",
       { refs: ["s1/root", "s2/root"], tags: ["truss-left"] },

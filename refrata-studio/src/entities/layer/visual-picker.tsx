@@ -55,6 +55,7 @@ export function VisualPicker({
   const definition = CATALOG[highlighted];
   const options = useRef<(HTMLButtonElement | null)[]>([]);
   // Focus follows the highlight, so the ring and the notes name one Visual.
+  // The keys are handled on the listbox alone, so Enter on Cancel cancels.
   useEffect(() => options.current[highlighted]?.focus(), [highlighted]);
 
   function submit(): void {
@@ -80,11 +81,7 @@ export function VisualPicker({
         if (!open) onClose();
       }}
     >
-      <DialogContent
-        className="sm:max-w-2xl"
-        data-testid="visual-picker"
-        onKeyDown={onKeyDown}
-      >
+      <DialogContent className="sm:max-w-2xl" data-testid="visual-picker">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description !== undefined && (
@@ -96,6 +93,7 @@ export function VisualPicker({
             className="max-h-[50vh] overflow-auto rounded-md border"
             role="listbox"
             aria-label="Visuals"
+            onKeyDown={onKeyDown}
           >
             {CATALOG.map((candidate, index) => (
               <button

@@ -28,6 +28,7 @@ import {
   type CreateItem,
 } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
+import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
 import {
   isSelected,
@@ -115,11 +116,16 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
                     }
                     createItems={outputItems(universe.id)}
                   >
-                    <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
-                      {own.length === 0
-                        ? "silent"
-                        : `${String(own.length)} ${own.length === 1 ? "output" : "outputs"}`}
-                    </span>
+                    {own.length === 0 ? (
+                      <NavigatorWarning
+                        label="No Output"
+                        explanation="This Universe reaches no fixture until an Output is added to it with the + on its row."
+                      />
+                    ) : (
+                      <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
+                        {`${String(own.length)} ${own.length === 1 ? "output" : "outputs"}`}
+                      </span>
+                    )}
                   </NavigatorRow>
                 </ContextMenuTrigger>
                 <ContextMenuContent>

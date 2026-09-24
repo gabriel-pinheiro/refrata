@@ -43,7 +43,7 @@ async function stageStrobe(): Promise<{
   documentId: string;
   universeId: string;
 }> {
-  const created = await store.create("Club");
+  const created = await store.create("Club", { blank: true });
   const documentId = created.ok ? created.result.id : "";
   const session = store.session(documentId)!;
   const result = session.execute(
@@ -227,7 +227,7 @@ describe("HighlightTimeout", () => {
 
 describe("ActionTimeout", () => {
   it("ends an Action once its Mode's seconds have passed", async () => {
-    const created = await store.create("Club");
+    const created = await store.create("Club", { blank: true });
     const documentId = created.ok ? created.result.id : "";
     const session = store.session(documentId)!;
     session.execute(

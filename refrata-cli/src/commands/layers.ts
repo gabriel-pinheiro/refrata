@@ -46,7 +46,7 @@ export function registerLayers(program: Command, cli: Cli): void {
   layers
     .command("add <scene> <name>")
     .description(
-      'Add a Layer at the top of a Scene, targeting what --target names (a Fixture, <fixture>/<key> or set:<set>): a Look Layer, or with --visual <id> a Visual Layer running that Visual of the Catalog ("visuals" lists them).',
+      'Add a Layer at the top of a Scene, targeting what --target names (a Fixture, <fixture>/<key> or set:<set>), else the Set "All" or the first Set: a Look Layer, or with --visual <id> a Visual Layer running that Visual of the Catalog ("visuals" lists them).',
     )
     .option(
       "--target <ref>",
@@ -54,13 +54,19 @@ export function registerLayers(program: Command, cli: Cli): void {
       (value: string, previous: string[]) => [...previous, value],
       [] as string[],
     )
+    .option("--no-targets", "start with no Targets instead of the default Set")
     .option("--visual <id>", "add a Visual Layer running this Visual")
     .option("--group", "add a Group instead", false)
     .action(
       (
         scene: string,
         name: string,
-        local: { target: string[]; visual?: string; group: boolean },
+        local: {
+          target: string[];
+          targets: boolean;
+          visual?: string;
+          group: boolean;
+        },
       ) =>
         cli.withDocument(async (client, summary) => {
           if (local.group && local.visual !== undefined)
@@ -83,11 +89,15 @@ export function registerLayers(program: Command, cli: Cli): void {
               ...(local.visual === undefined ? {} : { visual: local.visual }),
               ...(local.group
                 ? {}
-                : {
-                    targets: local.target.map((text) =>
-                      resolveTargetRef(document, text),
-                    ),
-                  }),
+                : !local.targets
+                  ? { targets: null }
+                  : local.target.length === 0
+                    ? {}
+                    : {
+                        targets: local.target.map((text) =>
+                          resolveTargetRef(document, text),
+                        ),
+                      }),
             },
           );
           cli.print(result, () => formatCommandResult(result, "layer.create"));

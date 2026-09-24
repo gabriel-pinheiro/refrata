@@ -27,10 +27,13 @@ export interface LayerChoices {
 
 /**
  * What a selection of Fixtures, Elements and Sets can be used for: added to
- * a Look or Visual Layer as Targets, added to a Fixture Set by list as members (Sets
- * cannot be members, and a Set by rule takes none), or made into a new Set. After adding, the Layer or Set is
- * selected so the inspector shows the new Targets and the Rig View outlines
- * them. Render `dialog` wherever the hook is used; it names the new Set.
+ * a Look or Visual Layer as Targets, made the Targets of a new Look Layer
+ * (on the playing Scene, else the first, else a new "Scene 1" that plays),
+ * added to a Fixture Set by list as members (Sets cannot be members, and a
+ * Set by rule takes none), or made into a new Set. After adding, the Layer
+ * or Set is selected so the inspector shows the new Targets and the Rig
+ * View outlines them. Render `dialog` wherever the hook is used; it names
+ * the new Set.
  */
 export function useTargetActions(view: DocumentView) {
   const command = useCommand(view);
@@ -68,6 +71,34 @@ export function useTargetActions(view: DocumentView) {
       if (layer.parentId !== null) setExpanded("layer", layer.parentId, true);
       select({ kind: "layer", id: layer.id });
     });
+  }
+
+  function newLookLayer(refs: readonly string[]): void {
+    if (document === undefined) return;
+    const scenes = orderedEntries(document.scenes);
+    const existing =
+      scenes.find((scene) => scene.id === document.installation.activeScene) ??
+      scenes[0];
+    const sceneId = existing?.id ?? generateId("scene");
+    const ready =
+      existing === undefined
+        ? command("scene.create", { id: sceneId, name: "Scene 1" })
+        : Promise.resolve();
+    const layerId = generateId("layer");
+    void ready
+      .then(() =>
+        command("layer.create", {
+          id: layerId,
+          kind: "look",
+          sceneId,
+          parentId: null,
+          targets: refs,
+        }),
+      )
+      .then(() => {
+        setExpanded("scene", sceneId, true);
+        select({ kind: "layer", id: layerId });
+      });
   }
 
   function addToSet(set: MemberSet, refs: readonly string[]): void {
@@ -111,5 +142,13 @@ export function useTargetActions(view: DocumentView) {
   const dialog: ReactNode = (
     <NameDialog request={naming} onClose={() => setNaming(undefined)} />
   );
-  return { layerChoices, setChoices, addToLayer, addToSet, newSet, dialog };
+  return {
+    layerChoices,
+    setChoices,
+    addToLayer,
+    newLookLayer,
+    addToSet,
+    newSet,
+    dialog,
+  };
 }

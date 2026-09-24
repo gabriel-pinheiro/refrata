@@ -151,6 +151,19 @@ holds `research/dev.refrata`, created on first run;
 `REFRATA_FILE=<path> npm run dev` holds another file. Open Studio at
 http://localhost:4901/.
 
+A new Installation, from `refrata documents new` or a missing file the runtime
+creates, is the starter (`starterDocument` in
+`refrata-core/src/document/starter.ts`): Universe 1, a Fixture Set "All" by
+rule whose one empty Rule is every Fixture, and Scene 1, playing, with one Look
+Layer "Base" on that Set at Dimmer 100 % and Color white, so the first Fixture
+patched lights up. It is built by running `set.create`, `scene.create`,
+`layer.create` and `layer.row.set` on an empty Document, so it follows their
+defaults and gets fresh ids, and none of it is in the undo history. A new Look
+or Visual Layer targets the Set "All" (else the first Set) unless told
+otherwise, and a row ticked on in a Look Layer starts at the Element's
+Highlight. `documents.new` with `blank: true` (`refrata documents new --blank`)
+gives only Universe 1.
+
 ## Desktop
 
 ```sh

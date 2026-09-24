@@ -51,8 +51,8 @@ const visualLayer = (document: Document, id: string) => {
 /** Two Strobes, a rule Set of every Panel, and Scene `verse` playing a green Look at dimmer 0.4 over it. */
 function rig(): Document {
   return apply(emptyDocument("Club"), [
-    strobe("s2"),
     strobe("s1"),
+    strobe("s2"),
     ["set.create", { id: "panels", name: "Panels", rules: [["panel"]] }],
     ["scene.create", { id: "verse", name: "Verse" }],
     [

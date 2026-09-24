@@ -184,6 +184,26 @@ describe("Fixtures", () => {
     ).toContain("Cannot change Mode");
   });
 
+  it("lands a new Fixture last unless `after` says otherwise", () => {
+    const order = (document: Document) =>
+      orderedEntries(document.fixtures).map((fixture) => fixture.id);
+    let document = stage();
+    expect(order(document)).toEqual(["par", "strobe"]);
+    document = run(document, "fixture.create", {
+      id: "first",
+      typeKey: "generic/rgb-3ch",
+      modeKey: "3ch",
+      after: null,
+    }).document;
+    document = run(document, "fixture.create", {
+      id: "second",
+      typeKey: "generic/rgb-3ch",
+      modeKey: "3ch",
+      after: "par",
+    }).document;
+    expect(order(document)).toEqual(["first", "par", "second", "strobe"]);
+  });
+
   it("group, move, ungroup, remove, dropping unused types", () => {
     let document = stage();
     document = run(document, "fixture.create", {

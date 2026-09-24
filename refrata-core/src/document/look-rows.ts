@@ -1,4 +1,4 @@
-import type { ParameterDefinition } from "../parameters.ts";
+import type { ParameterDefinition, ParameterValue } from "../parameters.ts";
 import { ATTRIBUTE_KEYS, type AttributeKey } from "../rig/attributes.ts";
 import {
   isAllTargetsRef,
@@ -8,6 +8,8 @@ import {
 import type { PatchPath } from "./patch.ts";
 import {
   attributeDefinition,
+  locateElement,
+  locateSet,
   rowDefinition,
   targetAttributes,
   targetLabel,
@@ -34,15 +36,21 @@ export function layerAttributes(
   return ATTRIBUTE_KEYS.filter((key) => found.has(key));
 }
 
-/** The Attributes a row ref can hold rows for. */
+/**
+ * The Attributes a row ref can hold rows for: on an Element its own and its
+ * parts' Parameters, on All Targets those found across the Targets, and on a
+ * Set the whole vocabulary, since a rule Set's members may still be on their
+ * way and a row waiting for them is the point of targeting the Set.
+ */
 export function rowRefAttributes(
   document: TargetSource,
   layer: LookLayer,
   ref: string,
 ): readonly AttributeKey[] {
-  return isAllTargetsRef(ref)
-    ? layerAttributes(document, layer)
-    : targetAttributes(document, ref);
+  if (isAllTargetsRef(ref)) return layerAttributes(document, layer);
+  return locateSet(document, ref) === undefined
+    ? targetAttributes(document, ref)
+    : ATTRIBUTE_KEYS;
 }
 
 /** Whether `ref` is the All Targets ref or one of the Layer's Targets. */
@@ -89,6 +97,23 @@ export function rowRefDefinition(
   return isAllTargetsRef(ref)
     ? attributeDefinition(attribute)
     : rowDefinition(document, ref, attribute);
+}
+
+/**
+ * The value a row starts at when ticked on: an Element's Highlight for the
+ * Attribute when its Mode declares one (dimmer full, colour white), so a
+ * fresh row lights the fixture, else the Parameter's Default. A Set or All
+ * Targets has no single Element, so it starts at the Default.
+ */
+export function rowRefStart(
+  document: TargetSource,
+  ref: string,
+  attribute: AttributeKey,
+): ParameterValue {
+  const highlight = isAllTargetsRef(ref)
+    ? undefined
+    : locateElement(document, ref)?.element.parameters[attribute]?.highlight;
+  return highlight ?? rowRefDefinition(document, ref, attribute).default;
 }
 
 /** "All Targets", or the Target's label. */

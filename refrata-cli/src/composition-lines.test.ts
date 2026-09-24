@@ -89,7 +89,13 @@ export function stageLook(): Document {
     ],
     [
       "layer.create",
-      { id: "top", sceneId: "verse", name: "Top", parentId: "g" },
+      {
+        id: "top",
+        sceneId: "verse",
+        name: "Top",
+        parentId: "g",
+        targets: null,
+      },
     ],
     ["layer.update", { layerId: "g", enabled: false, opacity: 0.5 }],
     ["address.edit", { address: "layer/top/fade/in/time", value: 2 }],
@@ -114,7 +120,7 @@ describe("composition lines", () => {
   it("shows a stack topmost first with Targets, rows and disabled Layers", () => {
     expect(formatStack(stageLook(), "verse")).toEqual([
       "Group “Folder”  g  opacity 50%  [off]",
-      "  Look “Top”  top  opacity 100%  normal  fade in 2 s, out 0.5 s bounce  targets: none  [off]",
+      "  Look “Top”  top  opacity 100%  normal  fade in 2 s, out 0.5 s bounce  No Targets  [off]",
       "Look “Base”  base  opacity 100%  normal  targets: Par, Strobe › Panel 3, Wash",
       "  All Targets: dimmer 20%",
       "  Par: dimmer 40% · color #00ff00",

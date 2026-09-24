@@ -17,6 +17,7 @@ import {
   RowAction,
   type CreateItem,
 } from "@/navigator/navigator-row";
+import { NavigatorWarning } from "@/navigator/navigator-warning";
 import { SortableItem, SortableList } from "@/navigator/sortable";
 import {
   isSelected,
@@ -106,11 +107,17 @@ export function MacroRows({
                     ) : undefined
                   }
                 >
-                  {macro.kind === "macro" && (
-                    <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
-                      {macro.actions.length}
-                    </span>
-                  )}
+                  {macro.kind === "macro" &&
+                    (macro.actions.length === 0 ? (
+                      <NavigatorWarning
+                        label="No Actions"
+                        explanation="Running this Macro does nothing until actions are added in its inspector."
+                      />
+                    ) : (
+                      <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
+                        {macro.actions.length}
+                      </span>
+                    ))}
                 </NavigatorRow>
               </ContextMenuTrigger>
               <ContextMenuContent>

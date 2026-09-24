@@ -338,25 +338,25 @@ shortcuts that wrap the everyday ones. Navigator gestures keep the verbs
 Controllers use (`move`, `ungroup`), so a Fixture's stage Position needs its
 own verb, `place`.
 
-| Command               | Does                                                                                                  |
-| --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `universe.create`     | adds a Universe; a new Installation already has `Universe 1`                                          |
-| `universe.rename`     |                                                                                                       |
-| `universe.remove`     | refused while a Fixture is patched into it                                                            |
-| `output.create`       | adds an Output for one Universe: kind and device                                                      |
-| `output.update`       | changes kind or device                                                                                |
-| `output.remove`       |                                                                                                       |
-| `fixture.create`      | adds a Fixture from a library type and Mode, copies the type in, patches it at the next free address  |
-| `fixture.rename`      |                                                                                                       |
-| `fixture.move`        | navigator move between Groups                                                                         |
-| `fixture.ungroup`     |                                                                                                       |
-| `fixture.remove`      | drops the Fixture Type copy when no Fixture uses it any more                                          |
-| `fixture.update`      | changes type or Mode; refused when the new Footprint would collide; Tags have their own commands      |
-| `fixture.patch`       | sets Universe and address, or unpatches; refused on overlap                                           |
-| `fixture.place`       | sets Position; a drag coalesces into one undo step                                                    |
-| `fixture.tags.add`    | adds a person's Tags to any mix of Fixtures and Elements, one undo step                               |
-| `fixture.tags.remove` | removes them; declared Tags are locked                                                                |
-| `tag.rename`          | renames a person's Tag on every Fixture and Element and in every Rule; onto an existing Tag it merges |
+| Command               | Does                                                                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `universe.create`     | adds a Universe; a new Installation already has `Universe 1`                                                     |
+| `universe.rename`     |                                                                                                                  |
+| `universe.remove`     | refused while a Fixture is patched into it                                                                       |
+| `output.create`       | adds an Output for one Universe: kind and device                                                                 |
+| `output.update`       | changes kind or device                                                                                           |
+| `output.remove`       |                                                                                                                  |
+| `fixture.create`      | adds a Fixture from a library type and Mode, copies the type in, patches it at the next free address, lands last |
+| `fixture.rename`      |                                                                                                                  |
+| `fixture.move`        | navigator move between Groups                                                                                    |
+| `fixture.ungroup`     |                                                                                                                  |
+| `fixture.remove`      | drops the Fixture Type copy when no Fixture uses it any more                                                     |
+| `fixture.update`      | changes type or Mode; refused when the new Footprint would collide; Tags have their own commands                 |
+| `fixture.patch`       | sets Universe and address, or unpatches; refused on overlap                                                      |
+| `fixture.place`       | sets Position; a drag coalesces into one undo step                                                               |
+| `fixture.tags.add`    | adds a person's Tags to any mix of Fixtures and Elements, one undo step                                          |
+| `fixture.tags.remove` | removes them; declared Tags are locked                                                                           |
+| `tag.rename`          | renames a person's Tag on every Fixture and Element and in every Rule; onto an existing Tag it merges            |
 
 Highlight is not a command: it is a write to the boolean Address
 `element/<fixtureId>/<key>/highlight` through `address.set`.

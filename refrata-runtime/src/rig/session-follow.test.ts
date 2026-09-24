@@ -41,7 +41,7 @@ function run(session: DocumentSession, name: string, payload: unknown): void {
 
 /** A saved, clean show with one strobe. */
 async function savedStrobe(): Promise<DocumentSession> {
-  const created = await store.create("Club");
+  const created = await store.create("Club", { blank: true });
   const session = store.session(created.ok ? created.result.id : "")!;
   const strobe = parseFixtureType(strobeJson);
   if (!strobe.ok) throw new Error(strobe.error);
@@ -113,7 +113,7 @@ describe("HighlightTimeout across document changes", () => {
       address: "element/strobe/root/highlight",
       value: true,
     });
-    const created = await store.create("Other");
+    const created = await store.create("Other", { blank: true });
     const next = store.session(created.ok ? created.result.id : "")!;
     const revisions = [session.revision, next.revision];
     timeout.sweep(Date.now() + 1_500);
@@ -189,7 +189,7 @@ describe("TesterTimeout across document changes", () => {
     const timeout = new TesterTimeout(store, 1_000);
     timeout.start();
     run(session, "tester.hold", { universeId, address: 1, count: 3 });
-    const created = await store.create("Other");
+    const created = await store.create("Other", { blank: true });
     const next = store.session(created.ok ? created.result.id : "")!;
     timeout.sweep(Date.now() + 1_500);
     expect(session.document.operational.tester).not.toBeNull();
