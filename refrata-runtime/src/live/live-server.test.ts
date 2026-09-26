@@ -241,6 +241,11 @@ describe("live protocol", () => {
     expect(view.frameOf(universeId)).toBeUndefined();
 
     // A Geometry Visual's pose streams while its Scene plays, null otherwise.
+    // The first Scene plays on creation, so the Visual's Scene is the second.
+    await studio.command(created.id, "scene.create", {
+      id: "intro",
+      name: "Intro",
+    });
     await studio.command(created.id, "scene.create", {
       id: "verse",
       name: "Verse",
