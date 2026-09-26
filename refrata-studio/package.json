@@ -1,6 +1,6 @@
 {
   "name": "@refrata/studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,9 +13,9 @@
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "^3.2.0",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "^2.2.0",
     "@base-ui/react": "^1.8.0",
-    "@refrata/client": "0.2.0",
-    "@refrata/core": "0.2.0",
-    "@refrata/protocol": "0.2.0",
+    "@refrata/client": "0.3.0",
+    "@refrata/core": "0.3.0",
+    "@refrata/protocol": "0.3.0",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "class-variance-authority": "^0.7.1",

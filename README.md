@@ -349,7 +349,7 @@ run from a checkout reads.
 
 The same suite drives a packaged Desktop when `REFRATA_DESKTOP_EXECUTABLE`
 names its executable, such as the AppImage `npm run package:desktop` wrote:
-`REFRATA_DESKTOP_EXECUTABLE=$PWD/refrata-desktop/release/Refrata-0.2.0-x86_64.AppImage xvfb-run -a npm run test:desktop`.
+`REFRATA_DESKTOP_EXECUTABLE=$PWD/refrata-desktop/release/Refrata-0.3.0-x86_64.AppImage xvfb-run -a npm run test:desktop`.
 The test that needs delivering Outputs is skipped there, since a package
 ignores that variable. CI (`.github/workflows/ci.yml`) runs every check above
 on each push and pull request, and the release workflow runs the suite against
