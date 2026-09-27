@@ -1,14 +1,17 @@
-import { linkAt } from "../address/links.ts";
-import { isAllTargetsRef, type LookLayer } from "../document/composition.ts";
+import { resolveAddress } from "../address/address.ts";
+import {
+  ALL_TARGETS_REF,
+  isAllTargetsRef,
+  type LookLayer,
+} from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
-import { storedRow } from "../document/look-rows.ts";
 import { targetElements, targetLabel } from "../document/targets.ts";
 import type { NumberBounds } from "../parameters.ts";
-import type { AttributeKey } from "../rig/attributes.ts";
+import { isAttributeKey, type AttributeKey } from "../rig/attributes.ts";
 import { elementRef } from "../rig/elements.ts";
-import { attributeOwners, rowAddress } from "./contributions.ts";
+import { attributeOwners } from "./contributions.ts";
 
-/** One Element a row lands on, with the range its own number Parameter for the row's Attribute declares. */
+/** One Element a row is measured against, with the range its own number Parameter for the row's Attribute declares. */
 export interface ReachedRange {
   /** The Element reference. */
   readonly ref: string;
@@ -19,13 +22,15 @@ export interface ReachedRange {
 }
 
 /**
- * The Elements a Look Layer row lands on for a number Attribute, each with
- * its own Parameter's range, found as Resolve lands the row: a Target
- * reaches its Elements (a Set its members), each one owning the Attribute
- * or else its descendants that do. The All Targets row reaches the Elements
- * of every Target that has no row of its own for the Attribute, stored or
- * linked, since such a row overrides it. Each Element is listed once, in
- * Target order.
+ * The Elements a Look Layer row is measured against for a number Attribute,
+ * each with its own Parameter's range: its limits and whom a value is
+ * flagged beyond. A Target counts its Elements (a Set its members), each
+ * one owning the Attribute or else its descendants that do, as Resolve
+ * lands a row. The All Targets row counts every Element of every Target,
+ * including Targets that override it with a row of their own: its limits
+ * say what the Layer's fixtures can do, not where the row lands this
+ * moment, so they do not change as Targets override it. Each Element is
+ * listed once, in Target order.
  */
 export function rowReach(
   document: Document,
@@ -34,14 +39,7 @@ export function rowReach(
   attribute: AttributeKey,
 ): readonly ReachedRange[] {
   const refs = isAllTargetsRef(ref)
-    ? layer.targets
-        .map((target) => target.ref)
-        .filter(
-          (target) =>
-            storedRow(layer, target, attribute) === undefined &&
-            linkAt(document, rowAddress(layer.id, target, attribute)) ===
-              undefined,
-        )
+    ? layer.targets.map((target) => target.ref)
     : [ref];
   const reached = new Map<string, ReachedRange>();
   for (const target of refs)
@@ -62,6 +60,30 @@ export function rowReach(
 }
 
 /**
+ * `rowReach` for the Look Layer row an Address names, found from where the
+ * Address writes; none for any other Address, whose own range is then its
+ * limit.
+ */
+export function addressReach(
+  document: Document,
+  address: string,
+): readonly ReachedRange[] {
+  const path = resolveAddress(document, address)?.path;
+  if (path?.[0] !== "layers") return [];
+  const layer = document.layers[path[1] ?? ""];
+  if (layer?.kind !== "look") return [];
+  const [ref, attribute] =
+    path[2] === "all" ? [ALL_TARGETS_REF, path[3]] : [path[3], path[4]];
+  if (
+    ref === undefined ||
+    attribute === undefined ||
+    !isAttributeKey(attribute)
+  )
+    return [];
+  return rowReach(document, layer, ref, attribute);
+}
+
+/**
  * The limits an Aim's axis is typed and nudged within: the widest range the
  * reached Elements cover together, inside `bounds` (the Address's own
  * range), or `bounds` itself while the row reaches nothing.
@@ -78,19 +100,28 @@ export function reachLimits(
 }
 
 /**
- * `value` moved by `delta`, stopped at the limits. A value already beyond
- * a limit (typed elsewhere, or a range that shrank) is not pulled back by
- * a nudge outward; it only moves when nudged back in.
+ * `value` held to the limits, where `current` is what is stored now. A
+ * value stored beyond a limit by another route (`refrata set`, an older
+ * file, a range that shrank) may stay where it is or move back in, but
+ * never further out; otherwise the value stops at the limit.
  */
+export function clampWithin(
+  value: number,
+  current: number | undefined,
+  limits: NumberBounds,
+): number {
+  const min = Math.min(limits.min, current ?? limits.min);
+  const max = Math.max(limits.max, current ?? limits.max);
+  return Math.min(max, Math.max(min, value));
+}
+
+/** `value` moved by `delta` and held to the limits as `clampWithin` holds it: a nudge outward from beyond a limit leaves the value, a nudge inward moves it. */
 export function nudgeWithin(
   value: number,
   delta: number,
   limits: NumberBounds,
 ): number {
-  const next = value + delta;
-  if (delta > 0) return Math.min(next, Math.max(value, limits.max));
-  if (delta < 0) return Math.max(next, Math.min(value, limits.min));
-  return value;
+  return clampWithin(value + delta, value, limits);
 }
 
 /** The reached Elements that cannot go to `value`, beyond their own range. */

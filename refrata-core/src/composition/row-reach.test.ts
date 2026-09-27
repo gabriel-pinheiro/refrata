@@ -6,7 +6,14 @@ import { executeCommand } from "../command/execute.ts";
 import { createBuiltInRegistry } from "../commands/index.ts";
 import type { LookLayer } from "../document/composition.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
-import { nudgeWithin, outOfReach, reachLimits, rowReach } from "./row-reach.ts";
+import {
+  addressReach,
+  clampWithin,
+  nudgeWithin,
+  outOfReach,
+  reachLimits,
+  rowReach,
+} from "./row-reach.ts";
 
 const registry = createBuiltInRegistry();
 
@@ -66,28 +73,41 @@ describe("rowReach", () => {
     ]);
   });
 
-  it("reaches through All Targets only the Targets without a row of their own", () => {
+  it("measures All Targets against every Target's Elements, overridden or not", () => {
     let document = stage();
-    expect(
+    const refs = (): readonly string[] =>
       rowReach(document, look(document), "all", "tilt").map(
         (range) => range.ref,
-      ),
-    ).toEqual(["wide/root", "beam/root"]);
+      );
+    expect(refs()).toEqual(["wide/root", "beam/root"]);
     document = run(document, "layer.row.set", {
       layerId: "base",
       targets: ["set:movers"],
       attribute: "tilt",
     });
-    expect(rowReach(document, look(document), "all", "tilt")).toEqual([
-      { ref: "beam/root", label: "Beam", min: -90, max: 90 },
-    ]);
     document = run(document, "controller.create", {
       id: "sweep",
       kind: "number",
       name: "Sweep",
       addresses: ["layer/base/row/beam/root/tilt"],
     });
-    expect(rowReach(document, look(document), "all", "tilt")).toEqual([]);
+    expect(refs()).toEqual(["wide/root", "beam/root"]);
+  });
+
+  it("finds the row an Address writes, and nothing for any other Address", () => {
+    const document = stage();
+    expect(
+      addressReach(document, "layer/base/row/beam/root/tilt").map(
+        (range) => range.label,
+      ),
+    ).toEqual(["Beam"]);
+    expect(
+      addressReach(document, "layer/base/row/all/tilt").map(
+        (range) => range.label,
+      ),
+    ).toEqual(["Wide", "Beam"]);
+    expect(addressReach(document, "layer/base/opacity")).toEqual([]);
+    expect(addressReach(document, "layer/nope/row/all/tilt")).toEqual([]);
   });
 
   it("gives the widest limits and names who cannot go to a value", () => {
@@ -109,6 +129,16 @@ describe("rowReach", () => {
       "Beam",
     ]);
     expect(outOfReach(reach, 45)).toEqual([]);
+  });
+
+  it("clamps to the limits, letting a value stored beyond them stay or move in", () => {
+    const limits = { min: -90, max: 90 };
+    expect(clampWithin(100, 0, limits)).toBe(90);
+    expect(clampWithin(-100, undefined, limits)).toBe(-90);
+    expect(clampWithin(45, 0, limits)).toBe(45);
+    expect(clampWithin(130, 120, limits)).toBe(120);
+    expect(clampWithin(110, 120, limits)).toBe(110);
+    expect(clampWithin(-130, 120, limits)).toBe(-90);
   });
 
   it("stops a nudge at a limit but never pulls a value back from beyond it", () => {

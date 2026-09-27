@@ -32,7 +32,7 @@ export interface AimAxis {
   /** The value held at the Address; undefined while the axis is released. */
   readonly value: number | undefined;
   readonly links: RowLinks;
-  /** The Elements the axis lands on, with their own ranges: its limits, and who to flag. */
+  /** The Elements the axis is measured against, with their own ranges: its limits, and who to flag. */
   readonly reach: readonly ReachedRange[];
 }
 
@@ -235,7 +235,7 @@ function AxisReadout({
         unit="°"
         className="min-w-12"
         inputClassName="w-14"
-        parse={(typed) => parseDegrees(typed, limits)}
+        parse={(typed) => parseDegrees(typed, value, limits)}
         commit={onCommit}
       />
     </span>

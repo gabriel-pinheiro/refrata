@@ -28,7 +28,7 @@ export interface AimAxisReport {
   readonly controlledBy: string | undefined;
   /** What the axis sends: the Controller's value when linked, else the stored one. */
   readonly effective: number | undefined;
-  /** What it is nudged within: the widest range of the Elements it reaches. */
+  /** What it is clamped and nudged within: the widest range of the Elements it reaches. */
   readonly limits: NumberBounds;
   readonly reach: readonly ReachedRange[];
   /** The reached Elements that cannot go to the effective value. */

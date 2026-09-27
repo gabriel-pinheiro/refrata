@@ -94,6 +94,20 @@ describe("aim lines", () => {
     expect(own[1]?.limits).toEqual({ min: -90, max: 90 });
   });
 
+  it("keeps All Targets limits from every Target, even those that override it", () => {
+    const document = run(
+      run(stage(), "layer.aim.set", {
+        layerId: "base",
+        targets: ["wide/root", "beam/root"],
+      }),
+      "layer.targets.remove",
+      { layerId: "base", targets: ["wide/root"] },
+    );
+    const [, tilt] = aimReport(document, look(document), "all");
+    expect(tilt?.limits).toEqual({ min: -90, max: 90 });
+    expect(tilt?.beyond.map((range) => range.label)).toEqual(["Beam"]);
+  });
+
   it("refuses a row ref without both axes", () => {
     const document = stage();
     expect(() => aimReport(document, look(document), "wide/nope")).toThrow(

@@ -1,4 +1,4 @@
-import { settings, type NumberBounds } from "@refrata/core";
+import { clampWithin, settings, type NumberBounds } from "@refrata/core";
 
 /** The two axes of an Aim. */
 export type AimAxisKey = "pan" | "tilt";
@@ -45,14 +45,19 @@ export function arrowNudge(
   }
 }
 
-/** A typed number of degrees, clamped to the limits; undefined when it is not a number. */
+/**
+ * A typed number of degrees held to the limits as `aim.edit` holds it
+ * (`clampWithin`, from what is stored now); undefined when it is not a
+ * number.
+ */
 export function parseDegrees(
   text: string,
+  current: number | undefined,
   limits: NumberBounds,
 ): number | undefined {
   const typed = Number(text.trim().replace(/°$/, ""));
   if (text.trim() === "" || !Number.isFinite(typed)) return undefined;
-  return Math.min(limits.max, Math.max(limits.min, typed));
+  return clampWithin(typed, current, limits);
 }
 
 /** Degrees as an Aim readout shows them, `aim.decimals` places. */

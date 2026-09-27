@@ -31,9 +31,10 @@ export function hasAim(attributes: readonly AttributeKey[]): boolean {
 /**
  * A Look Layer's `pan` and `tilt` rows for one row ref as one Aim line:
  * one checkbox ticks both rows on (each at its Highlight or Default, as a
- * row's own does) or releases both, and the Aim control edits them over
- * their two Addresses as one step. Its limits and flags come from the
- * Elements each row reaches (`rowReach`). A row ticked on alone, from the
+ * row's own does) or releases both with their Links, one undo step either
+ * way (`layer.aim.set`, `layer.aim.release`), and the Aim control edits
+ * them over their two Addresses as one step. Its limits and flags come
+ * from the Elements each row is measured against (`rowReach`). A row ticked on alone, from the
  * CLI or an older file, shows the checkbox part-way; ticking it adds the
  * other.
  */
@@ -80,13 +81,10 @@ export function AimLine({
         (axis) => storedRow(layer, ALL_TARGETS_REF, axis) !== undefined,
       );
   const toggle = (on: boolean): void => {
-    for (const attribute of AIM_AXES)
-      if (present(axes[attribute]) !== on)
-        void command(on ? "layer.row.set" : "layer.row.release", {
-          layerId: layer.id,
-          targets: [rowRef],
-          attribute,
-        });
+    void command(on ? "layer.aim.set" : "layer.aim.release", {
+      layerId: layer.id,
+      targets: [rowRef],
+    });
   };
   const edit = (value: AimValue): Promise<void> =>
     pan === undefined || tilt === undefined

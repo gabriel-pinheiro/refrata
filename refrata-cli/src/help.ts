@@ -63,10 +63,10 @@ Working from a shell
              the first Target's), else the Parameter's Default.
              aim <layer> <target> [--pan <deg>] [--tilt <deg>] [--by]  reads
              or sets an Aim, the pan and tilt rows of a Target or of "all",
-             in degrees and as one undo step; --by nudges, stopping at the
-             widest range the Elements it reaches have. It warns naming an
-             Element a value is beyond (a tilt of 100 on a mover that
-             tilts to 90).
+             in degrees and as one undo step; --by nudges. A value is
+             clamped to the widest range the Elements the row reaches have
+             ("all" counts every Target's), saying so; one that only some
+             of them can reach is kept and warned about, naming the others.
              sets add <name> <ref>...  a Fixture Set of Elements, in order.
              sets add <name> --rule panel,odd --rule wall  a Set by rule,
              resolved live: a Rule is all of its Tags, and its member is

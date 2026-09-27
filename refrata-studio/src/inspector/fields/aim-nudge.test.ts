@@ -33,13 +33,16 @@ describe("aim nudges", () => {
     expect(arrowNudge("Enter", 2)).toBeUndefined();
   });
 
-  it("reads typed degrees, with or without the sign, clamped", () => {
+  it("reads typed degrees, with or without the sign, clamped as aim.edit clamps", () => {
     const limits = { min: -90, max: 90 };
-    expect(parseDegrees("12.34", limits)).toBe(12.34);
-    expect(parseDegrees("-30°", limits)).toBe(-30);
-    expect(parseDegrees("200", limits)).toBe(90);
-    expect(parseDegrees("up", limits)).toBeUndefined();
-    expect(parseDegrees(" ", limits)).toBeUndefined();
+    expect(parseDegrees("12.34", 0, limits)).toBe(12.34);
+    expect(parseDegrees("-30°", 0, limits)).toBe(-30);
+    expect(parseDegrees("200", 0, limits)).toBe(90);
+    // A value stored beyond the limits may stay or move in, never out.
+    expect(parseDegrees("200", 120, limits)).toBe(120);
+    expect(parseDegrees("100", 120, limits)).toBe(100);
+    expect(parseDegrees("up", 0, limits)).toBeUndefined();
+    expect(parseDegrees(" ", 0, limits)).toBeUndefined();
     expect(formatDegrees(-12.345)).toBe("-12.3");
   });
 });

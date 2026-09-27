@@ -13,6 +13,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -66,14 +67,24 @@ export function LinkMenu({
         <Link2 className="size-3" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {linked && (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>
-              Controlled by {controller.name}
-            </DropdownMenuLabel>
-          </DropdownMenuGroup>
+        {linked ? (
+          <>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                Controlled by {controller.name}
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => links.onOpen(controller.id)}>
+                <SquareArrowOutUpRight /> Go to {controller.name}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={links.onUnlink}>
+              <Link2Off /> Unlink
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <LinkMenuItems resolved={resolved} links={links} />
         )}
-        <LinkMenuItems resolved={resolved} links={links} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

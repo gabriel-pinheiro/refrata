@@ -766,8 +766,9 @@ Region's corners or centre) Studio shows them as one Aim row: two readouts in
 degrees to one decimal, each typeable, a pad that nudges as it is dragged, and
 the arrow keys, which nudge the focused row by `aim.nudge` degrees, with
 shift by `aim.nudgeCoarse` and ctrl by `aim.nudgeFine`. Its limits are the
-real ranges of the Parameters it reaches, and a value one of them cannot
-reach is flagged with that Element's name.
+widest range the Parameters it reaches cover together: a value is held
+within them, and one that some of those Elements cannot reach is flagged
+with their names.
 
 An Aim is a way of showing and editing, not a Parameter kind: `pan` and
 `tilt` stay two Attributes, two rows and two Addresses, so a Visual's Slots,

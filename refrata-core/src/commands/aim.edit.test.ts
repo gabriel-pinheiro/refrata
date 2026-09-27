@@ -111,14 +111,32 @@ describe("aim.edit", () => {
     expect(history.undo("studio").ok).toBe(false);
   });
 
-  it("holds each axis to its Address, a beam's own tilt range included", () => {
+  it("clamps to the widest range the row's Elements cover, with a warning", () => {
     const document = stage();
+    const beamOnly = executeCommand(registry, document, "aim.edit", {
+      ...beam,
+      value: { pan: 0, tilt: 120 },
+    });
+    if (!beamOnly.ok) throw new Error(beamOnly.error);
+    expect(beamOnly.document.layers.base).toMatchObject({
+      rows: { "beam/root": { pan: { value: 0 }, tilt: { value: 90 } } },
+    });
+    expect(beamOnly.warnings).toEqual([
+      "Tilt clamped to 90.0° from 120.0°: the Elements it reaches go no further.",
+    ]);
+    // All Targets reaches the wide mover too, so 120 is within reach of one.
+    const shared = executeCommand(registry, document, "aim.edit", {
+      ...all,
+      value: { tilt: 120 },
+    });
+    if (!shared.ok) throw new Error(shared.error);
+    expect(shared.document.layers.base).toMatchObject({
+      all: { tilt: { value: 120 } },
+    });
+    expect(shared.warnings ?? []).toEqual([]);
     expect(
-      fails(document, "aim.edit", { ...beam, value: { pan: 0, tilt: 120 } }),
-    ).toBe("Tilt must be between -90 and 90.");
-    expect(
-      run(document, "aim.edit", { ...all, value: { tilt: 120 } }).layers.base,
-    ).toMatchObject({ all: { tilt: { value: 120 } } });
+      run(document, "aim.edit", { ...all, value: { tilt: -200 } }).layers.base,
+    ).toMatchObject({ all: { tilt: { value: -135 } } });
     expect(
       fails(document, "aim.edit", {
         pan: "layer/base/enabled",
@@ -126,6 +144,28 @@ describe("aim.edit", () => {
         value: { pan: 1 },
       }),
     ).toBe("Address “layer/base/enabled” is not a number.");
+  });
+
+  it("lets a value stored beyond the limits stay or move in, never further out", () => {
+    let document = run(stage(), "layer.targets.remove", {
+      layerId: "base",
+      targets: ["wide/root"],
+    });
+    document = run(document, "address.edit", {
+      address: all.tilt,
+      value: 120,
+    });
+    const tilt = (value: number): unknown => {
+      const layer = run(document, "aim.edit", {
+        ...all,
+        value: { tilt: value },
+      }).layers.base;
+      return layer?.kind === "look" ? layer.all.tilt?.value : undefined;
+    };
+    expect(tilt(125)).toBe(120);
+    expect(tilt(119)).toBe(119);
+    expect(tilt(60)).toBe(60);
+    expect(tilt(-120)).toBe(-90);
   });
 
   it("refuses the whole write when an axis is linked", () => {

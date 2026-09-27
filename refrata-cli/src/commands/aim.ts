@@ -70,13 +70,13 @@ export function registerAim(program: Command, cli: Cli): void {
   program
     .command("aim <layer> <target>")
     .description(
-      'Read, set or nudge the Aim of a Look Layer\'s Target or of "all" (All Targets): its pan and tilt rows in degrees, written together as one undo step. Without --pan or --tilt it prints the Aim, the limits the Elements it reaches allow, and any Element a value is beyond. aim Base all --pan 30 --tilt -12.5; aim Base "Mover 2" --tilt 2 --by.',
+      'Read, set or nudge the Aim of a Look Layer\'s Target or of "all" (All Targets): its pan and tilt rows in degrees, written together as one undo step. A value is clamped to the widest range the Elements the row reaches cover (for "all", every Target\'s), with a warning; one inside it that some Element cannot reach is kept and that Element named. Without --pan or --tilt it prints the Aim, its limits and any Element a value is beyond. aim Base all --pan 30 --tilt -12.5; aim Base "Mover 2" --tilt 2 --by.',
     )
     .option("--pan <degrees>", "pan to this, or by this with --by")
     .option("--tilt <degrees>", "tilt to this, or by this with --by")
     .option(
       "--by",
-      "nudge: move by the degrees given, stopping at the limits",
+      "nudge: move by the degrees given, stopping at the limits (a value already beyond them only moves back in)",
       false,
     )
     .action((layerText: string, target: string, options: AimOptions) =>

@@ -30,6 +30,8 @@ import { layerFrameSet } from "./layer.frame.set.ts";
 import { layerMove } from "./layer.move.ts";
 import { layerRemove } from "./layer.remove.ts";
 import { layerRename } from "./layer.rename.ts";
+import { layerAimRelease } from "./layer.aim.release.ts";
+import { layerAimSet } from "./layer.aim.set.ts";
 import { layerRowRelease } from "./layer.row.release.ts";
 import { layerRowSet } from "./layer.row.set.ts";
 import { layerTargetsAdd } from "./layer.targets.add.ts";
@@ -133,6 +135,8 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   layerTargetsSpread,
   layerTargetsMove,
   layerRowSet,
+  layerAimSet,
+  layerAimRelease,
   layerRowRelease,
   layerVisualSet,
   layerBindingSet,
