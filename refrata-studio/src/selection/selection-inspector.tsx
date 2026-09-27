@@ -90,6 +90,7 @@ const TABLES: Record<EntityKind, keyof Document | undefined> = {
   fixture: "fixtures",
   element: undefined,
   set: "fixtureSets",
+  preset: "presets",
   scene: "scenes",
   layer: "layers",
   controller: "controllers",

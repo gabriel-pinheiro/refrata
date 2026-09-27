@@ -2,6 +2,7 @@ import type { Document } from "../document/document.ts";
 import { dropMembers } from "../document/fixture-sets.ts";
 import { allFixtures } from "../document/fixtures.ts";
 import { dropTargets, lookLayers } from "../document/layers.ts";
+import { dropPresetElements } from "../document/presets.ts";
 import { fixtureRootRef } from "../document/targets.ts";
 import type { Patch } from "../document/patch.ts";
 import { elementRef } from "../rig/elements.ts";
@@ -9,8 +10,9 @@ import { dropLayerReferences } from "./layer.remove.ts";
 
 /**
  * What the Rig losing Elements takes out of the composition: the members of
- * every Set, the Targets of every Look Layer with their rows, the Links and
- * Macro actions on those rows, and the Tags a person put on those Elements. `gone` says which Element refs no longer
+ * every Set, the Targets of every Look Layer with their rows, the Elements
+ * of every Preset with their rows, the Links and Macro actions on those
+ * rows, and the Tags a person put on those Elements. `gone` says which Element refs no longer
  * exist, whether the Fixture went or its Mode changed.
  */
 export function dropElementReferences(
@@ -25,10 +27,12 @@ export function dropElementReferences(
       .map((target) => `layer/${layer.id}/row/${target.ref}/`),
   );
   const tags = dropElementTags(document, gone);
+  const presets = dropPresetElements(document, gone);
   const patches: Patch[] = [
-    ...dropLayerReferences(document, prefixes),
+    ...dropLayerReferences(document, [...prefixes, ...presets.prefixes]),
     ...members.patches,
     ...targets.patches,
+    ...presets.patches,
     ...tags.patches,
   ];
   const warnings: string[] = [];
@@ -43,6 +47,10 @@ export function dropElementReferences(
   if (targetCount > 0)
     warnings.push(
       `Removed ${targetCount} Layer ${targetCount === 1 ? "Target" : "Targets"}`,
+    );
+  if (presets.dropped > 0)
+    warnings.push(
+      `Removed ${presets.dropped} Preset ${presets.dropped === 1 ? "Element" : "Elements"}`,
     );
   if (tags.dropped > 0)
     warnings.push(

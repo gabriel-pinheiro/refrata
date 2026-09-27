@@ -3,146 +3,68 @@ import {
   type Controller,
   type Link,
   type ResolvedAddress,
+  type ValuePreset,
 } from "@refrata/core";
-import { Link2, Link2Off, Plus, SquareArrowOutUpRight } from "lucide-react";
+import { Link2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 
 import { colorToHex, displayUnit, formatNumber } from "./address-format";
 import { unitGap, ValueWithUnit } from "./editable-readout";
 
-/** How a row takes part in Parameter Links: its Link, if any, and the Controllers it could take. */
+/** How a row takes part in Parameter Links: its Link, if any, and the Controllers and Presets it could take. */
 export interface RowLinks {
   readonly link: Link | undefined;
-  /** The Link's Controller, when the Link exists. */
+  /** The Link's Controller, when a Controller drives the row. */
   readonly controller: Controller | undefined;
-  /** What the Address shows while linked. */
+  /** The Link's Preset, when a Preset drives the row. */
+  readonly preset: ValuePreset | undefined;
+  /** What the Address shows while a Controller drives it. */
   readonly effective: AddressValue;
   /** Controllers able to drive this row, in navigator order. */
   readonly candidates: readonly Controller[];
+  /** Whether the row is resolved per Element, so a Preset can drive it. */
+  readonly takesPreset: boolean;
+  /** Presets the row could take, in navigator order. */
+  readonly presets: readonly ValuePreset[];
   readonly onLink: (controllerId: string) => void;
+  readonly onLinkPreset: (presetId: string) => void;
   /** Makes a new Controller named after the row and links it. */
   readonly onCreate: (kind: "number" | "color") => void;
+  /** Makes a new Preset named after the row, holding what the row shows, and links it. */
+  readonly onCreatePreset: () => void;
   readonly onUnlink: () => void;
   readonly onOpen: (controllerId: string) => void;
+  readonly onOpenPreset: (presetId: string) => void;
 }
 
-/** The row's Link menu: "Link to" a Controller or a new one named after the row, or the Controller it has and Unlink. */
-export function LinkMenu({
-  resolved,
-  links,
-}: {
-  readonly resolved: ResolvedAddress;
-  readonly links: RowLinks;
-}) {
-  const { link, controller } = links;
-  const linked = link !== undefined && controller !== undefined;
-  if (!linked && !linkableType(resolved)) return <span className="size-5" />;
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={`${resolved.label} link`}
-        title={
-          linked ? `Controlled by ${controller.name}` : "Link to a Controller"
-        }
-        className={
-          linked
-            ? "grid size-5 place-items-center rounded-sm text-selection hover:bg-input/50"
-            : "grid size-5 place-items-center rounded-sm text-muted-foreground/50 hover:bg-input/50 hover:text-foreground"
-        }
-      >
-        <Link2 className="size-3" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {linked ? (
-          <>
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>
-                Controlled by {controller.name}
-              </DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => links.onOpen(controller.id)}>
-                <SquareArrowOutUpRight /> Go to {controller.name}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={links.onUnlink}>
-              <Link2Off /> Unlink
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <LinkMenuItems resolved={resolved} links={links} />
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+/** What drives a linked row: its name, what to call it and how to go to it. */
+export interface LinkSource {
+  readonly name: string;
+  readonly noun: "Controller" | "Preset";
+  readonly open: () => void;
 }
 
-/** Whether an Address of this type can take a Controller: numbers, colors and booleans. */
-export function linkableType(resolved: ResolvedAddress): boolean {
-  return resolved.type !== "choice" && resolved.type !== "trigger";
-}
-
-/**
- * The items of one Address's part of a Link menu, for a menu of one row or
- * a section of a menu over several: "Go to" the Controller and Unlink when
- * linked, else "Link to" a Controller or a new one named after the row.
- */
-export function LinkMenuItems({
-  resolved,
-  links,
-}: {
-  readonly resolved: ResolvedAddress;
-  readonly links: RowLinks;
-}) {
-  const { link, controller, candidates } = links;
-  if (link !== undefined && controller !== undefined)
-    return (
-      <>
-        <DropdownMenuItem onClick={() => links.onOpen(controller.id)}>
-          <SquareArrowOutUpRight /> Go to {controller.name}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={links.onUnlink}>
-          <Link2Off /> Unlink
-        </DropdownMenuItem>
-      </>
-    );
-  if (!linkableType(resolved)) return null;
-  const kind = resolved.type === "color" ? "color" : "number";
-  return (
-    <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger disabled={candidates.length === 0}>
-          <Link2 /> Link to
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          {candidates.map((candidate) => (
-            <DropdownMenuItem
-              key={candidate.id}
-              onClick={() => links.onLink(candidate.id)}
-            >
-              {candidate.name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <DropdownMenuItem onClick={() => links.onCreate(kind)}>
-        <Plus /> New {kind === "color" ? "Color" : "Number"} Controller
-      </DropdownMenuItem>
-    </>
-  );
+/** The Controller or Preset driving a row, or undefined while nothing does. */
+export function linkSource(
+  links: RowLinks | undefined,
+): LinkSource | undefined {
+  if (links?.link === undefined) return undefined;
+  const { controller, preset } = links;
+  if (controller !== undefined)
+    return {
+      name: controller.name,
+      noun: "Controller",
+      open: () => links.onOpen(controller.id),
+    };
+  if (preset !== undefined)
+    return {
+      name: preset.name,
+      noun: "Preset",
+      open: () => links.onOpenPreset(preset.id),
+    };
+  return undefined;
 }
 
 /**
@@ -150,7 +72,9 @@ export function LinkMenuItems({
  * value that opens it. A number shows as its readout alone: the chip needs
  * the room a slider would take, and the value is not draggable here anyway.
  * The chip wraps under the value rather than squeezing when the row is
- * narrow, and truncates its name only once it has a line to itself.
+ * narrow, and truncates its name only once it has a line to itself. A row a
+ * Preset drives has one value per Element, so it shows the Preset's chip
+ * alone.
  */
 export function LinkedControl({
   resolved,
@@ -159,7 +83,22 @@ export function LinkedControl({
   readonly resolved: ResolvedAddress;
   readonly links: RowLinks;
 }) {
-  const { controller, effective } = links;
+  const { controller, effective, preset } = links;
+  if (preset !== undefined)
+    return (
+      <div className="flex min-w-0 flex-1 items-center">
+        <Button
+          variant="outline"
+          size="xs"
+          className="max-w-full min-w-0 shrink overflow-hidden border-selection/60 text-foreground"
+          title={`Controlled by Preset ${preset.name}. Change it on the Preset.`}
+          onClick={() => links.onOpenPreset(preset.id)}
+        >
+          <Link2 className="text-selection" />
+          <span className="truncate">{preset.name}</span>
+        </Button>
+      </div>
+    );
   if (controller === undefined || controller.kind === "group") return null;
   const range = resolved.range ?? { min: 0, max: 1 };
   return (

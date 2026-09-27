@@ -3,6 +3,7 @@ import { z } from "zod";
 import { resolveAddress } from "../address/address.ts";
 import { anchorsProblem } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
+import { isPresetLink } from "../document/document.ts";
 
 /**
  * The anchors of a number Link: what the target shows at Controller 0 and
@@ -25,6 +26,8 @@ export const linkUpdate = defineCommand({
     const link = document.links[payload.linkId];
     if (link === undefined)
       return rejected(`Link “${payload.linkId}” does not exist.`);
+    if (isPresetLink(link))
+      return rejected("A Link to a Preset has no mapping to change.");
     if (link.anchors === null)
       return rejected("A color Link has no mapping to change.");
     const resolved = resolveAddress(document, link.address);

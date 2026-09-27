@@ -1,6 +1,8 @@
 import type { DocumentView } from "@refrata/client";
 import {
+  isControllerLink,
   linkAt,
+  linkSourceName,
   linkable,
   listAddresses,
   type Controller,
@@ -63,10 +65,14 @@ function collect(
     const placed = place(resolved);
     if (placed === undefined) continue;
     const existing = linkAt(document, resolved.address);
+    const here =
+      existing !== undefined &&
+      isControllerLink(existing) &&
+      existing.controllerId === controller.id;
     const elsewhere =
-      existing === undefined || existing.controllerId === controller.id
+      existing === undefined || here
         ? undefined
-        : (document.controllers[existing.controllerId]?.name ?? "another");
+        : linkSourceName(document, existing);
     result.push({
       key: resolved.address,
       group: placed.group,
@@ -75,7 +81,7 @@ function collect(
       detail: placed.detail,
       haystack:
         `${placed.group} ${placed.owner} ${placed.detail ?? ""} ${resolved.label}`.toLowerCase(),
-      taken: existing?.controllerId === controller.id ? "linked" : undefined,
+      taken: here ? "linked" : undefined,
       note:
         elsewhere === undefined
           ? undefined

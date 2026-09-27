@@ -8,6 +8,12 @@ import {
   rowRefAttributes,
   rowRefLabel,
 } from "../document/look-rows.ts";
+import type { Preset } from "../document/preset.ts";
+import {
+  hasPresetRef,
+  presetRefLabel,
+  presetRowAttributes,
+} from "../document/presets.ts";
 import { targetLabel } from "../document/targets.ts";
 import { elementRef } from "../rig/elements.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
@@ -25,6 +31,9 @@ export function unknownAddress(
 ): string {
   const base = `Unknown address “${address}”`;
   const [head, id = "", field, ...rest] = address.split("/");
+  const preset = head === "preset" ? document.presets[id] : undefined;
+  if (preset !== undefined && field === "row" && rest.length > 0)
+    return `${base}: ${unknownPresetRow(document, preset, rest)}`;
   const layer = head === "layer" ? document.layers[id] : undefined;
   if (layer === undefined || rest.length === 0) return `${base}.`;
   if (field !== "param" && field !== "cue" && field !== "row")
@@ -51,6 +60,32 @@ export function unknownAddress(
       ? `declares no ${noun}`
       : `declares the ${noun} ${keys.join(", ")}`;
   return `${base}: ${definition.name} ${declared}. See \`refrata visuals ${definition.id}\`.`;
+}
+
+/** What is wrong with a Preset row Address after `row/`: its Element, or its Attribute. */
+function unknownPresetRow(
+  document: AddressSource,
+  preset: Preset,
+  segments: readonly string[],
+): string {
+  const named = `Preset “${preset.name}”`;
+  if (preset.kind === "group") return `${named} is a Group; it has no rows.`;
+  const [first = "", second, third] = segments;
+  const [ref, attribute] =
+    first === ALL_TARGETS_REF
+      ? [first, second]
+      : [elementRef(first, second ?? ""), third];
+  if (!hasPresetRef(preset, ref)) {
+    const labels = preset.elements.map(
+      (element) => `“${targetLabel(document, element)}”`,
+    );
+    return labels.length === 0
+      ? `${named} has no Elements yet; “all” is its All Elements row.`
+      : `${named} has no such Element; it has ${labels.join(", ")}, and “all” is the All Elements row.`;
+  }
+  if (attribute === undefined) return `a row needs an Attribute.`;
+  const attributes = presetRowAttributes(document, ref);
+  return `“${presetRefLabel(document, ref)}” on ${named} has no Attribute “${attribute}”; it has ${attributes.join(", ")}.`;
 }
 
 /** What is wrong with a Look Layer row Address after `row/`: its Target, or its Attribute. */

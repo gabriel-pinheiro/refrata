@@ -2,6 +2,7 @@ import type { DocumentView } from "@refrata/client";
 import {
   getAtPath,
   linkAt,
+  linkSourceName,
   listAddresses,
   type AddressValue,
   type Document,
@@ -90,8 +91,8 @@ function collect(document: Document, macro: RunnableMacro): PickerCandidate[] {
     const placed = place(resolved);
     if (placed === undefined) continue;
     const link = linkAt(document, resolved.address);
-    const controller =
-      link === undefined ? undefined : document.controllers[link.controllerId];
+    const source =
+      link === undefined ? undefined : linkSourceName(document, link);
     result.push({
       key: resolved.address,
       group: placed.group,
@@ -101,11 +102,11 @@ function collect(document: Document, macro: RunnableMacro): PickerCandidate[] {
       haystack:
         `${placed.group} ${placed.owner} ${placed.detail ?? ""} ${resolved.label}`.toLowerCase(),
       note:
-        controller === undefined
+        source === undefined
           ? undefined
           : {
-              text: controller.name,
-              title: `Controlled by ${controller.name}; a set action is skipped while it is`,
+              text: source,
+              title: `Controlled by ${source}; a set action is skipped while it is`,
             },
       rank: placed.rank,
     });

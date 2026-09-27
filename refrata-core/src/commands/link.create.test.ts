@@ -10,7 +10,7 @@ import { executeCommand } from "../command/execute.ts";
 import {
   emptyDocument,
   type Document,
-  type Link,
+  type ControllerLink,
   type NumberController,
 } from "../document/document.ts";
 import { createBuiltInRegistry } from "./index.ts";
@@ -144,8 +144,8 @@ describe("Link anchors and mapping", () => {
       order: "a0",
       value,
     });
-    const link = (anchors: Link["anchors"]): Link => ({
-      id: "l" as Link["id"],
+    const link = (anchors: ControllerLink["anchors"]): ControllerLink => ({
+      id: "l" as ControllerLink["id"],
       controllerId: "energy",
       address: hold.address,
       anchors,

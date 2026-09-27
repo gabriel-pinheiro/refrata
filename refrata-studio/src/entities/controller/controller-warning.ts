@@ -1,4 +1,9 @@
-import type { Controller, Link, Table } from "@refrata/core";
+import {
+  isControllerLink,
+  type Controller,
+  type Link,
+  type Table,
+} from "@refrata/core";
 
 /** What keeps a Controller from moving anything, as a navigator warning. */
 export interface ControllerWarning {
@@ -8,7 +13,11 @@ export interface ControllerWarning {
 
 /** The Controllers that at least one Link names. */
 export function linkedControllers(links: Table<Link>): ReadonlySet<string> {
-  return new Set(Object.values(links).map((link) => link.controllerId));
+  return new Set(
+    Object.values(links)
+      .filter(isControllerLink)
+      .map((link) => link.controllerId),
+  );
 }
 
 /** The one warning a Controller's row shows: a Number or Color Controller nothing is linked to. Groups get none. */

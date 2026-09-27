@@ -1,6 +1,8 @@
 import type { DocumentView } from "@refrata/client";
 import { isSetRef } from "@refrata/core";
 import {
+  Bookmark,
+  BookmarkPlus,
   ChevronDown,
   FolderPlus,
   Layers,
@@ -30,14 +32,16 @@ import { useTargetActions, type LayerChoices } from "./use-target-actions";
 
 const NO_LAYERS = "No Layer yet: New Look Layer makes one.";
 const NO_SETS = "No Fixture Set by list yet.";
+const NO_PRESETS = "No Preset yet.";
 
 /**
  * The inspector section for a selection that can be targeted: "Add to
  * Layer" (Layers under their Scene), "New Look Layer" (on the playing
  * Scene, made first when there is none), "Add to Set" (hidden when a Set
- * is in the selection, since Sets hold Elements only) and "New Set". A
- * menu with nothing to offer is disabled and says why beside it, since a
- * disabled button shows no title.
+ * is in the selection, since Sets hold Elements only), "New Set", "Add to
+ * Preset" and "New Preset" (a Set in the selection gives the members it has
+ * now). A menu with nothing to offer is disabled and says why beside it,
+ * since a disabled button shows no title.
  */
 export function TargetActionsSection({
   view,
@@ -108,6 +112,32 @@ export function TargetActionsSection({
             <FolderPlus /> New Set
           </Button>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<Button variant="outline" size="sm" />}
+            disabled={actions.presetChoices.length === 0}
+          >
+            <Bookmark /> Add to Preset <ChevronDown />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {actions.presetChoices.map((preset) => (
+              <DropdownMenuItem
+                key={preset.id}
+                onClick={() => actions.addToPreset(preset, refs)}
+              >
+                {preset.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {actions.presetChoices.length === 0 && <Reason>{NO_PRESETS}</Reason>}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => actions.newPreset(refs)}
+        >
+          <BookmarkPlus /> New Preset
+        </Button>
       </div>
       {actions.dialog}
     </InspectorSection>
@@ -208,6 +238,24 @@ export function TargetContextItems({
           <FolderPlus /> New Set from selection
         </ContextMenuItem>
       )}
+      <ContextMenuSub>
+        <ContextMenuSubTrigger disabled={actions.presetChoices.length === 0}>
+          <Bookmark /> Add to Preset
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent>
+          {actions.presetChoices.map((preset) => (
+            <ContextMenuItem
+              key={preset.id}
+              onClick={() => actions.addToPreset(preset, refs)}
+            >
+              {preset.name}
+            </ContextMenuItem>
+          ))}
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+      <ContextMenuItem onClick={() => actions.newPreset(refs)}>
+        <BookmarkPlus /> New Preset from selection
+      </ContextMenuItem>
       <ContextMenuSeparator />
       {actions.dialog}
     </>

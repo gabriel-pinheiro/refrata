@@ -27,6 +27,7 @@ const NOUNS: Record<TableName, string> = {
   scenes: "Scene",
   layers: "Layer",
   controllers: "Controller",
+  presets: "Preset",
   links: "Link",
   macros: "Macro",
 };
@@ -34,6 +35,7 @@ const NOUNS: Record<TableName, string> = {
 /** Address heads whose next segment names an entity. */
 const ADDRESS_TABLES: Readonly<Record<string, TableName>> = {
   controller: "controllers",
+  preset: "presets",
   macro: "macros",
   element: "fixtures",
   scene: "scenes",
@@ -43,6 +45,7 @@ const ADDRESS_TABLES: Readonly<Record<string, TableName>> = {
 /** Payload keys that hold one entity id, and which table it belongs to. */
 const KEY_TABLES: Readonly<Record<string, TableName>> = {
   controllerId: "controllers",
+  presetId: "presets",
   macroId: "macros",
   linkId: "links",
   fixtureId: "fixtures",
@@ -56,6 +59,7 @@ const KEY_TABLES: Readonly<Record<string, TableName>> = {
 /** `parentId` and `after` belong to the table the command's prefix names. */
 const PREFIX_TABLES: Readonly<Record<string, TableName>> = {
   controller: "controllers",
+  preset: "presets",
   macro: "macros",
   fixture: "fixtures",
   universe: "universes",
@@ -172,7 +176,8 @@ export function resolveElementRef(document: Document, text: string): string {
  * `controller/Energy/value` → `controller/controller_…/value`. In a Look
  * Layer row Address the Target after `row` is resolved too:
  * `layer/Base/row/Par/dimmer` → `layer/…/row/<fixtureId>/root/dimmer`,
- * `layer/Base/row/set:Wash/color` → the Set's id.
+ * `layer/Base/row/set:Wash/color` → the Set's id. A Preset's row Address
+ * reads the same way: `preset/Table/row/Mover/pan`.
  */
 export function resolveAddressNames(
   document: Document,
@@ -185,7 +190,11 @@ export function resolveAddressNames(
     return address;
   const id = resolveId(document, table, entity);
   const rest = segments.slice(2);
-  if (head === "layer" && rest[0] === "row" && rest.length >= 3) {
+  if (
+    (head === "layer" || head === "preset") &&
+    rest[0] === "row" &&
+    rest.length >= 3
+  ) {
     const [, target = "", ...tail] = rest;
     // "all", a Set or a Fixture name is one segment; <fixture>/<key> is two.
     const single =
@@ -214,9 +223,17 @@ export function resolvePathNames(document: Document, path: string): string {
   return id === undefined ? path : [table, id, ...segments.slice(2)].join("/");
 }
 
-/** Commands whose `ref`, `target`, `after`, `refs` and `targets` are Targets or Element refs, not siblings. */
-const REF_COMMANDS = /^(layer\.(targets|row)|set\.members|fixture\.tags)\./;
-const REF_KEYS = new Set(["ref", "target", "after", "refs", "targets"]);
+/** Commands whose `ref`, `target`, `after`, `refs`, `targets` and `elements` are Targets or Element refs, not siblings. */
+const REF_COMMANDS =
+  /^(layer\.(targets|row|aim)|set\.members|fixture\.tags|preset\.(elements|row|aim))\./;
+const REF_KEYS = new Set([
+  "ref",
+  "target",
+  "after",
+  "refs",
+  "targets",
+  "elements",
+]);
 
 /**
  * A command payload with every entity reference turned into an id: the
@@ -224,8 +241,10 @@ const REF_KEYS = new Set(["ref", "target", "after", "refs", "targets"]);
  * (or the payload's own `table`, as `entity.move` has); `address` and
  * `addresses`; lists such as `controllerIds`; objects inside arrays (Macro
  * actions) the same way; and, in the commands that take Targets or Element
- * refs (`layer.targets.*`, `layer.row.*`, `set.members.*`, `fixture.tags.*`),
- * `ref`, `target`, `after`, `refs` and `targets` written as `look` takes a Target.
+ * refs (`layer.targets.*`, `layer.row.*`, `layer.aim.*`, `set.members.*`,
+ * `fixture.tags.*`, `preset.elements.*`, `preset.row.*`, `preset.aim.*`),
+ * `ref`, `target`, `after`, `refs`, `targets` and `elements` written as
+ * `look` takes a Target.
  */
 
 export function resolvePayloadNames(
@@ -246,8 +265,10 @@ export function resolvePayloadNames(
   const refs = REF_COMMANDS.test(command);
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
+    // A new Preset's `elements` are refs; its `after` is a sibling Preset.
+    const listed = command === "preset.create" && key === "elements";
     resolved[key] =
-      refs && REF_KEYS.has(key)
+      listed || (refs && REF_KEYS.has(key))
         ? resolveRefs(document, value)
         : resolveField(document, prefix, siblings, key, value);
   }

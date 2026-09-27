@@ -17,6 +17,7 @@ export type FixtureTypeId = Id<"fixtureType">;
 export type SceneId = Id<"scene">;
 export type LayerId = Id<"layer">;
 export type FixtureSetId = Id<"fixtureSet">;
+export type PresetId = Id<"preset">;
 export type SessionId = Id<"session">;
 export type DocumentId = Id<"document">;
 

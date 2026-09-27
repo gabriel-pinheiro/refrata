@@ -4,6 +4,7 @@ import { addressEdit } from "./address.edit.ts";
 import { addressSet, addressToggle } from "./address.set.ts";
 import { addressTrigger } from "./address.trigger.ts";
 import { aimEdit } from "./aim.edit.ts";
+import { aimUnlink } from "./aim.unlink.ts";
 import { controllerCreate } from "./controller.create.ts";
 import { controllerDuplicate } from "./controller.duplicate.ts";
 import { controllerMove } from "./controller.move.ts";
@@ -42,6 +43,7 @@ import { layerUngroup } from "./layer.ungroup.ts";
 import { layerUpdate } from "./layer.update.ts";
 import { layerVisualSet } from "./layer.visual.set.ts";
 import { linkCreate } from "./link.create.ts";
+import { linkPreset } from "./link.preset.ts";
 import { linkRemove } from "./link.remove.ts";
 import { linkUpdate } from "./link.update.ts";
 import { macroActionMove } from "./macro.action.move.ts";
@@ -58,6 +60,18 @@ import { macroUngroup } from "./macro.ungroup.ts";
 import { outputCreate } from "./output.create.ts";
 import { outputRemove } from "./output.remove.ts";
 import { outputUpdate } from "./output.update.ts";
+import { presetAimRelease } from "./preset.aim.release.ts";
+import { presetAimSet } from "./preset.aim.set.ts";
+import { presetCreate } from "./preset.create.ts";
+import { presetDuplicate } from "./preset.duplicate.ts";
+import { presetElementsAdd } from "./preset.elements.add.ts";
+import { presetElementsRemove } from "./preset.elements.remove.ts";
+import { presetMove } from "./preset.move.ts";
+import { presetRemove } from "./preset.remove.ts";
+import { presetRename } from "./preset.rename.ts";
+import { presetRowRelease } from "./preset.row.release.ts";
+import { presetRowSet } from "./preset.row.set.ts";
+import { presetUngroup } from "./preset.ungroup.ts";
 import { sceneCreate } from "./scene.create.ts";
 import { sceneDuplicate } from "./scene.duplicate.ts";
 import { sceneMove } from "./scene.move.ts";
@@ -147,7 +161,20 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   controllerDuplicate,
   controllerUngroup,
   controllerRemove,
+  presetCreate,
+  presetRename,
+  presetMove,
+  presetDuplicate,
+  presetUngroup,
+  presetElementsAdd,
+  presetElementsRemove,
+  presetRowSet,
+  presetRowRelease,
+  presetAimSet,
+  presetAimRelease,
+  presetRemove,
   linkCreate,
+  linkPreset,
   linkUpdate,
   linkRemove,
   fixtureActionEnd,
@@ -169,6 +196,7 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   macroActionMove,
   addressEdit,
   aimEdit,
+  aimUnlink,
   addressSet,
   addressToggle,
   addressTrigger,

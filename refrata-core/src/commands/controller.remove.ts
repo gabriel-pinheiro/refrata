@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { descendantControllers } from "../document/controllers.ts";
-import { tableEntries } from "../document/document.ts";
+import { isControllerLink, tableEntries } from "../document/document.ts";
 import { dropActionsUnder } from "../document/macros.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
@@ -29,7 +29,7 @@ export const controllerRemove = defineCommand({
     ]);
     const patches: Patch[] = [];
     for (const link of tableEntries(document.links))
-      if (removed.has(link.controllerId))
+      if (isControllerLink(link) && removed.has(link.controllerId))
         patches.push(...releaseLink(context, link));
     patches.push(
       ...dropActionsUnder(

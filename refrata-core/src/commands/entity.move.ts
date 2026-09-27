@@ -20,6 +20,7 @@ const labels: Record<OrderedTableName, string> = {
   scenes: "Scene",
   layers: "Layer",
   controllers: "Controller",
+  presets: "Preset",
   macros: "Macro",
 };
 

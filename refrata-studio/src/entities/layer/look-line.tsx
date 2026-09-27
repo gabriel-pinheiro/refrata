@@ -4,6 +4,8 @@ import {
   ALL_TARGETS_REF,
   ATTRIBUTES,
   isAllTargetsRef,
+  linkAt,
+  presetRowValues,
   resolveAddress,
   rowAddress,
   rowRefLabel,
@@ -17,7 +19,9 @@ import {
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Control } from "@/inspector/fields/address-row";
-import { LinkedControl, LinkMenu } from "@/inspector/fields/link-row";
+import { LinkMenu } from "@/inspector/fields/link-menu";
+import { LinkedControl, linkSource } from "@/inspector/fields/link-row";
+import { PresetEntries, shownEntries } from "@/inspector/fields/preset-entries";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
@@ -29,7 +33,8 @@ import { cn } from "@/lib/utils";
  * the Controller driving it) and its Link menu. The control wraps under
  * the label when the inspector is too narrow to give it a usable width. A
  * Target's line with no row of its own says when an All Targets row reaches
- * it, and one with its own row that it overrides All Targets.
+ * it, and one with its own row that it overrides All Targets. A row a
+ * Preset drives lists under it what each Element takes from the Preset.
  */
 export function LookLine({
   view,
@@ -58,11 +63,12 @@ export function LookLine({
           resolved,
           `${layer.name} ${rowRefLabel(document, rowRef)} ${resolved.label}`,
         );
-  const linked = links?.link !== undefined && links.controller !== undefined;
+  const linked = linkSource(links) !== undefined;
   const present = row !== undefined || linked;
   const shared = isAllTargetsRef(rowRef)
     ? undefined
-    : storedRow(layer, ALL_TARGETS_REF, attribute);
+    : (storedRow(layer, ALL_TARGETS_REF, attribute) ??
+      linkAt(document, rowAddress(layer.id, ALL_TARGETS_REF, attribute)));
   const send = useLatestWins((value: AddressValue) =>
     resolved === undefined
       ? Promise.resolve()
@@ -124,6 +130,17 @@ export function LookLine({
         </div>
       ) : (
         <span className="flex-1" />
+      )}
+      {resolved !== undefined && links?.preset !== undefined && (
+        <div className="basis-full pl-5">
+          <PresetEntries
+            label={label}
+            entries={shownEntries(
+              resolved,
+              presetRowValues(document, layer, rowRef, attribute, links.preset),
+            )}
+          />
+        </div>
       )}
     </div>
   );

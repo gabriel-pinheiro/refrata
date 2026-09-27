@@ -136,10 +136,10 @@ grill: the mover case that justified the Look Layer in the first place is one
 Target per Element, and a table keyed by member would go stale under a rule
 Set whose members come and go.
 
-And it is where Presets will attach: a row can reference a Preset instead of
-holding its own value, so ten Look Layers pointing at `Centre Stage` all move
-when the position is refocused on the day. That is grandMA3's central
-productivity feature and it lands naturally here, later.
+And it is where Presets attach: a row links to a Preset instead of holding
+its own value, so ten Look Layers pointing at `Centre Stage` all move when
+the position is refocused on the day. That is grandMA3's central
+productivity feature and it lands naturally here.
 
 ## 4. Blackout and Master, stated simply
 

@@ -7,12 +7,12 @@ import {
   type ResolvedAddress,
 } from "@refrata/core";
 import { Link2, TriangleAlert } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { AimLinkMenu } from "./aim-link-menu";
+import { AimLinkMenu, type AimPairLinks } from "./aim-link-menu";
 import {
   arrowNudge,
   formatDegrees,
@@ -23,7 +23,7 @@ import {
 } from "./aim-nudge";
 import { AimPad } from "./aim-pad";
 import { EditableReadout } from "./editable-readout";
-import type { RowLinks } from "./link-row";
+import { linkSource, type RowLinks } from "./link-row";
 import { useAimEdit } from "./use-aim-edit";
 
 /** One axis of an Aim: its Address, what is stored there, its Links and the Elements it reaches. */
@@ -42,7 +42,7 @@ const AXES: readonly { readonly key: AimAxisKey; readonly title: string }[] = [
 ];
 
 function isLinked(axis: AimAxis): boolean {
-  return axis.links.link !== undefined && axis.links.controller !== undefined;
+  return linkSource(axis.links) !== undefined;
 }
 
 /**
@@ -50,21 +50,27 @@ function isLinked(axis: AimAxis): boolean {
  * over two number Addresses. Each readout shows its degrees and types a
  * value; the row, focused, takes the arrow keys (left and right pan, up and
  * down tilt; shift coarser, ctrl finer) and its pad takes drags. Only a
- * free axis moves: a linked one shows its Controller and refuses, and a
+ * free axis moves: a linked one shows what drives it and refuses, and a
  * released one says so. A value beyond what a reached Element can do is
  * flagged with the Element's name. `onEdit` writes either or both axes as
- * one step.
+ * one step; `pair` adds the Aim part to the Link menu, which links both
+ * axes to a Preset; `children` sit under the row, such as what each
+ * Element takes from a Preset.
  */
 export function AimControl({
   label,
   pan,
   tilt,
+  pair,
   onEdit,
+  children,
 }: {
   readonly label: string;
   readonly pan: AimAxis;
   readonly tilt: AimAxis;
+  readonly pair?: AimPairLinks | undefined;
   readonly onEdit: (value: AimValue) => Promise<unknown>;
+  readonly children?: ReactNode;
 }) {
   const axes = { pan, tilt };
   const free = {
@@ -81,11 +87,15 @@ export function AimControl({
     if (free[key] && value !== undefined) stored[key] = value;
   }
   const edit = useAimEdit(stored, onEdit);
-  // What each axis shows: held or stored when free, the Controller's when linked.
+  // What each axis shows: held or stored when free, the Controller's when one drives it, nothing when a Preset does.
   const shown: AimValue = {};
   for (const { key } of AXES) {
     const axis = axes[key];
-    const value = isLinked(axis) ? axis.links.effective : edit.shown[key];
+    const value = !isLinked(axis)
+      ? edit.shown[key]
+      : axis.links.preset === undefined
+        ? axis.links.effective
+        : undefined;
     if (typeof value === "number") shown[key] = value;
   }
   const move = (delta: AimValue): void => {
@@ -152,6 +162,7 @@ export function AimControl({
         />
         <AimLinkMenu
           label={label}
+          pair={pair}
           sections={AXES.map(({ key, title }) => ({
             key,
             title,
@@ -166,11 +177,12 @@ export function AimControl({
           <span>{beyond.join(". ")}</span>
         </p>
       )}
+      {children}
     </div>
   );
 }
 
-/** One axis's caption and value: typeable when free, the Controller's chip when linked, "released" when absent. */
+/** One axis's caption and value: typeable when free, the chip of what drives it when linked, "released" when absent. */
 function AxisReadout({
   title,
   axis,
@@ -186,12 +198,12 @@ function AxisReadout({
   readonly beyond: boolean;
   readonly onCommit: (value: number) => void;
 }) {
-  const { controller } = axis.links;
+  const source = linkSource(axis.links);
   const text = value === undefined ? "" : formatDegrees(value);
   const caption = (
     <span className="text-[0.625rem] text-muted-foreground/70">{title}</span>
   );
-  if (isLinked(axis) && controller !== undefined)
+  if (source !== undefined)
     return (
       <span className="flex min-w-0 shrink items-center gap-1">
         {caption}
@@ -199,16 +211,16 @@ function AxisReadout({
           variant="outline"
           size="xs"
           className="max-w-full min-w-0 shrink overflow-hidden border-selection/60 text-foreground"
-          title={`${title} controlled by ${controller.name}. Change it on the Controller.`}
-          onClick={() => axis.links.onOpen(controller.id)}
+          title={`${title} controlled by ${source.name}. Change it on the ${source.noun}.`}
+          onClick={source.open}
         >
           <Link2 className="text-selection" />
-          <span className={cn("tabular-nums", beyond && "text-amber-300")}>
-            {text}°
-          </span>
-          <span className="truncate text-muted-foreground">
-            {controller.name}
-          </span>
+          {value !== undefined && (
+            <span className={cn("tabular-nums", beyond && "text-amber-300")}>
+              {text}°
+            </span>
+          )}
+          <span className="truncate text-muted-foreground">{source.name}</span>
         </Button>
       </span>
     );

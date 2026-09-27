@@ -8,7 +8,13 @@ import {
   linkProblem,
 } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import type { Controller, Document, Link } from "../document/document.ts";
+import {
+  isControllerLink,
+  type Controller,
+  type ControllerLink,
+  type Document,
+  type LinkAnchors,
+} from "../document/document.ts";
 import type { Patch } from "../document/patch.ts";
 import { generateId } from "../ids.ts";
 import { unknownAddress } from "../address/unknown.ts";
@@ -22,7 +28,7 @@ export function linkPatches(
   document: Document,
   controller: Controller,
   addresses: readonly string[],
-  anchors?: NonNullable<Link["anchors"]>,
+  anchors?: LinkAnchors,
 ): Patch[] | { readonly error: string } {
   const patches: Patch[] = [];
   for (const address of new Set(addresses)) {
@@ -35,11 +41,16 @@ export function linkPatches(
       anchors === undefined ? undefined : anchorsProblem(resolved, anchors);
     if (anchorProblem !== undefined) return { error: anchorProblem };
     const existing = linkAt(document, address);
-    if (existing?.controllerId === controller.id) continue;
+    if (
+      existing !== undefined &&
+      isControllerLink(existing) &&
+      existing.controllerId === controller.id
+    )
+      continue;
     if (existing !== undefined)
       patches.push({ op: "remove", path: ["links", existing.id] });
     const id = generateId("link");
-    const link: Link = {
+    const link: ControllerLink = {
       id,
       controllerId: controller.id,
       address,

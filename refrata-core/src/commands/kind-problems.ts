@@ -46,3 +46,22 @@ export function notMemberOf(
 ): string {
   return `“${targetLabel(document, ref)}” is not a member of “${setName}”.`;
 }
+
+/** Why `id` is not a Preset: none by that id, or a Group of them. */
+export function notPreset(
+  document: Pick<Document, "presets">,
+  id: string,
+): string {
+  const preset = document.presets[id];
+  if (preset === undefined) return `No Preset “${id}”.`;
+  return `“${preset.name}” is a Group, not a Preset.`;
+}
+
+/** "“Par › Panel 1” is not an Element of “Table Blue”.": an Element ref said as its label. */
+export function notElementOf(
+  document: TargetSource,
+  ref: string,
+  presetName: string,
+): string {
+  return `“${targetLabel(document, ref)}” is not an Element of “${presetName}”.`;
+}

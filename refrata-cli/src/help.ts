@@ -16,6 +16,7 @@ Working from a shell
 
   Read       health, library, fixtures, tags, sets, scenes, layers <scene>,
              visuals [id] (the Catalog, or one Visual of it),
+             presets, presets show <preset>,
              controllers, macros, osc, get [path|Address], addresses,
              commands, describe <command> (its payload fields; --json for
              the schema), dmx <universe> (the 512 bytes going out, runs
@@ -67,6 +68,8 @@ Working from a shell
              clamped to the widest range the Elements the row reaches have
              ("all" counts every Target's), saying so; one that only some
              of them can reach is kept and warned about, naming the others.
+             aim <layer> <target> --link <preset> links both axes to a
+             Preset; --unlink lets them go.
              sets add <name> <ref>...  a Fixture Set of Elements, in order.
              sets add <name> --rule panel,odd --rule wall  a Set by rule,
              resolved live: a Rule is all of its Tags, and its member is
@@ -89,6 +92,30 @@ Working from a shell
              dimmer, positions kept; blackout on|off sends 0 on every address
              of every Universe, whatever the patch, the kill switch. play and
              blackout are show control (never undone); the rest is authoring.
+
+  Presets    A Preset is a named bundle of values that Look Layer rows link
+             to: rows per Element, and All Elements rows every Element takes
+             unless it has its own. One Link on a Layer's All Targets Aim
+             sends every mover to its own entry.
+             presets add <name> [element...]  lists Elements: a Fixture (its
+             root), <fixture>/<key>, or set:<set> for the members the Set
+             has now. presets elements <preset> add|remove <element...>.
+             presets aim <preset> <element|all> [--pan <deg>] [--tilt <deg>]
+             [--by]  reads, sets or nudges the Aim held for one Element, as
+             "aim" does for a Layer.
+             presets set <preset> <element|all> <attribute> <value> and
+             presets release ...  any other row (color, dimmer, gobo1).
+             presets link <preset> <address...>  links Look Layer rows; each
+             Element the row reaches takes the Preset's row for it, else
+             its All Elements row, else is released. A linked row refuses
+             hand edits. presets add <name> --from <address...> grows a
+             Preset out of rows holding what they show now, and links them.
+             presets show <preset>  its rows and the rows linked to it;
+             "layers" and "aim" print what each Element takes and name the
+             ones with no entry. unlink <address...> lets a row go back to
+             the value authored under the Link, or to released.
+             presets remove <preset>  releases the rows linked to it and
+             names their Layers; undo brings all of it back.
 
   Visuals    layers add <scene> <name> --visual <id> [--target <t>]...  a
              Visual Layer running one Visual of the Catalog (lfo, shimmer,
@@ -171,6 +198,7 @@ Working from a shell
              layer/<id|name>/fade/<in|out>/<time|curve>
              layer/<id|name>/row/<target|all>/<attribute>
              layer/<id|name>/param/<name>     layer/<id|name>/cue/<key>
+             preset/<id|name>/row/<element|all>/<attribute>
              (a row's <target> is written as in "look"; "addresses" lists
              them all; link, edit and set take any of them)
 
@@ -193,6 +221,9 @@ Working from a shell
              cue Breathe sync
              dmx "Universe 1"
              dmx "Universe 1" --map
+             presets add "Centre Stage" set:Wall
+             presets set "Centre Stage" Par color '[1,1,1,1]'
+             presets link "Centre Stage" layer/Wash/row/all/color
              run controller.create '{"kind":"number","name":"Fader",
                  "addresses":["layer/Base/row/Par/dimmer"]}'
              run controller.create '{"kind":"number","name":"Energy"}'

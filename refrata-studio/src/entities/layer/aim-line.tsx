@@ -3,6 +3,8 @@ import {
   ALL_TARGETS_LABEL,
   ALL_TARGETS_REF,
   isAllTargetsRef,
+  linkAt,
+  presetRowValues,
   resolveAddress,
   rowAddress,
   rowReach,
@@ -17,16 +19,17 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AimValue } from "@/inspector/fields/aim-nudge";
 import { AimControl, type AimAxis } from "@/inspector/fields/aim-row";
+import {
+  entryText,
+  PresetEntries,
+  type ShownEntry,
+} from "@/inspector/fields/preset-entries";
+import { useAimLinks } from "@/inspector/fields/use-aim-links";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand } from "@/lib/client";
 import { cn } from "@/lib/utils";
 
 const AIM_AXES = ["pan", "tilt"] as const satisfies readonly AttributeKey[];
-
-/** Whether a row ref's Attributes hold both halves of an Aim, so one Aim line stands for the two. */
-export function hasAim(attributes: readonly AttributeKey[]): boolean {
-  return AIM_AXES.every((axis) => attributes.includes(axis));
-}
 
 /**
  * A Look Layer's `pan` and `tilt` rows for one row ref as one Aim line:
@@ -36,7 +39,8 @@ export function hasAim(attributes: readonly AttributeKey[]): boolean {
  * them over their two Addresses as one step. Its limits and flags come
  * from the Elements each row is measured against (`rowReach`). A row ticked on alone, from the
  * CLI or an older file, shows the checkbox part-way; ticking it adds the
- * other.
+ * other. An axis a Preset drives lists under the row what each Element
+ * takes from it.
  */
 export function AimLine({
   view,
@@ -51,6 +55,7 @@ export function AimLine({
 }) {
   const command = useCommand(view);
   const rowLinks = useRowLinks(view);
+  const aimLinks = useAimLinks(view);
   const axes: Partial<Record<(typeof AIM_AXES)[number], AimAxis>> = {};
   for (const attribute of AIM_AXES) {
     const resolved = resolveAddress(
@@ -71,6 +76,15 @@ export function AimLine({
     };
   }
   const { pan, tilt } = axes;
+  const owner = `${layer.name} ${rowRefLabel(document, rowRef)}`;
+  const pair =
+    pan === undefined || tilt === undefined
+      ? undefined
+      : aimLinks(
+          { address: pan.resolved.address, links: pan.links },
+          { address: tilt.resolved.address, links: tilt.links },
+          owner,
+        );
   const present = (axis: AimAxis | undefined): boolean =>
     axis !== undefined &&
     (axis.value !== undefined || axis.links.link !== undefined);
@@ -78,7 +92,10 @@ export function AimLine({
   const shared = isAllTargetsRef(rowRef)
     ? false
     : AIM_AXES.some(
-        (axis) => storedRow(layer, ALL_TARGETS_REF, axis) !== undefined,
+        (axis) =>
+          storedRow(layer, ALL_TARGETS_REF, axis) !== undefined ||
+          linkAt(document, rowAddress(layer.id, ALL_TARGETS_REF, axis)) !==
+            undefined,
       );
   const toggle = (on: boolean): void => {
     void command(on ? "layer.aim.set" : "layer.aim.release", {
@@ -130,11 +147,71 @@ export function AimLine({
           className="flex min-w-0 flex-1"
           style={{ flexBasis: settings.inspector.controlWrapPx }}
         >
-          <AimControl label="Aim" pan={pan} tilt={tilt} onEdit={edit} />
+          <AimControl
+            label="Aim"
+            pan={pan}
+            tilt={tilt}
+            pair={pair}
+            onEdit={edit}
+          >
+            <PresetEntries
+              label="Aim"
+              entries={aimEntries(document, layer, rowRef, pan, tilt)}
+            />
+          </AimControl>
         </div>
       ) : (
         <span className="flex-1" />
       )}
     </div>
   );
+}
+
+/**
+ * What each Element the Aim reaches takes from the Presets driving its
+ * axes, pan then tilt: an axis no Preset drives shows a dash, and one the
+ * Preset has no entry for is left undefined so the list flags it. Empty
+ * while no Preset drives either axis.
+ */
+function aimEntries(
+  document: Document,
+  layer: LookLayer,
+  rowRef: string,
+  pan: AimAxis,
+  tilt: AimAxis,
+): readonly ShownEntry[] {
+  if (pan.links.preset === undefined && tilt.links.preset === undefined)
+    return [];
+  const entries = new Map<
+    string,
+    { label: string; parts: (string | undefined)[] }
+  >();
+  [pan, tilt].forEach((axis, index) => {
+    const preset = axis.links.preset;
+    const attribute = AIM_AXES[index];
+    if (attribute === undefined) return;
+    const reached =
+      preset === undefined
+        ? rowReach(document, layer, rowRef, attribute).map((range) => ({
+            ref: range.ref,
+            label: range.label,
+            text: "-",
+          }))
+        : presetRowValues(document, layer, rowRef, attribute, preset).map(
+            (entry) => ({
+              ref: entry.ref,
+              label: entry.label,
+              text: entryText(axis.resolved, entry.value),
+            }),
+          );
+    for (const entry of reached) {
+      const shown = entries.get(entry.ref) ?? {
+        label: entry.label,
+        parts: ["-", "-"],
+      };
+      shown.parts[index] = entry.text;
+      entries.set(entry.ref, shown);
+    }
+  });
+  return [...entries].map(([ref, entry]) => ({ ref, ...entry }));
 }

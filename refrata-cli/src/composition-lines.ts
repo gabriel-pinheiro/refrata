@@ -1,5 +1,6 @@
 import {
   ALL_TARGETS_LABEL,
+  ALL_TARGETS_REF,
   BLEND_MODE_LABELS,
   childLayers,
   expandTargets,
@@ -14,6 +15,7 @@ import {
   type Scene,
 } from "@refrata/core";
 
+import { presetRowLines } from "./preset-lines.ts";
 import { formatRule, unmatchedTags } from "./tag-lines.ts";
 import { formatTreeNodes, treeNodes } from "./tree-nodes.ts";
 import { formatRowValue, percent } from "./value-lines.ts";
@@ -23,7 +25,8 @@ export { formatRowValue } from "./value-lines.ts";
 
 /**
  * The composition as the CLI shows it: Scenes as one line each, a Scene's
- * stack topmost first with each Look Layer's Targets and rows under it and
+ * stack topmost first with each Look Layer's Targets and rows under it (a
+ * row linked to a Preset with what each Element takes from it) and
  * each Visual Layer's Visual, Parameters, bindings and Cues (a spread Target
  * with what it expands to), and Sets in their Groups with
  * their Rules and their members named `Fixture › Element`.
@@ -106,6 +109,14 @@ export function formatStack(document: Document, sceneId: string): string[] {
           ? describeRows(ALL_TARGETS_LABEL, layer.all)
           : undefined;
       if (shared !== undefined) lines.push(`${indent}${shared}`);
+      if (layer.kind === "look")
+        for (const line of presetRowLines(
+          document,
+          layer,
+          ALL_TARGETS_REF,
+          ALL_TARGETS_LABEL,
+        ))
+          lines.push(`${indent}${line}`);
       for (const target of layer.targets) {
         if (target.spread) {
           const expanded = expandTargets(document, [target])
@@ -121,6 +132,13 @@ export function formatStack(document: Document, sceneId: string): string[] {
           layer.rows[target.ref] ?? {},
         );
         if (line !== undefined) lines.push(`${indent}${line}`);
+        for (const linked of presetRowLines(
+          document,
+          layer,
+          target.ref,
+          targetLabel(document, target.ref),
+        ))
+          lines.push(`${indent}${linked}`);
       }
     }
   };

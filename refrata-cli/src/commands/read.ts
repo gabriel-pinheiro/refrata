@@ -1,11 +1,18 @@
 import {
+  ALL_TARGETS_REF,
   effectiveValue,
   getAtPath,
+  isAttributeKey,
+  isPresetLink,
   linkAt,
+  linkSourceName,
   listAddresses,
+  presetOfLink,
+  presetRowValues,
   resolveAddress,
   unknownAddress,
   type Document,
+  type ResolvedAddress,
 } from "@refrata/core";
 import type { Command } from "commander";
 
@@ -19,10 +26,39 @@ const ADDRESS_HEADS = new Set([
   "layer",
   "scene",
   "controller",
+  "preset",
   "macro",
   "fixture",
   "element",
 ]);
+
+/**
+ * What a Look Layer row linked to a Preset reads as: the Preset, and what
+ * each Element the row reaches takes from it; an Element without `value`
+ * has no entry and is released. Undefined for any other Address.
+ */
+function presetReference(document: Document, entry: ResolvedAddress): unknown {
+  const link = linkAt(document, entry.address);
+  const preset = link === undefined ? undefined : presetOfLink(document, link);
+  const [table, layerId = "", field] = entry.path;
+  const layer = table === "layers" ? document.layers[layerId] : undefined;
+  if (preset === undefined || layer?.kind !== "look") return undefined;
+  const [ref, attribute] =
+    field === "all"
+      ? [ALL_TARGETS_REF, entry.path[3]]
+      : [entry.path[3], entry.path[4]];
+  if (
+    ref === undefined ||
+    attribute === undefined ||
+    !isAttributeKey(attribute)
+  )
+    return undefined;
+  return {
+    presetId: preset.id,
+    preset: preset.name,
+    elements: presetRowValues(document, layer, ref, attribute, preset),
+  };
+}
 
 /**
  * Why `get` found nothing: for an Address, what is there instead (a
@@ -72,7 +108,7 @@ export function registerRead(program: Command, cli: Cli): void {
   program
     .command("get [path]")
     .description(
-      "Read the Installation, or one value by document path (controllers, installation/name, macros/<id|name>/actions) or by Address (controller/Energy/value, installation/blackout), a linked Address at its effective value. Nothing there is an error; --json wraps the value with the revision.",
+      "Read the Installation, or one value by document path (controllers, installation/name, macros/<id|name>/actions) or by Address (controller/Energy/value, installation/blackout), a linked Address at its effective value. A row linked to a Preset reads as the Preset and what each Element takes from it. Nothing there is an error; --json wraps the value with the revision.",
     )
     .action((path: string | undefined) =>
       cli.withDocument(async (client, summary) => {
@@ -101,7 +137,8 @@ export function registerRead(program: Command, cli: Cli): void {
           throw new Error(
             `“${path}” is a trigger, not a value; fire it with \`refrata trigger\`.`,
           );
-        const value = effectiveValue(document, entry);
+        const value =
+          presetReference(document, entry) ?? effectiveValue(document, entry);
         cli.print({ path: address, revision, value }, () =>
           JSON.stringify(value, null, 2),
         );
@@ -111,31 +148,39 @@ export function registerRead(program: Command, cli: Cli): void {
   program
     .command("addresses")
     .description(
-      "List every controllable Address in the Installation with its value and Controller.",
+      "List every controllable Address in the Installation with its value and the Controller or Preset driving it.",
     )
     .action(() =>
       cli.withDocument(async (client, summary) => {
         const { document } = await cli.replica(client, summary.id);
         const items = listAddresses(document).map((entry) => {
           const link = linkAt(document, entry.address);
-          const controller =
+          const stored = getAtPath(document, entry.path) ?? entry.default;
+          const detail =
             link === undefined
               ? undefined
-              : document.controllers[link.controllerId];
-          return {
-            ...entry,
-            value: getAtPath(document, entry.path) ?? entry.default,
-            ...(link === undefined
-              ? {}
-              : {
-                  link: {
+              : isPresetLink(link)
+                ? { id: link.id, presetId: link.presetId }
+                : {
                     id: link.id,
                     controllerId: link.controllerId,
                     anchors: link.anchors,
                     effective: effectiveValue(document, entry),
-                  },
-                }),
-            controlledBy: controller?.name,
+                  };
+          return {
+            ...entry,
+            value: stored,
+            ...(detail === undefined ? {} : { link: detail }),
+            controlledBy:
+              link === undefined ? undefined : linkSourceName(document, link),
+            shown:
+              entry.type === "trigger"
+                ? "-"
+                : detail === undefined
+                  ? JSON.stringify(stored)
+                  : "effective" in detail
+                    ? JSON.stringify(detail.effective)
+                    : "per Element",
           };
         });
         cli.print(items, () =>
@@ -143,9 +188,7 @@ export function registerRead(program: Command, cli: Cli): void {
             items.map((item) => [
               item.address,
               item.type,
-              item.type === "trigger"
-                ? "-"
-                : JSON.stringify(item.link?.effective ?? item.value),
+              item.shown,
               addressLabel(item),
               item.controlledBy === undefined ? "" : `← ${item.controlledBy}`,
             ]),

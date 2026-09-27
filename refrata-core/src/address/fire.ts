@@ -6,7 +6,7 @@ import type {
 } from "../document/document.ts";
 import { applyPatches, type Patch } from "../document/patch.ts";
 import { addressValueProblem, resolveAddress } from "./address.ts";
-import { linkAt } from "./links.ts";
+import { linkAt, linkSourceName } from "./links.ts";
 import { toggleAddress, writeAddress } from "./write.ts";
 import { unknownAddress } from "./unknown.ts";
 
@@ -240,6 +240,6 @@ export function actionProblem(
   }
   const link = linkAt(document, action.address);
   if (link !== undefined)
-    return `${resolved.label} is controlled by ${document.controllers[link.controllerId]?.name ?? "a Controller"}.`;
+    return `${resolved.label} is controlled by ${linkSourceName(document, link)}.`;
   return undefined;
 }

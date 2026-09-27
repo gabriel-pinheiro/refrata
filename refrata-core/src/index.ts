@@ -9,6 +9,8 @@ export * from "./document/fixture-types.ts";
 export * from "./document/composition.ts";
 export * from "./document/layers.ts";
 export * from "./document/look-rows.ts";
+export * from "./document/preset.ts";
+export * from "./document/presets.ts";
 export * from "./document/visual-layers.ts";
 export * from "./document/geometry.ts";
 export * from "./document/fixture-sets.ts";

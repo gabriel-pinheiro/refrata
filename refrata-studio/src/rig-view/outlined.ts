@@ -12,8 +12,8 @@ import type { Selection } from "@/selection/selection";
 
 /**
  * The Element refs the Rig View outlines for what is selected: the Targets
- * of every selected Look or Visual Layer (Sets expanded to members) and the members
- * of every selected Fixture Set. Each ref is one Element; the shape draws
+ * of every selected Look or Visual Layer (Sets expanded to members), the members
+ * of every selected Fixture Set and the Elements of every selected Preset. Each ref is one Element; the shape draws
  * its subtree as one box.
  */
 export function useOutlined(
@@ -32,6 +32,9 @@ export function useOutlined(
       } else if (item.kind === "set") {
         const set = document.fixtureSets[item.id];
         if (set?.kind === "set") refs.push(...setMembers(document, set));
+      } else if (item.kind === "preset") {
+        const preset = document.presets[item.id];
+        if (preset?.kind === "preset") refs.push(...preset.elements);
       }
     }
     const result: string[] = [];

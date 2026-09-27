@@ -774,9 +774,9 @@ An Aim is a way of showing and editing, not a Parameter kind: `pan` and
 `tilt` stay two Attributes, two rows and two Addresses, so a Visual's Slots,
 a Blend Mode of `add` on one axis, a Limit Filter on `tilt`, OSC and the CLI
 are untouched. The row has one link button whose menu has three parts: Aim,
-which links both axes to a Preset; Pan and Tilt, which link one axis to a
-Controller or a Preset. Each readout shows its own source, and the arrows
-move only an axis that is free.
+which links both axes to a Preset, or unlinks both, in one undo step; Pan
+and Tilt, which link one axis to a Controller or a Preset. Each readout
+shows its own source, and the arrows move only an axis that is free.
 
 Do not call an Aim a Position, which is a Fixture's place on stage, nor a
 focus, which is the lens Attribute.
@@ -790,22 +790,39 @@ pad in its Virtual Console and position tool.
 A named bundle of Parameter Values that Layers link to instead of holding
 their own, so that fixing the Preset fixes every Layer: `Table Blue`,
 `Ceiling`, `Warm White`. It has the shape of a Look Layer's content and none
-of its place in a stack: All rows, one per Attribute, and rows per Element
-that override them. It holds any Attribute; most hold an Aim per mover. A
+of its place in a stack: an ordered list of Elements, rows per Element, one
+per Attribute, and All Elements rows that every Element takes unless its own
+row overrides them. It holds any Attribute; most hold an Aim per mover. A
 Preset is an Installation entity, arranged in navigator Groups like every
 other, and belongs to no Scene. Its rows are Addresses
 (`preset/<id>/row/<element|all>/<attribute>`), edited as the document is:
-undoable and saved.
+undoable and saved, and a Controller can be linked to one.
 
-A Preset contributes nothing by itself. A Look Layer row, or an Aim of a
-Region, takes it through a Parameter Link: each Element the row reaches takes
-the Preset's row for that Element, else its All row, else is released. One
-Link on the All Targets Aim row of a Layer whose Target is `All Movers` sends
-every mover to its own entry.
+Its rows are keyed by Element, never by Set: adding a Fixture Set to a Preset
+adds the members the Set has now, and a Fixture that joins the Set later is
+added by hand. An Element's row can name any Attribute the Element or its
+parts have, and fans down to the parts as a Look Layer row does; an All
+Elements row can name any Attribute of the vocabulary, since the Layers that
+link to a Preset bring Elements it does not list, so a Preset of one colour
+needs no Elements at all.
+
+A Preset contributes nothing by itself. A Look Layer row takes it through a
+Parameter Link: each Element the row reaches takes the Preset's row for that
+Element, else for its nearest ancestor that has one, else the All Elements
+row, else is released. One Link on the All Targets Aim row of a Layer whose
+Target is `All Movers` sends every mover to its own entry. Studio and the
+CLI list under a linked row what each Element takes and name the ones the
+Preset has nothing for.
+
+A Preset can grow out of rows: made from a Look Layer row, or from an Aim's
+two, it lists the Elements those rows reach, each holding what it shows from
+the row now, and is linked to them in the same step, so nothing on the rig
+changes.
 
 A Preset's entries go with a removed Fixture and with an Element key a Mode
 change drops. Removing a Preset warns with the Layers that link to it, and
-their rows are released.
+their rows are released; undo brings the Preset, the Links and the rows
+back. The CLI has `presets`.
 
 Do not call a Preset a Palette, a Position or a Look.
 
@@ -1013,11 +1030,15 @@ set by hand, which is how a Visual-like source modulates another Visual's
 Parameter without entering the stack. See docs/visuals-and-links.md.
 
 A Parameter Link's source is a Controller or a Preset. From a Controller it
-carries one value through its anchors to any linkable Address. From a Preset
-it has no anchors, since a Preset's values are already in the Attribute's
-units, and it carries one value per Element, so it drives only what is
-resolved per Element: a Look Layer row and an Aim of a Region. Either way the
-driven row shows its source and refuses hand edits.
+carries one value through its anchors to any linkable Address, a Preset's
+row included. From a Preset it has no anchors, since a Preset's values are
+already in the Attribute's units, and it carries one value per Element, so
+it drives only what is resolved per Element: a Look Layer row of any
+Parameter kind, choices and booleans too, and an Aim of a Region. Either way
+the driven row shows its source and refuses hand edits. Unlinked from a
+Controller, a row keeps what it was showing; unlinked from a Preset, which
+gave it one value per Element, it goes back to the value authored under the
+Link, or to released when there is none.
 
 ### Filter Layer
 

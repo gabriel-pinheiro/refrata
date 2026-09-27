@@ -30,7 +30,9 @@ import {
 } from "../document/composition.ts";
 import { isAttributeKey } from "../rig/attributes.ts";
 import { elementRef } from "../rig/elements.ts";
+import { definitionAddress } from "./definition-address.ts";
 import { layerPatterns } from "./layer-addresses.ts";
+import { presetPatterns } from "./preset-addresses.ts";
 import { PERCENT } from "./ranges.ts";
 import { visualPatterns } from "./visual-addresses.ts";
 
@@ -80,6 +82,7 @@ export type AddressSource = Pick<
   Document,
   | "installation"
   | "controllers"
+  | "presets"
   | "macros"
   | "fixtures"
   | "fixtureTypes"
@@ -98,6 +101,7 @@ export function addressSource(partial: Partial<AddressSource>): AddressSource {
       master: 1,
     },
     controllers: {},
+    presets: {},
     macros: {},
     fixtures: {},
     fixtureTypes: {},
@@ -151,33 +155,12 @@ function rowPattern(
       if (!rowRefAttributes(document, layer, ref).includes(attribute))
         return undefined;
       const definition = rowRefDefinition(document, ref, attribute);
-      const base = {
+      return {
         label: definition.label,
         owner: `${layer.name} · ${rowRefLabel(document, ref)}`,
         path: [...rowPath(layerId, ref, attribute), "value"] as const,
-        default: definition.default,
+        ...definitionAddress(definition),
       };
-      switch (definition.kind) {
-        case "number":
-          return {
-            ...base,
-            type: "number",
-            range: {
-              min: definition.min,
-              max: definition.max,
-              ...(definition.unit === undefined
-                ? {}
-                : { unit: definition.unit }),
-              ...(definition.percent === true ? { percent: true } : {}),
-            },
-          };
-        case "color":
-          return { ...base, type: "color" };
-        case "choice":
-          return { ...base, type: "choice", options: definition.options };
-        case "boolean":
-          return { ...base, type: "boolean" };
-      }
     },
     list: (document) => {
       const result: (readonly string[])[] = [];
@@ -306,6 +289,7 @@ const patterns: readonly AddressPattern[] = [
   rowPattern("set", setRowRef, (captures) => captures[2] ?? ""),
   rowPattern("element", elementRowRef, (captures) => captures[3] ?? ""),
   ...visualPatterns,
+  ...presetPatterns,
   {
     pattern: ["macro", "*", "run"],
     resolve: (document, [id = ""]) => {
@@ -418,12 +402,16 @@ export function controllerAddress(
 
 /**
  * Document tables whose Addresses a Controller may drive: a Layer's
- * opacity, enabled, fade times, rows and Visual Parameters, and the
- * Installation's Master. A Controller's
+ * opacity, enabled, fade times, rows and Visual Parameters, a Preset's
+ * rows, and the Installation's Master. A Controller's
  * own value and the operational switches (Blackout, Highlight) are sources
  * of control or Macro actions, never targets.
  */
-export const LINKABLE_TABLES: readonly string[] = ["layers", "installation"];
+export const LINKABLE_TABLES: readonly string[] = [
+  "layers",
+  "presets",
+  "installation",
+];
 
 /**
  * Whether a Controller of `kind` can drive `resolved`: Addresses in a

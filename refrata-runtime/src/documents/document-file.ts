@@ -42,6 +42,7 @@ const DocumentFileSchema = z
     scenes: DocumentSchema.shape.scenes.default({}),
     layers: DocumentSchema.shape.layers.default({}),
     controllers: DocumentSchema.shape.controllers.default({}),
+    presets: DocumentSchema.shape.presets.default({}),
     links: DocumentSchema.shape.links.default({}),
     macros: DocumentSchema.shape.macros.default({}),
   })
@@ -70,6 +71,7 @@ export function serializeDocument(document: Document): string {
     scenes: document.scenes,
     layers: document.layers,
     controllers: document.controllers,
+    presets: document.presets,
     links: document.links,
     macros: document.macros,
   };
@@ -108,6 +110,7 @@ export function parseDocumentFile(text: string): ParsedDocumentFile {
       scenes: parsed.data.scenes as Document["scenes"],
       layers: parsed.data.layers as Document["layers"],
       controllers: parsed.data.controllers as Document["controllers"],
+      presets: parsed.data.presets as Document["presets"],
       links: parsed.data.links as Document["links"],
       macros: parsed.data.macros as Document["macros"],
       operational: defaultOperational,

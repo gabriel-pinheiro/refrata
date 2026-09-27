@@ -1,5 +1,6 @@
 import type { DocumentView } from "@refrata/client";
 import {
+  isControllerLink,
   controllerAddress,
   resolveAddress,
   type Controller,
@@ -56,6 +57,7 @@ export function ControllerInspector({
   if (controller === undefined || document === undefined) return null;
   const resolved = controllerAddress(controller);
   const own = Object.values(links)
+    .filter(isControllerLink)
     .filter((link) => link.controllerId === id)
     .map((link) => ({ link, target: describeTarget(link, document) }))
     .sort((a, b) => a.target.text.localeCompare(b.target.text));

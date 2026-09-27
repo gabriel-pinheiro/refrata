@@ -1,10 +1,13 @@
 import { numberProblem } from "../parameters.ts";
-import type {
-  Controller,
-  Document,
-  Link,
-  Table,
+import {
+  isPresetLink,
+  type Controller,
+  type ControllerLink,
+  type Document,
+  type Link,
+  type Table,
 } from "../document/document.ts";
+import type { ValuePreset } from "../document/preset.ts";
 import { getAtPath } from "../document/patch.ts";
 import {
   linkable,
@@ -47,6 +50,38 @@ export function linksUnder(
   return Object.values(links).filter((link) => link.address.startsWith(prefix));
 }
 
+/** The Controller a Link takes its value from; none for a Preset Link or a Controller that is gone. */
+export function controllerOfLink(
+  document: Pick<Document, "controllers">,
+  link: Link,
+): Controller | undefined {
+  return isPresetLink(link)
+    ? undefined
+    : document.controllers[link.controllerId];
+}
+
+/** The Preset a Link takes its values from; none for a Controller Link or a Preset that is gone. */
+export function presetOfLink(
+  document: Pick<Document, "presets">,
+  link: Link,
+): ValuePreset | undefined {
+  if (!isPresetLink(link)) return undefined;
+  const preset = document.presets[link.presetId];
+  return preset?.kind === "preset" ? preset : undefined;
+}
+
+/** Who drives a linked Address, for "is controlled by": the Controller's name, or "Preset “Table Blue”". */
+export function linkSourceName(
+  document: Pick<Document, "controllers" | "presets">,
+  link: Link,
+): string {
+  if (isPresetLink(link)) {
+    const name = document.presets[link.presetId]?.name;
+    return name === undefined ? "a Preset" : `Preset “${name}”`;
+  }
+  return document.controllers[link.controllerId]?.name ?? "a Controller";
+}
+
 /**
  * What a Controller's value becomes at a target: a number link maps 0..1
  * onto its anchors, clamped to the target's range and snapped to its step
@@ -54,7 +89,7 @@ export function linksUnder(
  */
 export function mappedValue(
   controller: Controller,
-  link: Link,
+  link: ControllerLink,
   resolved: ResolvedAddress,
 ): AddressValue | undefined {
   if (controller.kind === "color")
@@ -75,14 +110,19 @@ export function mappedValue(
   return value;
 }
 
-/** The value an Address shows right now: its Controller's, mapped, or the authored one. */
+/**
+ * The value an Address shows right now: its Controller's, mapped, or the
+ * authored one. A row linked to a Preset has one value per Element and
+ * none of its own, so it reads as authored; `presetRowValues` lists what
+ * each Element takes.
+ */
 export function effectiveValue(
   document: Document,
   resolved: ResolvedAddress,
 ): AddressValue {
   const authored = getAtPath(document, resolved.path) as AddressValue;
   const link = linkAt(document, resolved.address);
-  if (link === undefined) return authored;
+  if (link === undefined || isPresetLink(link)) return authored;
   const controller = document.controllers[link.controllerId];
   if (controller === undefined) return authored;
   return mappedValue(controller, link, resolved) ?? authored;
@@ -99,7 +139,7 @@ export function effectiveAt(
   authored: AddressValue | undefined,
 ): AddressValue | undefined {
   const link = linkAt(document, address);
-  if (link === undefined) return authored;
+  if (link === undefined || isPresetLink(link)) return authored;
   const resolved = resolveAddress(document, address);
   const controller = document.controllers[link.controllerId];
   if (resolved === undefined || controller === undefined) return authored;
@@ -117,8 +157,24 @@ export function linkProblem(
   return undefined;
 }
 
+/**
+ * Why `preset` cannot drive `resolved`, or undefined when it can. A Preset
+ * carries one value per Element, so it drives only what is resolved per
+ * Element: a Look Layer row, a Target's or All Targets'.
+ */
+export function presetLinkProblem(
+  resolved: ResolvedAddress,
+): string | undefined {
+  const [table, , field] = resolved.path;
+  if (table === "layers" && (field === "rows" || field === "all"))
+    return undefined;
+  return `“${resolved.label}” holds one value; a Preset holds one per Element and links only to a Look Layer row.`;
+}
+
 /** The anchors a new number link starts with: the target's whole range. */
-export function defaultAnchors(resolved: ResolvedAddress): Link["anchors"] {
+export function defaultAnchors(
+  resolved: ResolvedAddress,
+): ControllerLink["anchors"] {
   if (resolved.type !== "number") return null;
   const range = resolved.range ?? { min: 0, max: 1 };
   return { from: range.min, to: range.max };
@@ -132,7 +188,7 @@ export function defaultAnchors(resolved: ResolvedAddress): Link["anchors"] {
  */
 export function anchorsProblem(
   resolved: ResolvedAddress,
-  anchors: NonNullable<Link["anchors"]>,
+  anchors: NonNullable<ControllerLink["anchors"]>,
 ): string | undefined {
   if (resolved.type !== "number")
     return `${resolved.label} is a ${resolved.type}; only a number target has anchors.`;

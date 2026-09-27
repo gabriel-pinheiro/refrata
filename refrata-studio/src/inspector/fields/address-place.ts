@@ -17,7 +17,8 @@ export interface AddressPlace {
 /**
  * Places Addresses in a picker. A Layer's Addresses sit under their Scene's
  * name, the Scenes in navigator order between "Scenes" (their play
- * triggers) and "Controllers", and each Layer's stay together in the order
+ * triggers) and "Controllers", a Preset's rows under "Presets" after
+ * them, and each Layer's stay together in the order
  * the Scene lists its Layers, so a show of eighty Layers reads Scene by
  * Scene and Layer by Layer. A Look row's owner names its row after the
  * Layer ("Look · All Targets", "Look · Par 1"), so two rows with the same
@@ -43,6 +44,8 @@ export function addressPlacer(
         return { group: "Scenes", owner, rank: 1 };
       case "controller":
         return { group: "Controllers", owner, rank: 3 };
+      case "preset":
+        return { group: "Presets", owner, rank: 3.5 };
       case "macro":
         return { group: "Macros", owner, rank: 4 };
       case "layer": {

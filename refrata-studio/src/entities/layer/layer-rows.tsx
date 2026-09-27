@@ -2,6 +2,7 @@ import type { DocumentView } from "@refrata/client";
 import {
   childLayers,
   layerEffectivelyEnabled,
+  isControllerLink,
   linkAt,
   type Controller,
   type Layer,
@@ -95,7 +96,7 @@ export function LayerRows({
         const expanded = group && isExpanded("layer", layer.id);
         const enabledLink = linkAt({ links }, `layer/${layer.id}/enabled`);
         const enabledBy =
-          enabledLink === undefined
+          enabledLink === undefined || !isControllerLink(enabledLink)
             ? undefined
             : controllers[enabledLink.controllerId]?.name;
         const warning = layerWarning(layer);

@@ -27,7 +27,8 @@ import {
 } from "./address-format";
 import { EditableReadout } from "./editable-readout";
 import { FieldRow } from "./field-row";
-import { LinkedControl, LinkMenu, type RowLinks } from "./link-row";
+import { LinkMenu } from "./link-menu";
+import { LinkedControl, linkSource, type RowLinks } from "./link-row";
 
 export type { RowLinks } from "./link-row";
 
@@ -57,7 +58,7 @@ export function AddressRow({
   const send = useLatestWins(onEdit);
   const fallback = resolved.default;
   const isDefault = fallback === undefined || sameAddressValue(value, fallback);
-  const linked = links?.link !== undefined && links.controller !== undefined;
+  const linked = linkSource(links) !== undefined;
   return (
     <FieldRow
       label={resolved.label}
@@ -74,7 +75,7 @@ export function AddressRow({
       }
       wide={linked}
     >
-      {linked ? (
+      {linked && links !== undefined ? (
         <LinkedControl resolved={resolved} links={links} />
       ) : (
         <Control resolved={resolved} value={value} send={send} />

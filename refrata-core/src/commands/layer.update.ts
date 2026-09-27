@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { linkAt } from "../address/links.ts";
+import { linkAt, linkSourceName } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { BlendModeSchema, isTargetedLayer } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
@@ -14,7 +14,7 @@ function controlled(
 ): string | undefined {
   const link = linkAt(document, address);
   if (link === undefined) return undefined;
-  return `${label} is controlled by ${document.controllers[link.controllerId]?.name ?? "a Controller"}.`;
+  return `${label} is controlled by ${linkSourceName(document, link)}.`;
 }
 
 /**

@@ -2,15 +2,18 @@ import type { DocumentView } from "@refrata/client";
 import {
   generateId,
   allSets,
+  childPresets,
   childSets,
   flattenStack,
   isRuleSet,
   isSetRef,
   isTargetedLayer,
   orderedEntries,
+  valuePresets,
   type TargetedLayer,
   type MemberSet,
   type Scene,
+  type ValuePreset,
 } from "@refrata/core";
 import { useState, type ReactNode } from "react";
 
@@ -30,10 +33,11 @@ export interface LayerChoices {
  * a Look or Visual Layer as Targets, made the Targets of a new Look Layer
  * (on the playing Scene, else the first, else a new "Scene 1" that plays),
  * added to a Fixture Set by list as members (Sets cannot be members, and a
- * Set by rule takes none), or made into a new Set. After adding, the Layer
- * or Set is selected so the inspector shows the new Targets and the Rig
- * View outlines them. Render `dialog` wherever the hook is used; it names
- * the new Set.
+ * Set by rule takes none), made into a new Set, or added to a Preset or
+ * made a new one's Elements (a Set in the selection adds the members it
+ * has now). After adding, the Layer, Set or Preset is selected so the
+ * inspector shows what was added and the Rig View outlines it. Render
+ * `dialog` wherever the hook is used; it names the new Set or Preset.
  */
 export function useTargetActions(view: DocumentView) {
   const command = useCommand(view);
@@ -55,6 +59,40 @@ export function useTargetActions(view: DocumentView) {
     document === undefined
       ? []
       : allSets(document.fixtureSets).filter((set) => !isRuleSet(set));
+
+  const presetChoices: readonly ValuePreset[] =
+    document === undefined ? [] : valuePresets(document.presets);
+
+  function addToPreset(preset: ValuePreset, refs: readonly string[]): void {
+    void command("preset.elements.add", { presetId: preset.id, refs }).then(
+      () => {
+        if (preset.parentId !== null)
+          setExpanded("preset", preset.parentId, true);
+        select({ kind: "preset", id: preset.id });
+      },
+    );
+  }
+
+  function newPreset(refs: readonly string[]): void {
+    const siblings =
+      document === undefined ? [] : childPresets(document.presets, null);
+    setNaming({
+      title: "New Preset from selection",
+      label: "Name",
+      initial: `Preset ${String(siblings.length + 1)}`,
+      submitLabel: "Create",
+      onSubmit: (name) => {
+        const id = generateId("preset");
+        void command("preset.create", {
+          id,
+          kind: "preset",
+          parentId: null,
+          name,
+          elements: refs,
+        }).then(() => select({ kind: "preset", id }));
+      },
+    });
+  }
 
   function addToLayer(layer: TargetedLayer, refs: readonly string[]): void {
     const targets = refs.filter(
@@ -149,6 +187,9 @@ export function useTargetActions(view: DocumentView) {
     newLookLayer,
     addToSet,
     newSet,
+    presetChoices,
+    addToPreset,
+    newPreset,
     dialog,
   };
 }

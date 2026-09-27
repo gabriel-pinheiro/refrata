@@ -5,7 +5,6 @@ import {
   type Id,
   type ControllerId,
   type InstallationId,
-  type LinkId,
   type MacroId,
 } from "../ids.ts";
 import { ColorSchema } from "../parameters.ts";
@@ -28,6 +27,18 @@ import {
   type Layer,
   type Scene,
 } from "./composition.ts";
+import { LinkSchema, type Link } from "./links.ts";
+import { PresetSchema, type Preset } from "./preset.ts";
+
+export {
+  LinkSchema,
+  isControllerLink,
+  isPresetLink,
+  type ControllerLink,
+  type Link,
+  type LinkAnchors,
+  type PresetLink,
+} from "./links.ts";
 
 /**
  * A Document is one Installation as normalized entity tables. Every table is
@@ -102,25 +113,6 @@ export const ControllerSchema = z.discriminatedUnion("kind", [
 export type Controller = Entity<typeof ControllerSchema, ControllerId>;
 export type NumberController = Extract<Controller, { kind: "number" }>;
 export type ColorController = Extract<Controller, { kind: "color" }>;
-
-/**
- * A Parameter Link makes a Controller drive one Address. A number link maps
- * the Controller's 0 and 1 onto `from` and `to` in the target's units,
- * linearly, reversed when `from` is the larger; a color link copies the
- * color. An Address has at most one Link, and the value authored under it
- * stays in the document, dormant until the Link goes.
- */
-export const LinkSchema = z
-  .object({
-    id: z.string().min(1),
-    controllerId: z.string().min(1),
-    address: z.string().min(1),
-    /** Target values at Controller 0 and 1; null for color links. */
-    anchors: z.object({ from: z.number(), to: z.number() }).strict().nullable(),
-  })
-  .strict();
-export type Link = Entity<typeof LinkSchema, LinkId>;
-export type LinkAnchors = NonNullable<Link["anchors"]>;
 
 /** Fields every Macro has, whatever its kind. */
 const MacroBase = {
@@ -257,6 +249,7 @@ export const DocumentSchema = z
     scenes: z.record(z.string(), SceneSchema),
     layers: z.record(z.string(), LayerSchema),
     controllers: z.record(z.string(), ControllerSchema),
+    presets: z.record(z.string(), PresetSchema),
     links: z.record(z.string(), LinkSchema),
     macros: z.record(z.string(), MacroSchema),
     operational: OperationalSchema,
@@ -273,6 +266,7 @@ export interface Document {
   readonly scenes: Table<Scene>;
   readonly layers: Table<Layer>;
   readonly controllers: Table<Controller>;
+  readonly presets: Table<Preset>;
   readonly links: Table<Link>;
   readonly macros: Table<Macro>;
   readonly operational: Operational;
@@ -288,6 +282,7 @@ export const TABLE_SCHEMAS = {
   scenes: SceneSchema,
   layers: LayerSchema,
   controllers: ControllerSchema,
+  presets: PresetSchema,
   links: LinkSchema,
   macros: MacroSchema,
 } as const;
@@ -301,6 +296,7 @@ export const ORDERED_TABLES = [
   "scenes",
   "layers",
   "controllers",
+  "presets",
   "macros",
 ] as const satisfies readonly TableName[];
 export type OrderedTableName = (typeof ORDERED_TABLES)[number];
@@ -316,6 +312,7 @@ export const PARENT_FIELDS: Partial<
   fixtureSets: ["parentId"],
   layers: ["sceneId", "parentId"],
   controllers: ["parentId"],
+  presets: ["parentId"],
   macros: ["parentId"],
 };
 
@@ -373,6 +370,7 @@ export function emptyDocument(name: string): Document {
     scenes: {},
     layers: {},
     controllers: {},
+    presets: {},
     links: {},
     macros: {},
     operational: defaultOperational,

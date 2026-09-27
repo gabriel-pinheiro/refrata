@@ -3,6 +3,7 @@ import {
   cueAddress,
   isAttributeKey,
   linkAt,
+  linkSourceName,
   paramAddress,
   spreadWarning,
   visualDefinition,
@@ -130,9 +131,7 @@ export function visualLayerLines(
         parameter.kind === "number" ? parameter : undefined,
       );
       if (link === undefined) return `${name} ${text}`;
-      const controller =
-        document.controllers[link.controllerId]?.name ?? link.controllerId;
-      return `${name} ${text} (controlled by ${controller})`;
+      return `${name} ${text} (controlled by ${linkSourceName(document, link)})`;
     },
   );
   const lines = [

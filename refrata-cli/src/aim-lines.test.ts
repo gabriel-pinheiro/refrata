@@ -67,7 +67,11 @@ describe("aim lines", () => {
     const document = stage();
     const layer = look(document);
     expect(
-      formatAim(document, layer, "all", aimReport(document, layer, "all")),
+      formatAim(
+        document,
+        { layer, ref: "all" },
+        aimReport(document, { layer, ref: "all" }),
+      ),
     ).toEqual([
       "Aim of All Targets on “Base”",
       "  pan   30.0°  (within -270.0° to 270.0°)",
@@ -84,12 +88,15 @@ describe("aim lines", () => {
       addresses: ["layer/base/row/all/pan"],
     });
     const layer = look(document);
-    const [pan] = aimReport(document, layer, "all");
+    const [pan] = aimReport(document, { layer, ref: "all" });
     expect(pan).toMatchObject({ controlledBy: "Sweep", value: 30 });
-    expect(formatAim(document, layer, "all", [pan!])[1]).toMatch(
+    expect(formatAim(document, { layer, ref: "all" }, [pan!])[1]).toMatch(
       /^ {2}pan {3}.*°, controlled by Sweep {2}\(within/,
     );
-    const own = aimReport(document, look(document), "beam/root");
+    const own = aimReport(document, {
+      layer: look(document),
+      ref: "beam/root",
+    });
     expect(own.map((axis) => axis.value)).toEqual([undefined, undefined]);
     expect(own[1]?.limits).toEqual({ min: -90, max: 90 });
   });
@@ -103,15 +110,15 @@ describe("aim lines", () => {
       "layer.targets.remove",
       { layerId: "base", targets: ["wide/root"] },
     );
-    const [, tilt] = aimReport(document, look(document), "all");
+    const [, tilt] = aimReport(document, { layer: look(document), ref: "all" });
     expect(tilt?.limits).toEqual({ min: -90, max: 90 });
     expect(tilt?.beyond.map((range) => range.label)).toEqual(["Beam"]);
   });
 
   it("refuses a row ref without both axes", () => {
     const document = stage();
-    expect(() => aimReport(document, look(document), "wide/nope")).toThrow(
-      "has no Pan, so it has no Aim.",
-    );
+    expect(() =>
+      aimReport(document, { layer: look(document), ref: "wide/nope" }),
+    ).toThrow("has no Pan, so it has no Aim.");
   });
 });

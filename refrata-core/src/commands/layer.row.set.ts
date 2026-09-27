@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { linkAt } from "../address/links.ts";
+import { linkAt, linkSourceName } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { rowAddress } from "../composition/contributions.ts";
 import type { LookRow } from "../document/composition.ts";
@@ -21,9 +21,7 @@ import { notLayerOf, notTargetOf } from "./kind-problems.ts";
 
 function controlledBy(document: Document, address: string): string | undefined {
   const link = linkAt(document, address);
-  return link === undefined
-    ? undefined
-    : (document.controllers[link.controllerId]?.name ?? "a Controller");
+  return link === undefined ? undefined : linkSourceName(document, link);
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   type LookLayer,
 } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
+import type { ValuePreset } from "../document/preset.ts";
 import { targetElements, targetLabel } from "../document/targets.ts";
 import type { NumberBounds } from "../parameters.ts";
 import { isAttributeKey, type AttributeKey } from "../rig/attributes.ts";
@@ -38,9 +39,36 @@ export function rowReach(
   ref: string,
   attribute: AttributeKey,
 ): readonly ReachedRange[] {
-  const refs = isAllTargetsRef(ref)
-    ? layer.targets.map((target) => target.ref)
-    : [ref];
+  return reachOf(
+    document,
+    isAllTargetsRef(ref) ? layer.targets.map((target) => target.ref) : [ref],
+    attribute,
+  );
+}
+
+/**
+ * The Elements a Preset row is measured against for a number Attribute: an
+ * Element's row counts that Element, or its descendants that own the
+ * Attribute; the All Elements row counts every Element of the Preset.
+ */
+export function presetRowReach(
+  document: Document,
+  preset: ValuePreset,
+  ref: string,
+  attribute: AttributeKey,
+): readonly ReachedRange[] {
+  return reachOf(
+    document,
+    isAllTargetsRef(ref) ? preset.elements : [ref],
+    attribute,
+  );
+}
+
+function reachOf(
+  document: Document,
+  refs: readonly string[],
+  attribute: AttributeKey,
+): readonly ReachedRange[] {
   const reached = new Map<string, ReachedRange>();
   for (const target of refs)
     for (const located of targetElements(document, target)) {
@@ -60,27 +88,38 @@ export function rowReach(
 }
 
 /**
- * `rowReach` for the Look Layer row an Address names, found from where the
- * Address writes; none for any other Address, whose own range is then its
- * limit.
+ * The reach of the Look Layer row or Preset row an Address names, found
+ * from where the Address writes; none for any other Address, whose own
+ * range is then its limit.
  */
 export function addressReach(
   document: Document,
   address: string,
 ): readonly ReachedRange[] {
   const path = resolveAddress(document, address)?.path;
-  if (path?.[0] !== "layers") return [];
-  const layer = document.layers[path[1] ?? ""];
-  if (layer?.kind !== "look") return [];
+  if (path === undefined) return [];
+  const [table, id = "", field] = path;
   const [ref, attribute] =
-    path[2] === "all" ? [ALL_TARGETS_REF, path[3]] : [path[3], path[4]];
+    field === "all" ? [ALL_TARGETS_REF, path[3]] : [path[3], path[4]];
   if (
     ref === undefined ||
     attribute === undefined ||
     !isAttributeKey(attribute)
   )
     return [];
-  return rowReach(document, layer, ref, attribute);
+  if (table === "layers") {
+    const layer = document.layers[id];
+    return layer?.kind === "look"
+      ? rowReach(document, layer, ref, attribute)
+      : [];
+  }
+  if (table === "presets") {
+    const preset = document.presets[id];
+    return preset?.kind === "preset"
+      ? presetRowReach(document, preset, ref, attribute)
+      : [];
+  }
+  return [];
 }
 
 /**

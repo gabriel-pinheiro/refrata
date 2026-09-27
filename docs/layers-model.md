@@ -160,8 +160,9 @@ left; that case is one Target per Element. And Look Layers want
 **Presets**: a stored, named bundle of Attribute values (`Warm
 White`, `Stage Centre`) that many Look Layers reference, so that fixing the
 preset fixes every Layer. grandMA3 lives on this; it is the second most
-important thing after the stack and belongs in the glossary once the stack is
-agreed. Why the Look Layer is not just a static Visual is argued in
+important thing after the stack, and the glossary's Preset is it: rows per
+Element outside any Layer, which a Look Layer row takes through a Parameter
+Link. Why the Look Layer is not just a static Visual is argued in
 docs/visuals-and-links.md.
 
 ### Relative values are a blend mode
@@ -260,8 +261,8 @@ Honest limits, so the choice is made knowingly.
   setting. Recommended: on the entry, so one Layer can mix a spread Set and a
   single Element.
 - Whether Look Layers and Presets go in now or after the stack is agreed.
-  Decided: Look Layers are slice 2 with rows per Target; Presets are named
-  and detailed later.
+  Decided: Look Layers are slice 2 with rows per Target; Presets came after,
+  as an entity of their own that rows link to.
 - Whether a Group gets an opacity. Declined in the slice 2 grill, then added
   with the Layer Fade on 2026-09-23: a Group's opacity and fade envelope pass
   through to every Layer inside, the same multiplication, so a submaster is a

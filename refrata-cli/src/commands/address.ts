@@ -89,7 +89,9 @@ export function registerAddress(program: Command, cli: Cli): void {
 
   program
     .command("link <controller> <address...>")
-    .description("Link a Controller to Addresses; one undoable step.")
+    .description(
+      "Link a Controller to Addresses; one undoable step. A Preset links with `presets link`.",
+    )
     .option("--from <number>", "target value at Controller 0 (number targets)")
     .option("--to <number>", "target value at Controller 1 (number targets)")
     .action(
@@ -128,7 +130,7 @@ export function registerAddress(program: Command, cli: Cli): void {
   program
     .command("unlink <address...>")
     .description(
-      "Release Addresses from their Controllers, one command each; each keeps its current value.",
+      "Release Addresses from what drives them, one command each. Let go by a Controller, an Address keeps its current value; by a Preset, a row goes back to the value authored under the Link, or to released.",
     )
     .action((addresses: string[]) =>
       cli.withDocument(async (client, summary) => {
