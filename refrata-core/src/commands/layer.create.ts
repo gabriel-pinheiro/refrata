@@ -20,21 +20,20 @@ import { visualDefinition } from "../visuals/catalog.ts";
 import { orderKeyForNew } from "../document/tree.ts";
 import { generateId, id } from "../ids.ts";
 
-/** The Set named after the starter's, or the first Set in the navigator, or none. */
+/** The name of the starter Installation's Set, the one holding every Fixture. */
 export const DEFAULT_TARGET_SET_NAME = "All";
 
 /**
  * What a Look or Visual Layer targets when the caller says nothing: the
  * Set named `DEFAULT_TARGET_SET_NAME` (the starter Installation's, holding
- * every Fixture), else the first Set in navigator order, else nothing.
+ * every Fixture), else nothing.
  */
 export function defaultLayerTargets(
   document: Pick<Document, "fixtureSets">,
 ): readonly string[] {
-  const sets = allSets(document.fixtureSets);
-  const set =
-    sets.find((candidate) => candidate.name === DEFAULT_TARGET_SET_NAME) ??
-    sets[0];
+  const set = allSets(document.fixtureSets).find(
+    (candidate) => candidate.name === DEFAULT_TARGET_SET_NAME,
+  );
   return set === undefined ? [] : [setRef(set.id)];
 }
 
@@ -65,7 +64,7 @@ export const layerCreate = defineCommand({
       name: z.string().trim().min(1).max(120).optional(),
       /** The Catalog id of the Visual a Visual Layer runs; required for one. */
       visual: z.string().min(1).optional(),
-      /** Target refs the Layer starts with (Element refs or `set:<id>`); omitted for the default Set, null for none. */
+      /** Target refs the Layer starts with (Element refs or `set:<id>`); omitted for the Set "All" if there is one, null for none. */
       targets: z.array(z.string().min(1)).nullable().optional(),
       /** Sibling to land below; null or absent for the top. */
       after: z.string().min(1).nullable().optional(),

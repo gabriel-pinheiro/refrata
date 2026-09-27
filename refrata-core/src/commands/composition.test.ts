@@ -209,7 +209,7 @@ describe("Layers", () => {
     expect(Object.keys(removal.document.links)).toEqual([]);
   });
 
-  it("targets the Set All, else the first Set, unless told which or none", () => {
+  it("targets the Set All, else nothing, unless told which or none", () => {
     let document = stage();
     expect(
       run(document, "layer.create", { id: "bare", sceneId: "verse" }),
@@ -241,9 +241,7 @@ describe("Layers", () => {
       "layer.create",
       { id: "d", sceneId: "verse", kind: "visual", visual: "chase" },
     );
-    expect(withoutAll.document.layers.d).toMatchObject({
-      targets: [{ ref: "set:wash", spread: false }],
-    });
+    expect(withoutAll.document.layers.d).toMatchObject({ targets: [] });
     expect(
       run(document, "layer.create", {
         id: "g",
