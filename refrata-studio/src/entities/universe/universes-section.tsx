@@ -66,10 +66,9 @@ export function UniversesSection({ view }: { readonly view: DocumentView }) {
   };
   const addOutput = (universeId: string, kind: OutputKind): void => {
     const id = generateId("output");
-    void command("output.create", { id, universeId, kind }).then(() => {
-      setExpanded("universe", universeId, true);
-      select({ kind: "output", id });
-    });
+    void command("output.create", { id, universeId, kind }).then(() =>
+      select({ kind: "output", id }),
+    );
   };
   const outputItems = (universeId: string): readonly CreateItem[] =>
     OUTPUT_KINDS.map((kind) => ({

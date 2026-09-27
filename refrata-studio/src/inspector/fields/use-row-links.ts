@@ -16,7 +16,6 @@ import {
 } from "@refrata/core";
 
 import { useCommand, useDocumentPath } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
 
 import type { RowLinks } from "./link-row";
@@ -33,18 +32,12 @@ export function useRowLinks(
 ): (resolved: ResolvedAddress, newSourceName: string) => RowLinks {
   const command = useCommand(view);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
   const controllers =
     useDocumentPath<Table<Controller>>(view, ["controllers"]) ?? {};
   const presets = useDocumentPath<Table<Preset>>(view, ["presets"]) ?? {};
   const ordered = flattenControllers(controllers);
   const orderedPresets = valuePresets(presets);
-  const openPreset = (presetId: string): void => {
-    const parentId = presets[presetId]?.parentId ?? null;
-    if (parentId !== null) setExpanded("preset", parentId, true);
-    select({ kind: "preset", id: presetId });
-  };
   return (resolved, newSourceName) => {
     const link = linkAt({ links }, resolved.address);
     const controller =
@@ -103,7 +96,7 @@ export function useRowLinks(
       },
       onOpen: (controllerId) =>
         select({ kind: "controller", id: controllerId }),
-      onOpenPreset: openPreset,
+      onOpenPreset: (presetId) => select({ kind: "preset", id: presetId }),
     };
   };
 }

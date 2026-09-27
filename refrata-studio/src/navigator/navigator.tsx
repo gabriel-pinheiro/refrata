@@ -13,6 +13,7 @@ import {
 } from "@/selection/selection";
 
 import { NavigatorRow } from "./navigator-row";
+import { RevealSelection } from "./reveal-selection";
 
 /** The root row's id among entity ids, which never take this form. */
 const INSTALLATION_ROW = "installation";
@@ -35,6 +36,7 @@ export function Navigator({ view }: { readonly view: DocumentView }) {
       onClick={deselectOnBackgroundClick(select)}
     >
       <PanelHeader>Navigator</PanelHeader>
+      <RevealSelection view={view} />
       <div
         ref={scroller}
         className="grid flex-1 grid-cols-[minmax(0,1fr)] content-start gap-1 overflow-auto p-1"

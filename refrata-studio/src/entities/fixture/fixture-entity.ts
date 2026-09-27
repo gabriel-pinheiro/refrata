@@ -1,6 +1,8 @@
 import type { EntityModule } from "@/entities";
+import { groupParent } from "@/navigator/ancestor-rows";
 
 import { ElementInspector } from "./element-inspector";
+import { elementParent } from "./element-parent";
 import { FixtureInspector } from "./fixture-inspector";
 import { FixturesSection } from "./fixtures-section";
 
@@ -8,6 +10,7 @@ export const fixtureEntity: EntityModule = {
   label: "Fixtures",
   Section: FixturesSection,
   Inspector: FixtureInspector,
+  parent: groupParent("fixture", (document) => document.fixtures),
   removal: {
     noun: "Fixture",
     command: "fixture.remove",
@@ -23,4 +26,5 @@ export const fixtureEntity: EntityModule = {
 export const elementEntity: EntityModule = {
   label: "Elements",
   Inspector: ElementInspector,
+  parent: elementParent,
 };

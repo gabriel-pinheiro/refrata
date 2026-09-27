@@ -9,7 +9,6 @@ import { useState } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
 import { useCommand, useDocumentPath } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import type { CreateItem } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { useSelection } from "@/selection/selection";
@@ -26,7 +25,6 @@ import { SetRows } from "./set-rows";
 export function SetsSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const table = useDocumentPath<Table<FixtureSet>>(view, ["fixtureSets"]);
   const sets = table ?? {};
   const [naming, setNaming] = useState<NameRequest | undefined>(undefined);
@@ -53,10 +51,7 @@ export function SetsSection({ view }: { readonly view: DocumentView }) {
           parentId,
           name,
           ...(byRule ? { rules: [] } : {}),
-        }).then(() => {
-          if (parentId !== null) setExpanded("set", parentId, true);
-          select({ kind: "set", id });
-        });
+        }).then(() => select({ kind: "set", id }));
       },
     });
   }

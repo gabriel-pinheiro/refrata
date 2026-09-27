@@ -10,7 +10,6 @@ import {
 } from "@refrata/core";
 
 import { useCommand, useDocumentPath } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
 
 import type { RowLinks } from "./link-row";
@@ -27,15 +26,9 @@ export function useRegionLinks(
 ): (place: string, typed: number, takesPreset: boolean) => RowLinks {
   const command = useCommand(view);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const links = useDocumentPath<Table<Link>>(view, ["links"]) ?? {};
   const presets = useDocumentPath<Table<Preset>>(view, ["presets"]) ?? {};
   const ordered = valuePresets(presets);
-  const openPreset = (presetId: string): void => {
-    const parentId = presets[presetId]?.parentId ?? null;
-    if (parentId !== null) setExpanded("preset", parentId, true);
-    select({ kind: "preset", id: presetId });
-  };
   return (place, typed, takesPreset) => {
     const link = linkAt({ links }, place);
     const preset =
@@ -67,7 +60,7 @@ export function useRegionLinks(
           void command("link.remove", { linkId: link.id });
       },
       onOpen: () => undefined,
-      onOpenPreset: openPreset,
+      onOpenPreset: (presetId) => select({ kind: "preset", id: presetId }),
     };
   };
 }

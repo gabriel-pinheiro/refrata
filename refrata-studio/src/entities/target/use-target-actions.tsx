@@ -19,7 +19,6 @@ import { useState, type ReactNode } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
 import { useCommand, useSignal } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
 
 /** The Look and Visual Layers of one Scene, topmost first, as a menu group. */
@@ -43,7 +42,6 @@ export function useTargetActions(view: DocumentView) {
   const command = useCommand(view);
   const document = useSignal(view.document);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const [naming, setNaming] = useState<NameRequest | undefined>(undefined);
 
   const layerChoices: readonly LayerChoices[] =
@@ -65,11 +63,7 @@ export function useTargetActions(view: DocumentView) {
 
   function addToPreset(preset: ValuePreset, refs: readonly string[]): void {
     void command("preset.elements.add", { presetId: preset.id, refs }).then(
-      () => {
-        if (preset.parentId !== null)
-          setExpanded("preset", preset.parentId, true);
-        select({ kind: "preset", id: preset.id });
-      },
+      () => select({ kind: "preset", id: preset.id }),
     );
   }
 
@@ -104,11 +98,7 @@ export function useTargetActions(view: DocumentView) {
         : command("layer.targets.add", { layerId: layer.id, targets }).then(
             () => undefined,
           );
-    void done.then(() => {
-      setExpanded("scene", layer.sceneId, true);
-      if (layer.parentId !== null) setExpanded("layer", layer.parentId, true);
-      select({ kind: "layer", id: layer.id });
-    });
+    void done.then(() => select({ kind: "layer", id: layer.id }));
   }
 
   function newLookLayer(refs: readonly string[]): void {
@@ -133,10 +123,7 @@ export function useTargetActions(view: DocumentView) {
           targets: refs,
         }),
       )
-      .then(() => {
-        setExpanded("scene", sceneId, true);
-        select({ kind: "layer", id: layerId });
-      });
+      .then(() => select({ kind: "layer", id: layerId }));
   }
 
   function addToSet(set: MemberSet, refs: readonly string[]): void {
@@ -149,10 +136,7 @@ export function useTargetActions(view: DocumentView) {
         : command("set.members.add", { setId: set.id, refs: members }).then(
             () => undefined,
           );
-    void done.then(() => {
-      if (set.parentId !== null) setExpanded("set", set.parentId, true);
-      select({ kind: "set", id: set.id });
-    });
+    void done.then(() => select({ kind: "set", id: set.id }));
   }
 
   function newSet(refs: readonly string[]): void {

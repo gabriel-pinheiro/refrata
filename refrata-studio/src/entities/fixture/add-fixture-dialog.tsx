@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/inspector/fields/select-field";
 import { useClient, useCommand } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import { useSelection } from "@/selection/selection";
 
 import { fetchFixtureType, useLibrary } from "./use-library";
@@ -37,7 +36,6 @@ export function AddFixtureDialog({
   const client = useClient();
   const command = useCommand(view);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const { entries, error } = useLibrary();
   const [typeKey, setTypeKey] = useState<string | null>(null);
   const [modeKey, setModeKey] = useState<string | null>(null);
@@ -62,7 +60,6 @@ export function AddFixtureDialog({
         fixtureType,
         ...(name.trim() === "" ? {} : { name: name.trim() }),
       });
-      if (parentId !== null) setExpanded("fixture", parentId, true);
       select({ kind: "fixture", id });
       onClose();
     } finally {

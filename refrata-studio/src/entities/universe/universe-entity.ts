@@ -3,6 +3,7 @@ import { OUTPUT_LABELS } from "@refrata/core";
 import type { EntityModule } from "@/entities";
 
 import { OutputInspector } from "./output-inspector";
+import { outputParent } from "./output-parent";
 import { UniverseInspector } from "./universe-inspector";
 import { UniversesSection } from "./universes-section";
 
@@ -22,6 +23,7 @@ export const universeEntity: EntityModule = {
 export const outputEntity: EntityModule = {
   label: "Outputs",
   Inspector: OutputInspector,
+  parent: outputParent,
   removal: {
     noun: "Output",
     command: "output.remove",

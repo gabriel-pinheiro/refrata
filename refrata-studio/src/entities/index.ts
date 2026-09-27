@@ -2,6 +2,8 @@ import type { DocumentView } from "@refrata/client";
 import type { Document } from "@refrata/core";
 import type { ComponentType } from "react";
 
+import type { RowParent } from "@/navigator/ancestor-rows";
+
 import { controllerEntity } from "./controller/controller-entity";
 import { elementEntity, fixtureEntity } from "./fixture/fixture-entity";
 import { layerEntity } from "./layer/layer-entity";
@@ -31,8 +33,9 @@ export interface Removal {
 
 /**
  * What one entity kind contributes to Studio: its navigator section, its
- * inspector and, when its rows have a Remove, how it is removed. Each kind lives in its own folder under `entities/`; adding a
- * kind is one folder plus one line in `entities` below.
+ * inspector, the row its rows nest under and, when its rows have a Remove,
+ * how it is removed. Each kind lives in its own folder under `entities/`;
+ * adding a kind is one folder plus one line in `entities` below.
  */
 export interface EntityModule {
   /** Section label in the navigator, plural. */
@@ -43,6 +46,8 @@ export interface EntityModule {
     readonly view: DocumentView;
     readonly id: string;
   }>;
+  /** The row this kind's row is nested under; absent for a kind whose rows never nest. */
+  readonly parent?: RowParent;
   /** Absent for a kind with no Remove of its own, such as an Element. */
   readonly removal?: Removal;
 }

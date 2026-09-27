@@ -1,4 +1,5 @@
 import type { EntityModule } from "@/entities";
+import { groupParent } from "@/navigator/ancestor-rows";
 
 import { ControllerInspector } from "./controller-inspector";
 import { ControllersSection } from "./controllers-section";
@@ -7,6 +8,7 @@ export const controllerEntity: EntityModule = {
   label: "Controllers",
   Section: ControllersSection,
   Inspector: ControllerInspector,
+  parent: groupParent("controller", (document) => document.controllers),
   removal: {
     noun: "Controller",
     command: "controller.remove",

@@ -9,7 +9,6 @@ import { useState } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
 import { useCommand, useDocumentPath } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import type { CreateItem } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { useSelection } from "@/selection/selection";
@@ -26,7 +25,6 @@ import { FixtureRows } from "./fixture-rows";
 export function FixturesSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const table = useDocumentPath<Table<Fixture>>(view, ["fixtures"]);
   const fixtures = table ?? {};
   const [naming, setNaming] = useState<NameRequest | undefined>(undefined);
@@ -50,10 +48,7 @@ export function FixturesSection({ view }: { readonly view: DocumentView }) {
           kind: "group",
           parentId,
           name,
-        }).then(() => {
-          if (parentId !== null) setExpanded("fixture", parentId, true);
-          select({ kind: "fixture", id });
-        });
+        }).then(() => select({ kind: "fixture", id }));
       },
     });
   }

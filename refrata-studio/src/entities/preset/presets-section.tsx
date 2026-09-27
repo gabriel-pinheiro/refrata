@@ -11,7 +11,6 @@ import { useState } from "react";
 
 import { NameDialog, type NameRequest } from "@/components/name-dialog";
 import { useCommand, useDocumentPath } from "@/lib/client";
-import { useExpansion } from "@/navigator/expansion";
 import type { CreateItem } from "@/navigator/navigator-row";
 import { NavigatorSection } from "@/navigator/navigator-section";
 import { useSelection } from "@/selection/selection";
@@ -29,7 +28,6 @@ import { PresetRows } from "./preset-rows";
 export function PresetsSection({ view }: { readonly view: DocumentView }) {
   const command = useCommand(view);
   const { select } = useSelection();
-  const { setExpanded } = useExpansion();
   const table = useDocumentPath<Table<Preset>>(view, ["presets"]);
   const presets = table ?? {};
   const [naming, setNaming] = useState<NameRequest | undefined>(undefined);
@@ -45,10 +43,9 @@ export function PresetsSection({ view }: { readonly view: DocumentView }) {
       submitLabel: "Create",
       onSubmit: (name) => {
         const id = generateId("preset");
-        void command("preset.create", { id, kind, parentId, name }).then(() => {
-          if (parentId !== null) setExpanded("preset", parentId, true);
-          select({ kind: "preset", id });
-        });
+        void command("preset.create", { id, kind, parentId, name }).then(() =>
+          select({ kind: "preset", id }),
+        );
       },
     });
   }
