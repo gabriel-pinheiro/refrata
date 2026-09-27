@@ -13,7 +13,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -48,66 +47,90 @@ export function LinkMenu({
   readonly resolved: ResolvedAddress;
   readonly links: RowLinks;
 }) {
-  const { link, controller, candidates } = links;
-  if (link !== undefined && controller !== undefined)
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={`${resolved.label} link`}
-          title={`Controlled by ${controller.name}`}
-          className="grid size-5 place-items-center rounded-sm text-selection hover:bg-input/50"
-        >
-          <Link2 className="size-3" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>
-              Controlled by {controller.name}
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => links.onOpen(controller.id)}>
-              <SquareArrowOutUpRight /> Go to {controller.name}
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={links.onUnlink}>
-            <Link2Off /> Unlink
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  if (resolved.type === "choice" || resolved.type === "trigger")
-    return <span className="size-5" />;
-  const kind = resolved.type === "color" ? "color" : "number";
+  const { link, controller } = links;
+  const linked = link !== undefined && controller !== undefined;
+  if (!linked && !linkableType(resolved)) return <span className="size-5" />;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`${resolved.label} link`}
-        title="Link to a Controller"
-        className="grid size-5 place-items-center rounded-sm text-muted-foreground/50 hover:bg-input/50 hover:text-foreground"
+        title={
+          linked ? `Controlled by ${controller.name}` : "Link to a Controller"
+        }
+        className={
+          linked
+            ? "grid size-5 place-items-center rounded-sm text-selection hover:bg-input/50"
+            : "grid size-5 place-items-center rounded-sm text-muted-foreground/50 hover:bg-input/50 hover:text-foreground"
+        }
       >
         <Link2 className="size-3" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={candidates.length === 0}>
-            <Link2 /> Link to
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {candidates.map((candidate) => (
-              <DropdownMenuItem
-                key={candidate.id}
-                onClick={() => links.onLink(candidate.id)}
-              >
-                {candidate.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuItem onClick={() => links.onCreate(kind)}>
-          <Plus /> New {kind === "color" ? "Color" : "Number"} Controller
-        </DropdownMenuItem>
+        {linked && (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>
+              Controlled by {controller.name}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
+        )}
+        <LinkMenuItems resolved={resolved} links={links} />
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Whether an Address of this type can take a Controller: numbers, colors and booleans. */
+export function linkableType(resolved: ResolvedAddress): boolean {
+  return resolved.type !== "choice" && resolved.type !== "trigger";
+}
+
+/**
+ * The items of one Address's part of a Link menu, for a menu of one row or
+ * a section of a menu over several: "Go to" the Controller and Unlink when
+ * linked, else "Link to" a Controller or a new one named after the row.
+ */
+export function LinkMenuItems({
+  resolved,
+  links,
+}: {
+  readonly resolved: ResolvedAddress;
+  readonly links: RowLinks;
+}) {
+  const { link, controller, candidates } = links;
+  if (link !== undefined && controller !== undefined)
+    return (
+      <>
+        <DropdownMenuItem onClick={() => links.onOpen(controller.id)}>
+          <SquareArrowOutUpRight /> Go to {controller.name}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={links.onUnlink}>
+          <Link2Off /> Unlink
+        </DropdownMenuItem>
+      </>
+    );
+  if (!linkableType(resolved)) return null;
+  const kind = resolved.type === "color" ? "color" : "number";
+  return (
+    <>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger disabled={candidates.length === 0}>
+          <Link2 /> Link to
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          {candidates.map((candidate) => (
+            <DropdownMenuItem
+              key={candidate.id}
+              onClick={() => links.onLink(candidate.id)}
+            >
+              {candidate.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuItem onClick={() => links.onCreate(kind)}>
+        <Plus /> New {kind === "color" ? "Color" : "Number"} Controller
+      </DropdownMenuItem>
+    </>
   );
 }
 

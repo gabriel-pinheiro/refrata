@@ -3,6 +3,7 @@ import { CommandRegistry } from "../command/registry.ts";
 import { addressEdit } from "./address.edit.ts";
 import { addressSet, addressToggle } from "./address.set.ts";
 import { addressTrigger } from "./address.trigger.ts";
+import { aimEdit } from "./aim.edit.ts";
 import { controllerCreate } from "./controller.create.ts";
 import { controllerDuplicate } from "./controller.duplicate.ts";
 import { controllerMove } from "./controller.move.ts";
@@ -163,6 +164,7 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   macroActionRemove,
   macroActionMove,
   addressEdit,
+  aimEdit,
   addressSet,
   addressToggle,
   addressTrigger,

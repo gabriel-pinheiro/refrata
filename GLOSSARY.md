@@ -755,7 +755,77 @@ programmer frozen into a Layer, and the most common Layer in a show.
 A table of values per Element inside one Set Target was declined for good: it
 would be a second way to say what a Target of its own already says, and with
 a rule Set it would keep rows for members that have left. A value that is per
-Element by nature (a mover's focus position) is one Target per Element.
+Element by nature (a mover's Aim) is one Target per Element, or a row linked
+to a Preset, which holds the table outside the Layer.
+
+### Aim
+
+The `pan` and `tilt` of one Element, taken as one thing: where a mover
+points. Wherever one owner has both (a Look Layer's rows, a Preset's rows, a
+Region's corners or centre) Studio shows them as one Aim row: two readouts in
+degrees to one decimal, each typeable, a pad that nudges as it is dragged, and
+the arrow keys, which nudge the focused row by `aim.nudge` degrees, with
+shift by `aim.nudgeCoarse` and ctrl by `aim.nudgeFine`. Its limits are the
+real ranges of the Parameters it reaches, and a value one of them cannot
+reach is flagged with that Element's name.
+
+An Aim is a way of showing and editing, not a Parameter kind: `pan` and
+`tilt` stay two Attributes, two rows and two Addresses, so a Visual's Slots,
+a Blend Mode of `add` on one axis, a Limit Filter on `tilt`, OSC and the CLI
+are untouched. The row has one link button whose menu has three parts: Aim,
+which links both axes to a Preset; Pan and Tilt, which link one axis to a
+Controller or a Preset. Each readout shows its own source, and the arrows
+move only an axis that is free.
+
+Do not call an Aim a Position, which is a Fixture's place on stage, nor a
+focus, which is the lens Attribute.
+
+**Elsewhere:** grandMA3 stores pan and tilt together through the fixture
+type's activation group and edits them on the dual encoders; QLC+ has an XY
+pad in its Virtual Console and position tool.
+
+### Preset
+
+A named bundle of Parameter Values that Layers link to instead of holding
+their own, so that fixing the Preset fixes every Layer: `Table Blue`,
+`Ceiling`, `Warm White`. It has the shape of a Look Layer's content and none
+of its place in a stack: All rows, one per Attribute, and rows per Element
+that override them. It holds any Attribute; most hold an Aim per mover. A
+Preset is an Installation entity, arranged in navigator Groups like every
+other, and belongs to no Scene. Its rows are Addresses
+(`preset/<id>/row/<element|all>/<attribute>`), edited as the document is:
+undoable and saved.
+
+A Preset contributes nothing by itself. A Look Layer row, or an Aim of a
+Region, takes it through a Parameter Link: each Element the row reaches takes
+the Preset's row for that Element, else its All row, else is released. One
+Link on the All Targets Aim row of a Layer whose Target is `All Movers` sends
+every mover to its own entry.
+
+A Preset's entries go with a removed Fixture and with an Element key a Mode
+change drops. Removing a Preset warns with the Layers that link to it, and
+their rows are released.
+
+Do not call a Preset a Palette, a Position or a Look.
+
+**Elsewhere:** grandMA3 "preset" in a preset pool, per feature group,
+referenced by cues; QLC+ has no counterpart, its nearest being a Scene
+function copied into others.
+
+### Calibration Mode
+
+Difracta's term for seeing on the real thing what is being set. Here it is
+the focus of one Aim: while it is on, the Aim's Element takes its Highlight
+values and that Aim, written after Resolve, so the beam is visible and where
+the Aim says whether its Layer is disabled, covered by Layers above or
+moved by a Visual. Nothing else on the rig changes unless asked: the rest may
+be left as it is, dimmed or dark, and the other Elements of the same owner
+may be shown at their own Aims in `calibration.markerColor` (red in
+settings). Tab and shift-tab move the focus to the next Element of the owner.
+
+Calibration Mode is operational Runtime state: never saved, never undone,
+and dropped by the Runtime when the client that set it goes quiet. Blackout
+takes precedence. The nudges made during it are ordinary edits of the Aim.
 
 ### Visual
 
@@ -905,6 +975,30 @@ of any other Visual has none. It is a coordinate system, not a mask.
 
 Do not confuse with a DMX Frame, one refresh of a Universe's 512 bytes.
 
+### Region
+
+The box in aim space a Layer running a movement Visual draws inside: the
+Frame's counterpart for `pan` and `tilt`, stored on the Visual Layer and not
+an entity. It is written one of two ways: by corners, two Aims; or by centre
+and size, one Aim with a width and a height in degrees. Each Aim is typed,
+one value for every Target, or linked to a Preset, one per Element, so a
+Flyout over `All Movers` flies each mover inside its own box.
+
+A Visual declares that it has a Region and which of its Slots runs along the
+width and which along the height (Flyout's `pan` and `tilt`, Figure's `x` and
+`y`). It writes 0 to 1 on them and sees nothing of the Region; the Runtime
+maps the fractions onto each Element as the values land. The Region stands in
+for the Slot Binding of those two Slots; the Visual's other Slots keep
+theirs. Like a Frame it is set once and is not an Address; what is performed
+is a Visual Parameter inside it, such as Figure's `size`.
+
+Under the Blend Mode `add` a Region is centre and size only and its centre
+reads as an offset from what is below. Corners are absolute places: typed
+corners convert when a Layer is switched to `add`, and corners linked to
+Presets refuse the switch.
+
+Designed; built after Presets.
+
 ### Controller and Parameter Link
 
 Difracta's, unchanged in role: a Controller is an Installation-owned named value with an
@@ -916,6 +1010,13 @@ fixture, so "a fader on Atomic 2's dimmer" is a Look Layer row with a Link.
 Controllers may later be generated (an LFO, an envelope, audio) instead of
 set by hand, which is how a Visual-like source modulates another Visual's
 Parameter without entering the stack. See docs/visuals-and-links.md.
+
+A Parameter Link's source is a Controller or a Preset. From a Controller it
+carries one value through its anchors to any linkable Address. From a Preset
+it has no anchors, since a Preset's values are already in the Attribute's
+units, and it carries one value per Element, so it drives only what is
+resolved per Element: a Look Layer row and an Aim of a Region. Either way the
+driven row shows its source and refuses hand edits.
 
 ### Filter Layer
 
@@ -1058,9 +1159,6 @@ Never saved.
 
 ## Deferred terminology
 
-- **Preset**: a stored, named bundle of Attribute values, per Element where
-  needed, that Look Layers reference so that fixing the Preset fixes every
-  Layer. Named now, detailed after the stack is agreed.
 - **Multiple active Scenes** with an order between them.
 - **Generated Controller**: a Controller whose value comes from an LFO, an
   envelope or audio instead of a hand or a hub, linkable like any Controller.
@@ -1070,7 +1168,7 @@ Never saved.
 - **Multipatch**: a second Patch that mirrors a Fixture's output elsewhere.
 - **Multi-range Modes** (GDTF "breaks").
 - **Emitter Parameters**: raw red, green, blue, white levels beside `color`.
-- **Activation pairs**: Attributes stored together when one is touched (pan and
-  tilt), a programming-layer concern.
+- **Activation pairs**: Attributes stored together when one is touched, a
+  programming-layer concern. An Aim covers pan and tilt.
 - **DMX input**, merging and RDM.
 - **Fixture Type Editor** in Studio; v1 authors types as files.

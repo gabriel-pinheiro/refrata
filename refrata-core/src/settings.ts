@@ -120,6 +120,18 @@ export const settings = {
     /** A Look row's control wraps under its label when it would be narrower than this, in pixels. */
     controlWrapPx: 160,
   },
+  aim: {
+    /** Degrees an arrow key moves the focused Aim row's free axes. */
+    nudge: 1,
+    /** With shift held. */
+    nudgeCoarse: 10,
+    /** With ctrl held. */
+    nudgeFine: 0.1,
+    /** Degrees one pixel of drag on the Aim pad moves; shift and ctrl scale it as they scale `nudge`. */
+    padDegreesPerPx: 0.25,
+    /** Decimals an Aim's readouts show; typed values keep their own precision. */
+    decimals: 1,
+  },
   universeView: {
     /** The narrowest an address cell may be, in pixels; the grid drops from 32 to 16 to 8 per row to keep it. */
     minCellPx: 40,

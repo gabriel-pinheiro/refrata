@@ -61,6 +61,12 @@ Working from a shell
              run layer.row.set without a value ticks a row on lit: at the
              Element's Highlight when its Mode declares one (for "all",
              the first Target's), else the Parameter's Default.
+             aim <layer> <target> [--pan <deg>] [--tilt <deg>] [--by]  reads
+             or sets an Aim, the pan and tilt rows of a Target or of "all",
+             in degrees and as one undo step; --by nudges, stopping at the
+             widest range the Elements it reaches have. It warns naming an
+             Element a value is beyond (a tilt of 100 on a mover that
+             tilts to 90).
              sets add <name> <ref>...  a Fixture Set of Elements, in order.
              sets add <name> --rule panel,odd --rule wall  a Set by rule,
              resolved live: a Rule is all of its Tags, and its member is

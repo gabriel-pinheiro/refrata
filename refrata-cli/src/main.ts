@@ -2,6 +2,7 @@ import { Command } from "commander";
 
 import { Cli, type GlobalOptions } from "./cli.ts";
 import { registerAddress } from "./commands/address.ts";
+import { registerAim } from "./commands/aim.ts";
 import { registerComposition } from "./commands/composition.ts";
 import { registerDocuments } from "./commands/documents.ts";
 import { registerLayers } from "./commands/layers.ts";
@@ -52,6 +53,7 @@ registerTags(program, cli);
 registerSets(program, cli);
 registerComposition(program, cli);
 registerLayers(program, cli);
+registerAim(program, cli);
 registerVisuals(program, cli);
 registerTree(program, cli);
 registerRead(program, cli);

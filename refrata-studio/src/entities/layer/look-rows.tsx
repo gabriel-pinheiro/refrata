@@ -28,6 +28,7 @@ import { useCommand } from "@/lib/client";
 import { useLatestWins } from "@/lib/use-latest-wins";
 import { cn } from "@/lib/utils";
 
+import { AimLine, hasAim } from "./aim-line";
 import { SetTargetMembers } from "./set-target-members";
 
 const FAMILY_LABELS: Record<AttributeFamily, string> = {
@@ -160,7 +161,7 @@ function LookLine({
   );
 }
 
-/** Lines for `attributes` grouped under family captions, for one row ref. */
+/** Lines for `attributes` grouped under family captions, for one row ref; `pan` and `tilt` together are one Aim line. */
 function FamilyLines({
   view,
   document,
@@ -174,6 +175,7 @@ function FamilyLines({
   readonly attributes: readonly AttributeKey[];
   readonly rowRef: string;
 }) {
+  const aim = hasAim(attributes);
   return (
     <>
       {byFamily(attributes).map((group) => (
@@ -184,16 +186,26 @@ function FamilyLines({
           <span className="text-[0.625rem] tracking-wider text-muted-foreground/70 uppercase">
             {FAMILY_LABELS[group.family]}
           </span>
-          {group.keys.map((attribute) => (
-            <LookLine
-              key={attribute}
-              view={view}
-              document={document}
-              layer={layer}
-              rowRef={rowRef}
-              attribute={attribute}
-            />
-          ))}
+          {group.keys.map((attribute) =>
+            aim && attribute === "tilt" ? null : aim && attribute === "pan" ? (
+              <AimLine
+                key="aim"
+                view={view}
+                document={document}
+                layer={layer}
+                rowRef={rowRef}
+              />
+            ) : (
+              <LookLine
+                key={attribute}
+                view={view}
+                document={document}
+                layer={layer}
+                rowRef={rowRef}
+                attribute={attribute}
+              />
+            ),
+          )}
         </div>
       ))}
     </>

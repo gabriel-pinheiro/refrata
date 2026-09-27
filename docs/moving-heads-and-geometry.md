@@ -36,7 +36,8 @@ were listed for exactly this fixture.
 
 **Focus positions are per Element.** "Centre Stage" is a different pan and
 tilt for every mover. A Look Layer row with per-Element values holds it; a
-Preset will later let many Look Layers share it. This is the case that
+Preset lets many Look Layers share it, each linking its Aim row to the
+Preset. This is the case that
 decided the Look Layer; see docs/visuals-and-links.md.
 
 **Movement time.** Consoles give each cue a fade; movers need it more than
@@ -63,8 +64,8 @@ folds into an eight. The cone-correct figure waits on the geometry below.
 group), so a cue never moves one axis without the other. In a Look Layer both
 rows are independent, which is more flexible and one foot-gun: a Layer
 setting only `pan` over a Layer setting both is a legal, sometimes surprising
-composition. A convention (the Look Layer offers "Position" as one row pair)
-is enough; no model change.
+composition. A convention is enough, with no model change: the two rows are
+shown and edited as one Aim, in degrees, nudged with the arrow keys.
 
 **Keeping movers off the audience.** A Limit Filter on `tilt` for a Set
 `Front Truss Movers` clamps whatever the stack produces. Consoles do this in

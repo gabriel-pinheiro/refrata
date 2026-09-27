@@ -5,7 +5,7 @@ import { rowsAt, storedRow } from "../document/look-rows.ts";
 import { targetElements, type LocatedElement } from "../document/targets.ts";
 import type { ParameterValue } from "../parameters.ts";
 import { isAttributeKey, type AttributeKey } from "../rig/attributes.ts";
-import { elementRef, subtreeOf } from "../rig/elements.ts";
+import { elementRef, subtreeOf, type Element } from "../rig/elements.ts";
 
 /** One value for one Parameter of one Element with an alpha, from one Layer for one frame. */
 export interface Contribution {
@@ -108,6 +108,18 @@ export function lookContributions(
   return best;
 }
 
+/** Where a row for `attribute` lands on a located Element: the Element when it owns the Attribute, else every descendant that does. */
+export function attributeOwners(
+  located: LocatedElement,
+  attribute: AttributeKey,
+): readonly Element[] {
+  return attribute in located.element.parameters
+    ? [located.element]
+    : subtreeOf(located.elements, located.element.key).filter(
+        (element) => attribute in element.parameters,
+      );
+}
+
 /**
  * Lands one Contribution of the Target at `index` on a located Element: on
  * the Element when it owns the Attribute, else on every descendant that
@@ -121,13 +133,7 @@ export function landContribution(
   contribution: Contribution,
   index: number,
 ): void {
-  const owners =
-    attribute in located.element.parameters
-      ? [located.element]
-      : subtreeOf(located.elements, located.element.key).filter(
-          (element) => attribute in element.parameters,
-        );
-  for (const owner of owners) {
+  for (const owner of attributeOwners(located, attribute)) {
     const ref = elementRef(located.fixture.id, owner.key);
     let byAttribute = best.get(ref);
     if (byAttribute === undefined) {
