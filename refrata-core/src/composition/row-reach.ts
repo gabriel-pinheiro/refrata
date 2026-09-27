@@ -64,7 +64,8 @@ export function presetRowReach(
   );
 }
 
-function reachOf(
+/** The Elements a list of Target refs stands for under a number Attribute, each once with its own Parameter's range, in order. */
+export function reachOf(
   document: Document,
   refs: readonly string[],
   attribute: AttributeKey,

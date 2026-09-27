@@ -23,8 +23,8 @@ import type { RowLinks } from "./link-row";
 
 /**
  * How any inspector row takes part in Parameter Links: given a resolved
- * Address and a name for a Controller or Preset made on the spot, the Link
- * it has, the Controllers and Presets it could take, and the commands
+ * Address and a name for a Controller made on the spot (a Preset made
+ * there is "Preset 1", the next free number), the Link it has, the Controllers and Presets it could take, and the commands
  * behind the row's menu. The value shown while a Controller drives it is
  * the effective one, read from the document as the show sees it.
  */
@@ -94,7 +94,6 @@ export function useRowLinks(
         const presetId = generateId("preset");
         void command("preset.create", {
           id: presetId,
-          name: newSourceName,
           addresses: [resolved.address],
         }).then(() => select({ kind: "preset", id: presetId }));
       },

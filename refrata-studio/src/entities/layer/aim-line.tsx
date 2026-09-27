@@ -18,6 +18,7 @@ import {
 
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AimValue } from "@/inspector/fields/aim-nudge";
+import { AimLinkMenu } from "@/inspector/fields/aim-link-menu";
 import { AimControl, type AimAxis } from "@/inspector/fields/aim-row";
 import {
   entryText,
@@ -39,7 +40,8 @@ const AIM_AXES = ["pan", "tilt"] as const satisfies readonly AttributeKey[];
  * them over their two Addresses as one step. Its limits and flags come
  * from the Elements each row is measured against (`rowReach`). A row ticked on alone, from the
  * CLI or an older file, shows the checkbox part-way; ticking it adds the
- * other. An axis a Preset drives lists under the row what each Element
+ * other. Released, the line still has its Link menu, so an Aim is linked
+ * in one gesture. An axis a Preset drives lists under the row what each Element
  * takes from it.
  */
 export function AimLine({
@@ -76,14 +78,12 @@ export function AimLine({
     };
   }
   const { pan, tilt } = axes;
-  const owner = `${layer.name} ${rowRefLabel(document, rowRef)}`;
   const pair =
     pan === undefined || tilt === undefined
       ? undefined
       : aimLinks(
           { address: pan.resolved.address, links: pan.links },
           { address: tilt.resolved.address, links: tilt.links },
-          owner,
         );
   const present = (axis: AimAxis | undefined): boolean =>
     axis !== undefined &&
@@ -161,7 +161,19 @@ export function AimLine({
           </AimControl>
         </div>
       ) : (
-        <span className="flex-1" />
+        <>
+          <span className="flex-1" />
+          {pan !== undefined && tilt !== undefined && (
+            <AimLinkMenu
+              label="Aim"
+              pair={pair}
+              sections={[
+                { key: "pan", title: "Pan", ...pan },
+                { key: "tilt", title: "Tilt", ...tilt },
+              ]}
+            />
+          )}
+        </>
       )}
     </div>
   );

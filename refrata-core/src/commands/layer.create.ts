@@ -13,7 +13,7 @@ import { childLayers } from "../document/layers.ts";
 import { uniqueName } from "../document/names.ts";
 import { frameFittingTargets } from "../document/geometry.ts";
 import { targetProblem } from "../document/targets.ts";
-import { defaultBindings } from "../document/visual-layers.ts";
+import { startingSlots } from "../document/visual-layers.ts";
 import { setRef } from "../document/composition.ts";
 import { defaultParameterValues } from "../parameters.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
@@ -47,7 +47,8 @@ export function defaultLayerTargets(
  * takes `defaultLayerTargets`, and `null` leaves it without any. A Visual
  * Layer starts the same way with its Visual's default Parameter Values and
  * default bindings; its Targets arrive not spread. Running a Geometry
- * Visual, it gets a Frame fitted to those Targets.
+ * Visual, it gets a Frame fitted to those Targets; running one that draws
+ * inside a Region, the Region its Visual declares.
  */
 export const layerCreate = defineCommand({
   name: "layer.create",
@@ -141,7 +142,7 @@ export const layerCreate = defineCommand({
         kind: "visual",
         visual: definition.id,
         parameters: { ...defaultParameterValues(definition.parameters) },
-        bindings: defaultBindings(definition),
+        ...startingSlots(definition, stack.blendMode),
       };
       return definition.geometry === undefined
         ? layer

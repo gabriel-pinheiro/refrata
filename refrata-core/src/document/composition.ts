@@ -4,6 +4,7 @@ import type { FixtureSetId, Id, LayerId, SceneId } from "../ids.ts";
 import { ParameterValueSchema, ParameterValuesSchema } from "../parameters.ts";
 import { settings } from "../settings.ts";
 import { DEFAULT_ORDER_KEY } from "./order.ts";
+import { RegionSchema } from "./region.ts";
 
 /**
  * The composition tables: Scenes, their Layers, and Fixture Sets. A Scene is
@@ -174,7 +175,8 @@ export const LAYER_LABELS: Record<LayerKind, string> = {
  * Mode. A Visual Layer runs one Visual of the Catalog over its Targets:
  * the Visual's id, its Parameter Values, one Slot Binding per Slot, and the
  * same opacity and Blend Mode, shared by every Slot; running a Geometry
- * Visual it also has a Frame. A Group has `enabled`,
+ * Visual it also has a Frame, and running a movement Visual a Region,
+ * which stands in for the bindings of the two Slots it maps. A Group has `enabled`,
  * opacity and fades and no Blend Mode: its opacity and envelope multiply
  * into every Layer inside it (pass-through), so a Group at half is every
  * child at half over what is below, not the Group's look at half.
@@ -200,6 +202,7 @@ export const LayerSchema = z.discriminatedUnion("kind", [
       parameters: ParameterValuesSchema,
       bindings: z.record(z.string().min(1), SlotBindingSchema),
       frame: FrameSchema.optional(),
+      region: RegionSchema.optional(),
     })
     .strict(),
   z.object({ ...LayerBase, kind: z.literal("group") }).strict(),

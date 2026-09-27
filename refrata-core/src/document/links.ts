@@ -26,7 +26,9 @@ const LinkBase = {
  *
  * From a Preset it has no anchors, since a Preset's values are already in
  * the Attribute's units, and it carries one value per Element: it drives
- * only what is resolved per Element, a Look Layer row.
+ * only what is resolved per Element, a Look Layer row or an Aim of a
+ * Region. A Region is not an Address, so for one of its Aims `address`
+ * holds its place, `layer/<id>/region/<aim>/<axis>`.
  */
 export const LinkSchema = z.union([
   z

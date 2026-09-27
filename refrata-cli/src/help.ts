@@ -97,15 +97,17 @@ Working from a shell
              to: rows per Element, and All Elements rows every Element takes
              unless it has its own. One Link on a Layer's All Targets Aim
              sends every mover to its own entry.
-             presets add <name> [element...]  lists Elements: a Fixture (its
+             presets add [name] [element...]  lists Elements: a Fixture (its
              root), <fixture>/<key>, or set:<set> for the members the Set
-             has now. presets elements <preset> add|remove <element...>.
+             has now; with no name it is Preset 1, the next free number. presets elements <preset> add|remove <element...>.
              presets aim <preset> <element|all> [--pan <deg>] [--tilt <deg>]
              [--by]  reads, sets or nudges the Aim held for one Element, as
              "aim" does for a Layer.
              presets set <preset> <element|all> <attribute> <value> and
              presets release ...  any other row (color, dimmer, gobo1).
-             presets link <preset> <address...>  links Look Layer rows; each
+             presets link <preset> <address...>  links Look Layer rows (and
+             the Aims of a Region, layer/<layer>/region/<from|to|center>/
+             <pan|tilt>, which "layers region --link" writes for you); each
              Element the row reaches takes the Preset's row for it, else
              its All Elements row, else is released. A linked row refuses
              hand edits. presets add <name> --from <address...> grows a
@@ -126,6 +128,22 @@ Working from a shell
              Visual's default Parameters, bindings and Blend Mode (shutter
              and pump start on multiply; figure, ballyhoo and fan on add,
              so they run around the position below).
+             layers region <layer>  reads or sets the Region of a Layer
+             running figure, flyout or sweep: the box in pan and tilt the
+             Visual draws inside, in degrees. --from <pan>,<tilt> --to
+             <pan>,<tilt> writes it by corners (the Visual's 0 at from, its
+             1 at to; a Flyout flies from one to the other), --center
+             <pan>,<tilt> --width <deg> --height <deg> by center and size,
+             --form corners|center the same box the other way. --link
+             from="Crowd Low" --link to="Crowd High" takes each corner from
+             a Preset, so one Layer over a Set flies every mover inside its
+             own box; a mover the Preset has nothing for is released.
+             --unlink <aim> goes back to the degrees typed under the Link.
+             On Blend Mode add a Region is center and size only, its center
+             an offset from the position below, and takes no Preset: link
+             the Look Layer below instead. A Region is set once and is not
+             an Address; what a hub rides is a Parameter, such as a
+             Figure's size. --remove sends the two Slots back to bindings.
              A Visual sees its Targets in order, a Set in the Set's order;
              a Target arrives not spread, and "layers" warns when a Chase
              or a Rainbow has one Target: spread it to step through it.
@@ -221,6 +239,10 @@ Working from a shell
              cue Breathe sync
              dmx "Universe 1"
              dmx "Universe 1" --map
+             layers add Verse Fly --visual flyout --target set:Movers
+             presets add "Crowd Low" set:Movers
+             presets aim "Crowd Low" "Mover 1" --pan -20 --tilt -30
+             layers region Fly --link from="Crowd Low" --to 30,60
              presets add "Centre Stage" set:Wall
              presets set "Centre Stage" Par color '[1,1,1,1]'
              presets link "Centre Stage" layer/Wash/row/all/color

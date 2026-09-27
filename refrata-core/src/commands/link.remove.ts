@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { resolveAddress } from "../address/address.ts";
-import { effectiveValue } from "../address/links.ts";
+import { effectiveValue, linkTarget } from "../address/links.ts";
 import { valuePatch } from "../address/write.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import type { CommandContext } from "../command/command.ts";
@@ -13,7 +13,8 @@ import type { Patch } from "../document/patch.ts";
  * on the wall changes when a Controller lets go, then the Link is removed.
  * A row linked to a Preset showed one value per Element, which one row
  * cannot keep: it goes back to the value authored under the Link, or to
- * released when there is none.
+ * released when there is none. An Aim of a Region goes back to its typed
+ * value, which stayed under the Link.
  */
 export function releaseLink(
   { document }: Pick<CommandContext<unknown>, "document">,
@@ -40,7 +41,7 @@ export const linkRemove = defineCommand({
     const label =
       link === undefined
         ? undefined
-        : resolveAddress(document, link.address)?.label;
+        : linkTarget(document, link.address)?.label;
     return label === undefined ? "Unlink" : `Unlink ${label}`;
   },
   apply(context) {

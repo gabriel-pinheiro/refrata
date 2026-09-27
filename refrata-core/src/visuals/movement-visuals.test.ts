@@ -29,34 +29,27 @@ describe("degrees Slots", () => {
 });
 
 describe("Figure", () => {
-  it("draws a circle of Width and Height around the centre", () => {
-    const figure = play("figure", { rate: 1, width: 60, height: 40 });
+  it("draws a circle that fills the Region, and less of it at a smaller Size", () => {
+    const figure = play("figure", { rate: 1 });
     const start = figure.frame(0, ["m"]);
-    expect(pan(start.x?.m?.[0])).toBeCloseTo(30);
-    expect(tilt(start.y?.m?.[0])).toBeCloseTo(0);
+    expect(start.x?.m?.[0]).toBeCloseTo(1);
+    expect(start.y?.m?.[0]).toBeCloseTo(0.5);
     const quarter = figure.frame(0.25, ["m"]);
-    expect(pan(quarter.x?.m?.[0])).toBeCloseTo(0);
-    expect(tilt(quarter.y?.m?.[0])).toBeCloseTo(20);
+    expect(quarter.x?.m?.[0]).toBeCloseTo(0.5);
+    expect(quarter.y?.m?.[0]).toBeCloseTo(1);
+    const small = play("figure", { rate: 1, size: 0.5 }).frame(0, ["m"]);
+    expect(small.x?.m?.[0]).toBeCloseTo(0.75);
+    expect(play("figure", { size: 0 }).frame(0, ["m"]).x?.m?.[0]).toBe(0.5);
   });
 
-  it("runs a Line in tilt at Rotation 90 and backwards on Direction", () => {
-    const line = play("figure", {
-      form: "line",
-      rate: 1,
-      width: 60,
-      rotation: 90,
-    });
+  it("leaves Rotation to the Region and runs backwards on Direction", () => {
+    const line = play("figure", { form: "line", rate: 1, rotation: 90 });
     const start = line.frame(0, ["m"]);
-    expect(pan(start.x?.m?.[0])).toBeCloseTo(0);
-    expect(tilt(start.y?.m?.[0])).toBeCloseTo(30);
-    const backward = play("figure", {
-      rate: 1,
-      width: 60,
-      height: 60,
-      direction: "backward",
-    });
+    expect(start.x?.m?.[0]).toBeCloseTo(1);
+    expect(start.y?.m?.[0]).toBeCloseTo(0.5);
+    const backward = play("figure", { rate: 1, direction: "backward" });
     backward.frame(0, ["m"]);
-    expect(tilt(backward.frame(0.25, ["m"]).y?.m?.[0])).toBeCloseTo(-30);
+    expect(backward.frame(0.25, ["m"]).y?.m?.[0]).toBeCloseTo(0);
   });
 
   it("walks the polygons corner to corner and spreads phase across Targets", () => {
@@ -70,8 +63,8 @@ describe("Figure", () => {
       "a",
       "b",
     ]);
-    expect(pan(spread.x?.a?.[0])).toBeCloseTo(15);
-    expect(pan(spread.x?.b?.[0])).toBeCloseTo(-15);
+    expect(spread.x?.a?.[0]).toBeCloseTo(1);
+    expect(spread.x?.b?.[0]).toBeCloseTo(0);
   });
 });
 
@@ -123,24 +116,25 @@ describe("Fan", () => {
 });
 
 describe("Flyout", () => {
-  it("tilts from From to To while the level fades in, then sits dark", () => {
-    const fly = play("flyout", {
-      from: -30,
-      to: 60,
-      duration: 2,
-      gap: 1,
-      fadeIn: 0.5,
-    });
+  it("tilts along the Region while the level fades in, then sits dark at the start", () => {
+    const fly = play("flyout", { duration: 2, gap: 1, fadeIn: 0.5 });
     const start = fly.frame(0, ["m"]);
-    expect(tilt(start.tilt?.m?.[0])).toBeCloseTo(-30);
+    expect(start.tilt?.m?.[0]).toBe(0);
     expect(start.level?.m?.[0]).toBe(0);
     const half = fly.frame(1, ["m"]);
-    expect(tilt(half.tilt?.m?.[0])).toBeCloseTo(15);
+    expect(half.tilt?.m?.[0]).toBeCloseTo(0.5);
     expect(half.level?.m?.[0]).toBeCloseTo(1);
     const dark = fly.frame(1.5, ["m"]);
-    expect(tilt(dark.tilt?.m?.[0])).toBeCloseTo(-30);
+    expect(dark.tilt?.m?.[0]).toBe(0);
     expect(dark.level?.m?.[0]).toBe(0);
     expect(fly.frame(0.5, ["m"]).level?.m?.[0]).toBe(0);
+  });
+
+  it("flies from To to From on Direction Backward", () => {
+    const fly = play("flyout", { duration: 2, gap: 1, direction: "backward" });
+    expect(fly.frame(0, ["m"]).tilt?.m?.[0]).toBe(1);
+    expect(fly.frame(1, ["m"]).tilt?.m?.[0]).toBeCloseTo(0.5);
+    expect(fly.frame(1.5, ["m"]).tilt?.m?.[0]).toBe(1);
   });
 
   it("on Go flies once per cue and writes nothing in between", () => {
@@ -152,26 +146,20 @@ describe("Flyout", () => {
     expect(lit(fly.frame(0.6, ["m"]), "tilt")).toEqual([]);
   });
 
-  it("picks each fly a pan between Pan min and Pan max and holds it while lit", () => {
-    const fly = play("flyout", {
-      panMin: 10,
-      panMax: 50,
-      duration: 1,
-      gap: 1,
-      fadeIn: 0,
-    });
-    const first = pan(fly.frame(0, ["m"]).pan?.m?.[0]);
-    expect(first).toBeGreaterThanOrEqual(10);
-    expect(first).toBeLessThanOrEqual(50);
+  it("picks each fly a pan across the Region and holds it while lit", () => {
+    const fly = play("flyout", { duration: 1, gap: 1, fadeIn: 0 });
+    const first = fly.frame(0, ["m"]).pan?.m?.[0] as number;
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThanOrEqual(1);
     const mid = fly.frame(0.5, ["m"]);
     expect(mid.level?.m?.[0]).toBe(1);
-    expect(pan(mid.pan?.m?.[0])).toBeCloseTo(first);
+    expect(mid.pan?.m?.[0]).toBeCloseTo(first);
     const dark = fly.frame(0.6, ["m"]);
     expect(dark.level?.m?.[0]).toBe(0);
-    const second = pan(dark.pan?.m?.[0]);
+    const second = dark.pan?.m?.[0] as number;
     expect(second).not.toBeCloseTo(first);
-    expect(pan(fly.frame(0.4, ["m"]).pan?.m?.[0])).toBeCloseTo(second);
-    expect(pan(fly.frame(0.5, ["m"]).pan?.m?.[0])).toBeCloseTo(second);
+    expect(fly.frame(0.4, ["m"]).pan?.m?.[0]).toBeCloseTo(second);
+    expect(fly.frame(0.5, ["m"]).pan?.m?.[0]).toBeCloseTo(second);
   });
 });
 

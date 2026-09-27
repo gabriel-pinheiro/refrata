@@ -1,4 +1,5 @@
 import type { BlendMode } from "../document/composition.ts";
+import type { Region } from "../document/region.ts";
 import type {
   Color,
   NumberParameter,
@@ -106,6 +107,24 @@ export type Emit = (
   alpha?: number,
 ) => void;
 
+/**
+ * What makes a Visual draw inside a Region: which of its Slots runs along
+ * the Region's width and which along its height. It writes 0 to 1 on them,
+ * sees nothing of the Region, and the Runtime maps the fractions onto the
+ * `pan` and `tilt` of each Element. One Slot may run along both, which is
+ * a line from one corner to the other.
+ */
+export interface RegionDefinition {
+  /** The Slot along the width: 0 at the Region's `from` pan, 1 at its `to`. */
+  readonly width: string;
+  /** The Slot along the height: 0 at the Region's `from` tilt, 1 at its `to`. */
+  readonly height: string;
+  /** A number Parameter in degrees that turns what is drawn about the Region's center; the Runtime turns it, in aim space. */
+  readonly rotation?: string;
+  /** The Region a new Layer starts with, before its Blend Mode has its say. */
+  readonly default: Region;
+}
+
 export interface VisualInstance {
   update(frame: VisualFrame, emit: Emit): void;
   /** Called before the next `update` for each Cue fired since the last one. */
@@ -133,6 +152,8 @@ export interface VisualDefinition {
   readonly blendMode?: BlendMode;
   /** Present on a Geometry Visual: it reads where its Targets are in its Layer's Frame. */
   readonly geometry?: GeometryDefinition;
+  /** Present on a Visual that draws inside its Layer's Region. */
+  readonly region?: RegionDefinition;
   create(context: VisualContext): VisualInstance;
 }
 
@@ -190,6 +211,15 @@ export function booleanParam(
 
 /** The top of every rate Parameter, in hertz, so one tempo Controller links to all of them alike. */
 export const RATE_MAX_HZ = 20;
+
+/** A number Slot along a Region: it writes fractions of the Region, and `attribute` is what it binds to on a Layer that has none. */
+export function regionSlot(
+  key: string,
+  label: string,
+  attribute: AttributeKey,
+): SlotDefinition {
+  return { key, label, kind: "number", attribute };
+}
 
 /**
  * A number Slot in degrees on a position Attribute. It writes over the

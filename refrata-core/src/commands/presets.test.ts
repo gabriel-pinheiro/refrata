@@ -22,6 +22,19 @@ describe("Presets", () => {
     });
   });
 
+  it("names a Preset made without a name with the next free number", () => {
+    let document = run(stage(), "preset.create", { id: "first" }).document;
+    expect(document.presets.first?.name).toBe("Preset 1");
+    document = run(document, "preset.create", {
+      id: "second",
+      addresses: ["layer/spot/row/all/pan"],
+    }).document;
+    expect(document.presets.second?.name).toBe("Preset 2");
+    document = run(document, "preset.remove", { presetId: "first" }).document;
+    document = run(document, "preset.create", { id: "third" }).document;
+    expect(document.presets.third?.name).toBe("Preset 1");
+  });
+
   it("arranges Presets in Groups, renames, duplicates and ungroups them", () => {
     let document = withTable();
     document = run(document, "preset.create", {

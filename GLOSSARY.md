@@ -921,8 +921,10 @@ nearer a Scene here.
 One typed output a Visual declares, a number or a color: an LFO has one
 number Slot, Rainbow one color Slot, Figure two number Slots (`x`, `y`),
 Shimmer and Chase a color Slot `color` and a number Slot `level`. Numbers
-leave a Slot in 0 to 1; a Slot in degrees spreads its Attribute's whole
-range over it, so its Visual's degrees mean degrees at the default binding. Each frame a Slot carries, per Target, a value and an
+leave a Slot in 0 to 1; a Slot in degrees (Ballyhoo's, Fan's) spreads its
+Attribute's whole range over it, so its Visual's degrees mean degrees at
+the default binding, and a Slot along a Region writes fractions of the
+Region. Each frame a Slot carries, per Target, a value and an
 alpha, or nothing. A Visual is written against kinds, never against a
 fixture; it does not know whether its number Slot ends up on a dimmer or a
 zoom.
@@ -941,7 +943,9 @@ iris, and a Shimmer with both Slots bound is a bright white sparkle over a
 dim look, in step because it is one instance. One Slot reaches one Attribute;
 an LFO on dimmer and on zoom is two Layers. A Contribution lands on every
 Element of the Layer's Targets that has a Parameter for the bound Attribute,
-fanning down as a Look Layer row does; the others ignore it.
+fanning down as a Look Layer row does; the others ignore it. The Slots a
+Visual runs along its Layer's Region have no binding while the Region is
+there.
 
 Anchors and Visual Parameters divide the work. Anchors calibrate to the
 fixtures, are set once per Layer, are not Addresses, and show in Studio as a
@@ -997,25 +1001,52 @@ Do not confuse with a DMX Frame, one refresh of a Universe's 512 bytes.
 
 The box in aim space a Layer running a movement Visual draws inside: the
 Frame's counterpart for `pan` and `tilt`, stored on the Visual Layer and not
-an entity. It is written one of two ways: by corners, two Aims; or by centre
-and size, one Aim with a width and a height in degrees. Each Aim is typed,
-one value for every Target, or linked to a Preset, one per Element, so a
-Flyout over `All Movers` flies each mover inside its own box.
+an entity. It is written one of two ways, and kept as written: by corners,
+two Aims, From and To; or by centre and size, one Aim with a width and a
+height in degrees. Each Aim is typed, one value for every Target, or linked
+to a Preset, one per Element, so a Flyout over `All Movers` flies each mover
+inside its own box, and a mover the Preset has nothing for is released.
+Either axis of an Aim links alone. The typed value stays under a Link, and
+is what the Aim goes back to when the Link or the Preset goes.
 
-A Visual declares that it has a Region and which of its Slots runs along the
-width and which along the height (Flyout's `pan` and `tilt`, Figure's `x` and
-`y`). It writes 0 to 1 on them and sees nothing of the Region; the Runtime
-maps the fractions onto each Element as the values land. The Region stands in
-for the Slot Binding of those two Slots; the Visual's other Slots keep
-theirs. Like a Frame it is set once and is not an Address; what is performed
-is a Visual Parameter inside it, such as Figure's `size`.
+A Visual declares that it draws inside a Region and which of its Slots runs
+along the width and which along the height: Flyout's `pan` and `tilt`,
+Figure's `x` and `y`, and Sweep's one Slot along both, which is a line from
+one corner to the other. It writes 0 to 1 on them, 0 at From and 1 at To,
+and sees nothing of the Region; the Runtime maps the fractions onto each
+Element as the values land, so a Set that is not spread still gives each
+member its own box. Corners may run backwards, which is how a Flyout flies
+down on one mover and up on another. A Visual may name the Parameter that
+turns what it draws, as Figure's `rotation`; the Runtime turns it about the
+box's centre, in degrees of pan and tilt. The Region stands in for the Slot
+Binding of those Slots; the Visual's other Slots keep theirs. Like a Frame it
+is set once and is not an Address: `layer.region.set` writes it, a run of
+edits undoing as one step, and no Controller drives it; what is performed is
+a Visual Parameter inside it, such as Figure's `size`. A Link names an Aim's
+axis by its place, `layer/<id>/region/<from|to|center>/<pan|tilt>`, which
+nothing else resolves.
+
+A typed Aim is held within the widest range the Elements the Layer reaches
+cover together, as an Aim of a Look Layer is, and an end of the box one of
+them cannot go to is flagged with its name: a corner, or the edge a centre
+and its size give.
 
 Under the Blend Mode `add` a Region is centre and size only and its centre
-reads as an offset from what is below. Corners are absolute places: typed
-corners convert when a Layer is switched to `add`, and corners linked to
-Presets refuse the switch.
+reads as an offset from what is below, so a Figure runs around the position
+a Look Layer sets, which is where a Preset then belongs. Corners are places:
+typed corners become their centre and size when a Layer is switched to
+`add`, a Region with an Aim linked to a Preset refuses the switch, and on
+`add` no Aim takes a Preset. Should a file hold corners on `add`, the
+Runtime takes their size alone.
 
-Designed; built after Presets.
+A new Layer starts with the Region its Visual declares. A Layer may have
+none ("Remove Region"): its Slots then go through Slot Bindings, which is
+how one of them reaches another Attribute, and how a Sweep written before
+Regions keeps crossing `pan` alone. A file from before Regions is given
+them when opened: a Figure's centre, width and height and a Flyout's From,
+To, Pan min and Pan max, as they showed at that moment through the anchors
+they had, become a typed Region with the same output, and the Links and
+Macro actions on those Parameters go. The CLI has `layers region`.
 
 ### Controller and Parameter Link
 

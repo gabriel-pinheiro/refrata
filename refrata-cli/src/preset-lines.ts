@@ -9,7 +9,8 @@ import {
   presetOfLink,
   presetRowAddress,
   presetRowValues,
-  resolveAddress,
+  linkTarget,
+  parseRegionPlace,
   rowAddress,
   targetLabel,
   type Document,
@@ -29,27 +30,30 @@ import { formatRowValue } from "./value-lines.ts";
  * each Element takes.
  */
 
-/** A Look Layer row linked to a Preset, as `presets show` lists it. */
+/** A Look Layer row, or an Aim of a Region, linked to a Preset, as `presets show` lists it. */
 export interface LinkedRow {
   readonly address: string;
-  /** "Spot · All Targets". */
+  /** "Spot · All Targets", or "Fly · Region". */
   readonly owner: string;
   readonly attribute: string;
 }
 
-/** The Look Layer rows linked to `preset`, in no particular order. */
+/** The Look Layer rows and Aims of Regions linked to `preset`, in no particular order. */
 export function linkedRows(
   document: Document,
   preset: ValuePreset,
 ): readonly LinkedRow[] {
   return Object.values(document.links).flatMap((link) => {
     if (!isPresetLink(link) || link.presetId !== preset.id) return [];
-    const resolved = resolveAddress(document, link.address);
+    const target = linkTarget(document, link.address);
     return [
       {
         address: link.address,
-        owner: resolved?.owner ?? link.address,
-        attribute: link.address.split("/").at(-1) ?? "",
+        owner: target?.owner ?? link.address,
+        attribute:
+          parseRegionPlace(link.address) === undefined
+            ? (link.address.split("/").at(-1) ?? "")
+            : (target?.label.toLowerCase() ?? link.address),
       },
     ];
   });

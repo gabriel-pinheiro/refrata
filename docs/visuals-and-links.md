@@ -32,17 +32,28 @@ What this buys: a small Visual library. One Smooth Fade serves dimmer, strobe,
 zoom and pan. One Rainbow serves colour on every fixture, discrete gamut or
 not, because Encoding does the snapping downstream. Attribute-specific Visuals
 still exist when the semantics matter (a Figure knows it is drawing in
-pan-tilt space) but they are the exception, expressed as default bindings.
+pan-tilt space) but they are the exception, expressed as default bindings,
+or for a Visual that draws inside a box of pan and tilt as a Region in
+their place.
 
 Units: a number Slot is always 0 to 1 and the binding's anchors carry the
 units. A Visual therefore never sees degrees or hertz. When it should (a
-Figure with a width in degrees), the width is a Visual Parameter in degrees
+Ballyhoo with a pan in degrees), the pan is a Visual Parameter in degrees
 and the Slot still leaves 0 to 1 over the binding's range. What makes the
 degrees true is that a Slot in degrees writes over its Attribute's whole
 range, pan −270° to 270° and tilt −135° to 135°, which is what a new Layer
 binds: 0.5 is 0° on both, and a Parameter of 30° moves the beam 30°. A
 Layer that rebinds scales them. This is the same division Difracta makes
 between a Parameter's units and a Link's anchors.
+
+A Visual whose output is a place, not an amount, goes one step further:
+Figure, Flyout and Sweep write fractions of a **Region**, a box of pan and
+tilt stored on the Layer, by corners or by centre and size. It stands in
+for the bindings of the Slots that run along it, and its Aims are typed or
+linked to a Preset, so each mover takes its own box. The degrees are the
+Region's, the Visual's Parameters are what is performed inside it, and a
+Layer without a Region sends those Slots through their bindings as any
+other.
 
 ## 2. Two graphs, not one
 
@@ -229,15 +240,15 @@ Shimmer's `color` on `normal` with its `level` on `max`, which differs only
 when `level` is below the look underneath; a Blend Mode per binding is the
 fix if it ever bites.
 
-| Visual        | Slots (default binding)            | Parameters                                                                       | Cues              |
-| ------------- | ---------------------------------- | -------------------------------------------------------------------------------- | ----------------- |
-| LFO           | number (`dimmer`)                  | waveform, rate, `low`, `high`, phase spread                                      | `sync`            |
-| Shimmer       | `color` (`color`), `level` (none)  | color, level, count, fade in, hold, fade out, rate, jitter                       | `fire`            |
-| Chase         | `level` (`dimmer`), `color` (none) | color, level, rate, order, tail, fade                                            | `step`, `restart` |
-| Rainbow       | color (`color`)                    | rate, spread of hue across Targets, saturation                                   | `sync`            |
-| Static Number | number (`dimmer`)                  | value                                                                            |                   |
-| Static Color  | color (`color`)                    | color                                                                            |                   |
-| Figure        | `x` (`pan`), `y` (`tilt`)          | form, rate, width, height, center x, center y, rotation, direction, phase spread | `sync`            |
+| Visual        | Slots (default binding)            | Parameters                                                 | Cues              |
+| ------------- | ---------------------------------- | ---------------------------------------------------------- | ----------------- |
+| LFO           | number (`dimmer`)                  | waveform, rate, `low`, `high`, phase spread                | `sync`            |
+| Shimmer       | `color` (`color`), `level` (none)  | color, level, count, fade in, hold, fade out, rate, jitter | `fire`            |
+| Chase         | `level` (`dimmer`), `color` (none) | color, level, rate, order, tail, fade                      | `step`, `restart` |
+| Rainbow       | color (`color`)                    | rate, spread of hue across Targets, saturation             | `sync`            |
+| Static Number | number (`dimmer`)                  | value                                                      |                   |
+| Static Color  | color (`color`)                    | color                                                      |                   |
+| Figure        | `x`, `y` along the Region          | form, rate, size, rotation, direction, phase spread        | `sync`            |
 
 The second batch, for electronic music and for game show stages. Every one
 has a `color` Slot on `color` and a `level` Slot on `dimmer`, both bound,
@@ -258,37 +269,40 @@ Multiply.
 The Geometry Visuals, which read each Target's point in the Layer's Frame,
 are tabled in docs/geometry-visuals.md: Wipe, Radar, Spectrum and Ripple.
 
-The movement Visuals, for movers, all on degrees Slots over the whole of
-pan and tilt. Figure, Ballyhoo and Fan write offsets and ask for Add, so
-they run around whatever position the Look Layer below set; Flyout and
-Sweep are absolute.
+The movement Visuals, for movers. Figure, Flyout and Sweep draw inside
+their Layer's Region; Ballyhoo and Fan are on degrees Slots over the whole
+of pan and tilt. Figure, Ballyhoo and Fan ask for Add, so they run around
+whatever position the Look Layer below set; Flyout and Sweep are absolute.
 
-| Visual   | Slots (default binding)                            | Parameters                                                                       | Cues         |
-| -------- | -------------------------------------------------- | -------------------------------------------------------------------------------- | ------------ |
-| Figure   | `x` (`pan`), `y` (`tilt`)                          | form, rate, width, height, center x, center y, rotation, direction, phase spread | `sync`       |
-| Sweep    | `position` (`pan`)                                 | duration, hold, run, ease, follow                                                | `sync`       |
-| Ballyhoo | `x` (`pan`), `y` (`tilt`)                          | rate, pan, tilt, glide                                                           | `next`       |
-| Fan      | `x` (`pan`), `y` (`tilt`)                          | form, pan, tilt                                                                  |              |
-| Flyout   | `tilt` (`tilt`), `pan` (`pan`), `level` (`dimmer`) | level, from, to, pan min, pan max, duration, fade in, gap, run, phase spread     | `go`, `sync` |
+| Visual   | Slots (default binding)                                            | Parameters                                                  | Cues         |
+| -------- | ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------ |
+| Figure   | `x` along the width, `y` along the height                          | form, rate, size, rotation, direction, phase spread         | `sync`       |
+| Sweep    | `position` along both, corner to corner                            | duration, hold, run, ease, follow                           | `sync`       |
+| Ballyhoo | `x` (`pan`), `y` (`tilt`)                                          | rate, pan, tilt, glide                                      | `next`       |
+| Fan      | `x` (`pan`), `y` (`tilt`)                                          | form, pan, tilt                                             |              |
+| Flyout   | `tilt` along the height, `pan` along the width, `level` (`dimmer`) | level, direction, duration, fade in, gap, run, phase spread | `go`, `sync` |
 
 Figure is one Visual with a `form`, as QLC+'s EFX is one function with a
 pattern and grandMA3's pan/tilt phaser one phaser with a form: circle,
 eight (tilt at twice the pan rate), line, square, diamond, triangle and
-spiral share every other control. `width` and `height` are in degrees
-before `rotation`, so a Line at 90° runs in tilt and at 45° is a diagonal;
-the polygons walk their corners at one speed (QLC+'s Line2 and choppy
-square), the rest are trigonometric. Sweep is the searchlight chase: one
-crossing between the binding's ends in `duration` seconds, `hold` at each
+spiral share every other control. It fills its Region, `size` the part of
+it a hub rides, and `rotation` turns it about the Region's centre, which
+the Runtime does in degrees of pan and tilt, so a Line at 90° runs in tilt
+and at 45° is a diagonal; the polygons walk their corners at one speed
+(QLC+'s Line2 and choppy square), the rest are trigonometric. Sweep is the
+searchlight chase: one crossing from the Region's From to its To in
+`duration` seconds, both axes at once, `hold` at each
 end, bouncing or jumping back, each Target `follow` seconds behind the one
 before. Ballyhoo is the console effect of that name: each mover wanders to
 random positions of its own inside `pan` by `tilt`, `rate` moves a second,
 `glide` the part of each move spent travelling (0 jumps and lets the motor
 travel). Fan is still: it leans the beams apart by their place in the row,
 first to last or ends away from the middle, the console's fan. Flyout
-tilts from `from` to `to` while the level fades in over `fade in` of the
-fly, cuts, and sits dark for `gap`; each fly is at a pan picked at random
-between `pan min` and `pan max`, moved to at the cut while dark and held
-until the next cut, so the beam never swings while lit. On `run` On Go it
+tilts along the Region's height, From to To (`direction` Backward the
+other way), while the level fades in over `fade in` of the fly, cuts, and
+sits dark for `gap`; each fly is at a pan picked at random across the
+Region's width, moved to at the cut while dark and held until the next
+cut, so the beam never swings while lit. On `run` On Go it
 flies once per `go` and writes nothing in between, so the look below shows.
 
 Strobe, Shutter and Pump share one clock: a phase advancing at `rate`, a
@@ -341,5 +355,5 @@ backward, bounce, centre-out, ends-in or random; centre-out over eight lights
 pairs and takes four steps. A `step` from the hub re-arms the automatic
 timer, which is tap sync.
 
-Figure on `add` runs around the look below and its `center` is an offset;
-on `normal` `center` is the position itself. Here it proves two Slots.
+Figure on `add` runs around the look below and its Region's centre is an
+offset; on `normal` the centre is the position itself. Here it proves two Slots.

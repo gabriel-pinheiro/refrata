@@ -1,22 +1,24 @@
-import {
-  choiceParam,
-  defineVisual,
-  degreesParam,
-  degreesSlot,
-  numberParam,
-  unitOfDegrees,
-} from "./sdk.ts";
+import { choiceParam, defineVisual, numberParam, regionSlot } from "./sdk.ts";
 
 export const flyout = defineVisual({
   id: "flyout",
   name: "Flyout",
   description:
-    "Beams fade in as they tilt out over the crowd, cut, and come back dark, each fly at a random pan.",
+    "Beams fade in as they tilt along the Region, cut, and come back dark, each fly at a random pan across it.",
   slots: [
-    degreesSlot("tilt", "Tilt", "tilt"),
-    degreesSlot("pan", "Pan", "pan"),
+    regionSlot("tilt", "Tilt", "tilt"),
+    regionSlot("pan", "Pan", "pan"),
     { key: "level", label: "Level", kind: "number", attribute: "dimmer" },
   ],
+  region: {
+    width: "pan",
+    height: "tilt",
+    default: {
+      form: "corners",
+      from: { pan: -30, tilt: -30 },
+      to: { pan: 30, tilt: 60 },
+    },
+  },
   parameters: {
     level: {
       kind: "number",
@@ -27,20 +29,21 @@ export const flyout = defineVisual({
       percent: true,
       default: 1,
     },
-    from: degreesParam("From", -135, 135, -30, "Where a fly starts, dark."),
-    to: degreesParam("To", -135, 135, 60, "Where it cuts."),
-    panMin: degreesParam(
-      "Pan min",
-      -270,
-      270,
-      -30,
-      "Each fly picks a pan between Pan min and Pan max, set while dark and held to the cut.",
-    ),
-    panMax: degreesParam("Pan max", -270, 270, 30),
+    direction: {
+      kind: "choice",
+      label: "Direction",
+      description:
+        "Forward flies from the Region's From to its To; Backward the other way.",
+      default: "forward",
+      options: [
+        { value: "forward", label: "Forward" },
+        { value: "backward", label: "Backward" },
+      ],
+    },
     duration: {
       kind: "number",
       label: "Duration",
-      description: "Seconds from From to To.",
+      description: "Seconds from one end of the Region to the other.",
       min: 0.2,
       max: 30,
       step: 0.1,
@@ -60,7 +63,7 @@ export const flyout = defineVisual({
     gap: {
       kind: "number",
       label: "Gap",
-      description: "Seconds dark at From before the next fly.",
+      description: "Seconds dark at the start before the next fly.",
       min: 0,
       max: 30,
       step: 0.1,
@@ -89,14 +92,14 @@ export const flyout = defineVisual({
   },
   cues: [
     { key: "go", label: "Go", description: "Fly now." },
-    { key: "sync", label: "Sync", description: "Restart at From." },
+    { key: "sync", label: "Sync", description: "Restart at the start." },
   ],
   distributes: false,
   create({ random }) {
     /** Seconds since the first Target's fly began; undefined while On Go waits. */
     let clock: number | undefined;
     let go = false;
-    /** Per Target, the fly its pan was picked for and that pan; the fly counts up from the first. */
+    /** Per Target, the fly its pan was picked for and that pan, a fraction of the Region's width; the fly counts up from the first. */
     const pans = new Map<string, { fly: number; pan: number }>();
     return {
       cue(key) {
@@ -118,11 +121,9 @@ export const flyout = defineVisual({
           return;
         }
         const level = numberParam(params, "level", 1);
-        const from = numberParam(params, "from", -30);
-        const to = numberParam(params, "to", 60);
+        const backward =
+          choiceParam(params, "direction", "forward") === "backward";
         const fadeIn = numberParam(params, "fadeIn", 0.3);
-        const panMin = numberParam(params, "panMin", -30);
-        const panMax = numberParam(params, "panMax", 30);
         const seen = new Set<string>();
         for (const target of targets) {
           let t = clock - (spread * target.index * cycle) / target.count;
@@ -136,18 +137,12 @@ export const flyout = defineVisual({
           seen.add(target.key);
           let picked = pans.get(target.key);
           if (picked?.fly !== fly) {
-            picked = { fly, pan: panMin + (panMax - panMin) * random() };
+            picked = { fly, pan: random() };
             pans.set(target.key, picked);
           }
-          emit("pan", target, unitOfDegrees("pan", picked.pan));
-          emit(
-            "tilt",
-            target,
-            unitOfDegrees(
-              "tilt",
-              flying ? from + (to - from) * progress : from,
-            ),
-          );
+          const along = flying ? progress : 0;
+          emit("pan", target, picked.pan);
+          emit("tilt", target, backward ? 1 - along : along);
           emit(
             "level",
             target,

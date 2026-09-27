@@ -23,6 +23,21 @@ function aimOf(document: Document, ref: string): readonly unknown[] {
 }
 
 describe("link.preset", () => {
+  it("links an Aim again after it was unlinked with no rows of its own", () => {
+    let document = run(linked(), "aim.unlink", {
+      pan: AIM[0],
+      tilt: AIM[1],
+    }).document;
+    expect(document.links).toEqual({});
+    expect((document.layers.spot as LookLayer).all).toEqual({});
+    expect(aimOf(document, "left/root")).toEqual([0, 0]);
+    document = run(document, "link.preset", {
+      presetId: "table",
+      addresses: AIM,
+    }).document;
+    expect(aimOf(document, "left/root")).toEqual([10, 20]);
+  });
+
   it("sends each Element the row reaches to its own entry", () => {
     const result = run(withTable(), "link.preset", {
       presetId: "table",

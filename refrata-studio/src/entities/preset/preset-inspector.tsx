@@ -6,7 +6,7 @@ import {
   ATTRIBUTES,
   isPresetLink,
   presetShownAttributes,
-  resolveAddress,
+  linkTarget,
   type Document,
   type Link,
   type Preset,
@@ -34,7 +34,7 @@ import { ElementBlock, ElementList, PresetLines } from "./preset-elements";
 
 /**
  * A Preset's name, its All Elements rows, its Elements each with their
- * rows, and the Look Layer rows linked to it. "Add Elements" opens the
+ * rows, and the Look Layer rows and Aims of Regions linked to it. "Add Elements" opens the
  * picker over the whole rig; a Fixture Set adds the members it has now. A
  * Group shows only its name.
  */
@@ -186,7 +186,7 @@ function AddRow({ view, document, preset }: PresetProps) {
   );
 }
 
-/** The Look Layer rows linked to the Preset, each opening its Layer. */
+/** The Look Layer rows and Aims of Regions linked to the Preset, each opening its Layer. */
 function LinkedRows({
   document,
   links,
@@ -201,16 +201,15 @@ function LinkedRows({
     .filter(isPresetLink)
     .filter((link) => link.presetId === preset.id)
     .flatMap((link) => {
-      const resolved = resolveAddress(document, link.address);
-      const layerId = resolved?.path[1];
-      return resolved === undefined || layerId === undefined
+      const target = linkTarget(document, link.address);
+      return target?.layerId === undefined
         ? []
         : [
             {
               link,
-              layerId,
-              owner: resolved.owner ?? "",
-              label: resolved.label,
+              layerId: target.layerId,
+              owner: target.owner ?? "",
+              label: target.label,
             },
           ];
     })
@@ -222,7 +221,7 @@ function LinkedRows({
       {rows.length === 0 ? (
         <p className="text-[0.6875rem]/relaxed text-muted-foreground">
           No row is linked to {preset.name}. Link one from its row in a Look
-          Layer.
+          Layer, or from the Region of a Visual Layer.
         </p>
       ) : (
         <ul

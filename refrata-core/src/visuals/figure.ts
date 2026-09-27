@@ -3,9 +3,8 @@ import {
   choiceParam,
   defineVisual,
   degreesParam,
-  degreesSlot,
   numberParam,
-  unitOfDegrees,
+  regionSlot,
 } from "./sdk.ts";
 
 const TAU = Math.PI * 2;
@@ -71,8 +70,19 @@ export const figure = defineVisual({
   id: "figure",
   name: "Figure",
   description:
-    "A figure drawn in pan and tilt: a circle, an eight, a line, a polygon.",
-  slots: [degreesSlot("x", "X", "pan"), degreesSlot("y", "Y", "tilt")],
+    "A figure drawn in pan and tilt, filling the Region: a circle, an eight, a line, a polygon.",
+  slots: [regionSlot("x", "X", "pan"), regionSlot("y", "Y", "tilt")],
+  region: {
+    width: "x",
+    height: "y",
+    rotation: "rotation",
+    default: {
+      form: "center",
+      center: { pan: 0, tilt: 0 },
+      width: 30,
+      height: 30,
+    },
+  },
   parameters: {
     form: {
       kind: "choice",
@@ -98,22 +108,22 @@ export const figure = defineVisual({
       unit: "Hz",
       default: 0.25,
     },
-    width: degreesParam("Width", 0, 180, 30, "Across, before Rotation."),
-    height: degreesParam("Height", 0, 180, 30, "Up and down, before Rotation."),
-    centerX: degreesParam(
-      "Center X",
-      -270,
-      270,
-      0,
-      "On blend Add, an offset from the position below.",
-    ),
-    centerY: degreesParam("Center Y", -135, 135, 0),
+    size: {
+      kind: "number",
+      label: "Size",
+      description: "How much of the Region the figure fills.",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      percent: true,
+      default: 1,
+    },
     rotation: degreesParam(
       "Rotation",
       -180,
       180,
       0,
-      "Turns the figure; a Line at 90° runs in tilt.",
+      "Turns the figure about the Region's center; a Line at 90° runs in tilt.",
     ),
     direction: {
       kind: "choice",
@@ -147,23 +157,15 @@ export const figure = defineVisual({
           choiceParam(params, "direction", "forward") === "backward";
         phase += (backward ? -1 : 1) * numberParam(params, "rate", 0.25) * dt;
         const form = choiceParam(params, "form", "circle");
-        const halfWidth = numberParam(params, "width", 30) / 2;
-        const halfHeight = numberParam(params, "height", 30) / 2;
-        const centerX = numberParam(params, "centerX", 0);
-        const centerY = numberParam(params, "centerY", 0);
-        const rotation = (numberParam(params, "rotation", 0) * TAU) / 360;
-        const cos = Math.cos(rotation);
-        const sin = Math.sin(rotation);
+        const half = numberParam(params, "size", 1) / 2;
         const spread = numberParam(params, "phaseSpread", 0);
         for (const target of targets) {
           const [px, py] = formPoint(
             form,
             phase - (spread * target.index) / target.count,
           );
-          const x = px * halfWidth;
-          const y = py * halfHeight;
-          emit("x", target, unitOfDegrees("pan", centerX + x * cos - y * sin));
-          emit("y", target, unitOfDegrees("tilt", centerY + x * sin + y * cos));
+          emit("x", target, 0.5 + px * half);
+          emit("y", target, 0.5 + py * half);
         }
       },
     };

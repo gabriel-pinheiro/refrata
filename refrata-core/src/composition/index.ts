@@ -6,3 +6,5 @@ export * from "./visual-contributions.ts";
 export * from "./row-reach.ts";
 export * from "./preset-values.ts";
 export * from "./preset-entries.ts";
+export * from "./region-values.ts";
+export * from "./region-reach.ts";

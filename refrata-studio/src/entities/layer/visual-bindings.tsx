@@ -4,6 +4,7 @@ import {
   ATTRIBUTES,
   defaultBinding,
   isAttributeKey,
+  isRegionSlot,
   type SlotDefinition,
   type VisualDefinition,
   type VisualLayer,
@@ -27,7 +28,8 @@ const NONE = { value: null, label: "None" } as const;
  * those of the Slot's kind, or None; and for a number Slot the range of the
  * Attribute its 0 to 1 travels, in the Attribute's units. The range
  * calibrates the Layer to its fixtures and is not an Address; what is
- * performed is the Visual's Parameters.
+ * performed is the Visual's Parameters. The Slots that run along the
+ * Layer's Region are not here: the Region stands in for their bindings.
  */
 export function VisualBindings({
   view,
@@ -38,18 +40,27 @@ export function VisualBindings({
   readonly layer: VisualLayer;
   readonly definition: VisualDefinition;
 }) {
+  const onRegion = (slot: SlotDefinition): boolean =>
+    layer.region !== undefined && isRegionSlot(definition, slot.key);
+  const bound = definition.slots.filter((slot) => !onRegion(slot));
   return (
     <>
-      {definition.slots.map((slot) => (
+      {bound.map((slot) => (
         <SlotRows key={slot.key} view={view} layer={layer} slot={slot} />
       ))}
-      {definition.slots.every(
-        (slot) => (layer.bindings[slot.key]?.attribute ?? null) === null,
-      ) && (
-        <p className="text-[0.6875rem]/relaxed text-amber-300">
-          No Slot is bound, so {layer.name} reaches nothing.
+      {bound.length === 0 && (
+        <p className="text-[0.6875rem]/relaxed text-muted-foreground">
+          Every Slot of {definition.name} runs along the Region.
         </p>
       )}
+      {bound.length === definition.slots.length &&
+        bound.every(
+          (slot) => (layer.bindings[slot.key]?.attribute ?? null) === null,
+        ) && (
+          <p className="text-[0.6875rem]/relaxed text-amber-300">
+            No Slot is bound, so {layer.name} reaches nothing.
+          </p>
+        )}
     </>
   );
 }

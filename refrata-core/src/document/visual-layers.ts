@@ -7,8 +7,9 @@ import type {
   VisualDefinition,
   VisualTarget,
 } from "../visuals/sdk.ts";
-import type { SlotBinding, VisualLayer } from "./composition.ts";
+import type { BlendMode, SlotBinding, VisualLayer } from "./composition.ts";
 import type { Document } from "./document.ts";
+import { regionForBlend, type Region } from "./region.ts";
 import {
   expandTargets,
   type ExpandedTarget,
@@ -44,6 +45,42 @@ export function defaultBindings(
   return Object.fromEntries(
     definition.slots.map((slot) => [slot.key, defaultBinding(slot)]),
   );
+}
+
+/** Whether a Slot of `definition` runs along its Region. */
+export function isRegionSlot(
+  definition: VisualDefinition | undefined,
+  slot: string,
+): boolean {
+  const region = definition?.region;
+  return (
+    region !== undefined && (region.width === slot || region.height === slot)
+  );
+}
+
+/**
+ * What a new Layer of a Visual starts with besides its Parameter Values:
+ * the default binding of every Slot, and for a Visual that draws inside a
+ * Region the Region it declares, as the Layer's Blend Mode may hold it, in
+ * place of the bindings of the Slots that run along it.
+ */
+export function startingSlots(
+  definition: VisualDefinition,
+  blendMode: BlendMode,
+): {
+  readonly bindings: Record<string, SlotBinding>;
+  readonly region?: Region;
+} {
+  if (definition.region === undefined)
+    return { bindings: defaultBindings(definition) };
+  return {
+    bindings: Object.fromEntries(
+      Object.entries(defaultBindings(definition)).filter(
+        ([slot]) => !isRegionSlot(definition, slot),
+      ),
+    ),
+    region: regionForBlend(definition.region.default, blendMode),
+  };
 }
 
 /**

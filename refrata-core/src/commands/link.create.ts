@@ -18,6 +18,7 @@ import {
 import type { Patch } from "../document/patch.ts";
 import { generateId } from "../ids.ts";
 import { unknownAddress } from "../address/unknown.ts";
+import { parseRegionPlace } from "../document/region.ts";
 
 /**
  * Patches linking `controller` to each Address, or why one of them cannot
@@ -32,6 +33,11 @@ export function linkPatches(
 ): Patch[] | { readonly error: string } {
   const patches: Patch[] = [];
   for (const address of new Set(addresses)) {
+    if (parseRegionPlace(address) !== undefined)
+      return {
+        error:
+          "A Region is set once and takes no Controller. Link its Aim to a Preset, or ride a Parameter of its Visual.",
+      };
     const resolved = resolveAddress(document, address);
     if (resolved === undefined)
       return { error: unknownAddress(document, address) };

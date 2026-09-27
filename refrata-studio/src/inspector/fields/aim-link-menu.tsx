@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import { LinkMenuItems } from "./link-menu";
+import { canLink, LinkMenuItems, linkTitle } from "./link-menu";
 import { linkSource, type RowLinks } from "./link-row";
 
 /** One part of an Aim's Link menu: a caption and the Address it links. */
@@ -46,7 +46,8 @@ export interface AimPairLinks {
  * The one link button of an Aim row. Its menu opens with Aim, which links
  * both axes to a Preset, then has a section per axis, each offering what a
  * row's own Link menu offers for that axis's Address; the button shows
- * linked while any part is, and says which in its title.
+ * linked while any part is, and says which in its title. An Aim nothing
+ * can drive, such as the offset of a Region on Add, has no button.
  */
 export function AimLinkMenu({
   label,
@@ -64,14 +65,22 @@ export function AimLinkMenu({
       ? []
       : [`${section.title} controlled by ${source.name}`];
   });
+  const first = sections[0];
+  if (
+    driven.length === 0 &&
+    !sections.some((section) => canLink(section.resolved, section.links))
+  )
+    return <span className="size-5 shrink-0" />;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`${label} link`}
         title={
-          driven.length === 0
-            ? "Link to a Controller or a Preset"
-            : driven.join(". ")
+          driven.length > 0
+            ? driven.join(". ")
+            : first === undefined
+              ? "Link"
+              : linkTitle(first.resolved, first.links)
         }
         className={cn(
           "grid size-5 shrink-0 place-items-center rounded-sm hover:bg-input/50",

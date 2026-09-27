@@ -24,6 +24,8 @@ export interface RowLinks {
   readonly effective: AddressValue;
   /** Controllers able to drive this row, in navigator order. */
   readonly candidates: readonly Controller[];
+  /** False for what no Controller may drive whatever its type, such as an Aim of a Region; absent, the type decides. */
+  readonly takesController?: boolean;
   /** Whether the row is resolved per Element, so a Preset can drive it. */
   readonly takesPreset: boolean;
   /** Presets the row could take, in navigator order. */

@@ -29,6 +29,8 @@ import { layerCreate } from "./layer.create.ts";
 import { layerDuplicate } from "./layer.duplicate.ts";
 import { layerFrameSet } from "./layer.frame.set.ts";
 import { layerMove } from "./layer.move.ts";
+import { layerRegionRemove } from "./layer.region.remove.ts";
+import { layerRegionSet } from "./layer.region.set.ts";
 import { layerRemove } from "./layer.remove.ts";
 import { layerRename } from "./layer.rename.ts";
 import { layerAimRelease } from "./layer.aim.release.ts";
@@ -154,6 +156,8 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   layerRowRelease,
   layerVisualSet,
   layerBindingSet,
+  layerRegionRemove,
+  layerRegionSet,
   layerRemove,
   controllerCreate,
   controllerRename,

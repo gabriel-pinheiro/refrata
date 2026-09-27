@@ -9,6 +9,8 @@ import {
 } from "../document/document.ts";
 import type { ValuePreset } from "../document/preset.ts";
 import { getAtPath } from "../document/patch.ts";
+import { parseRegionPlace, regionAimLabel } from "../document/region.ts";
+import { ATTRIBUTES } from "../rig/attributes.ts";
 import {
   linkable,
   resolveAddress,
@@ -159,8 +161,9 @@ export function linkProblem(
 
 /**
  * Why `preset` cannot drive `resolved`, or undefined when it can. A Preset
- * carries one value per Element, so it drives only what is resolved per
- * Element: a Look Layer row, a Target's or All Targets'.
+ * carries one value per Element, so among Addresses it drives only what is
+ * resolved per Element: a Look Layer row, a Target's or All Targets'. The
+ * Aims of a Region take one too, by their place, which is no Address.
  */
 export function presetLinkProblem(
   resolved: ResolvedAddress,
@@ -169,6 +172,42 @@ export function presetLinkProblem(
   if (table === "layers" && (field === "rows" || field === "all"))
     return undefined;
   return `“${resolved.label}” holds one value; a Preset holds one per Element and links only to a Look Layer row.`;
+}
+
+/**
+ * What a Link drives, said for a person: its Address resolved, or the Aim
+ * of a Region its place names. Undefined when what it drove is gone.
+ */
+export function linkTarget(
+  document: Document,
+  address: string,
+):
+  | {
+      readonly label: string;
+      readonly owner: string | undefined;
+      /** The Layer it belongs to, when it belongs to one. */
+      readonly layerId: string | undefined;
+    }
+  | undefined {
+  const place = parseRegionPlace(address);
+  if (place !== undefined) {
+    const layer = document.layers[place.layerId];
+    if (layer?.kind !== "visual" || layer.region === undefined)
+      return undefined;
+    return {
+      label: `${regionAimLabel(place.aim, layer.blendMode)} ${ATTRIBUTES[place.axis].label}`,
+      owner: `${layer.name} · Region`,
+      layerId: layer.id,
+    };
+  }
+  const resolved = resolveAddress(document, address);
+  if (resolved === undefined) return undefined;
+  const [table, id] = resolved.path;
+  return {
+    label: resolved.label,
+    owner: resolved.owner,
+    layerId: table === "layers" && typeof id === "string" ? id : undefined,
+  };
 }
 
 /** The anchors a new number link starts with: the target's whole range. */

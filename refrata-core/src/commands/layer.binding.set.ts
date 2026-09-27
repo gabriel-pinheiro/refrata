@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import type { SlotBinding } from "../document/composition.ts";
-import { bindingProblem, defaultBinding } from "../document/visual-layers.ts";
+import {
+  bindingProblem,
+  defaultBinding,
+  isRegionSlot,
+} from "../document/visual-layers.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
 import { notLayerOf } from "./kind-problems.ts";
 
@@ -10,7 +14,8 @@ import { notLayerOf } from "./kind-problems.ts";
  * Binds one Slot of a Visual Layer to an Attribute, or to none. A number
  * Slot takes two anchors in the Attribute's units; left out, they stay as
  * they are when the Attribute does not change and become the Attribute's
- * whole range when it does.
+ * whole range when it does. A Slot that runs along the Layer's Region has
+ * no binding while the Region is there.
  */
 export const layerBindingSet = defineCommand({
   name: "layer.binding.set",
@@ -33,11 +38,16 @@ export const layerBindingSet = defineCommand({
     const layer = document.layers[payload.layerId];
     if (layer?.kind !== "visual")
       return rejected(notLayerOf(document, payload.layerId, "visual"));
-    const slot = visualDefinition(layer.visual)?.slots.find(
+    const definition = visualDefinition(layer.visual);
+    const slot = definition?.slots.find(
       (candidate) => candidate.key === payload.slot,
     );
     if (slot === undefined)
       return rejected(`${layer.name} has no Slot “${payload.slot}”.`);
+    if (layer.region !== undefined && isRegionSlot(definition, slot.key))
+      return rejected(
+        `${slot.label} runs along the Region of “${layer.name}”. Set the Region, or remove it to bind the Slot.`,
+      );
     const current = layer.bindings[slot.key];
     const base: SlotBinding =
       current?.attribute === payload.attribute

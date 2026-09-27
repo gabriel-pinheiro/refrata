@@ -1,6 +1,7 @@
 import {
   DocumentSchema,
   defaultOperational,
+  migrateRegions,
   type Document,
 } from "@refrata/core";
 import {
@@ -100,7 +101,8 @@ export function parseDocumentFile(text: string): ParsedDocumentFile {
   }
   return {
     ok: true,
-    document: {
+    // A file from before Regions: its Figures and Flyouts take the Region their Parameters showed.
+    document: migrateRegions({
       installation: parsed.data.installation as Document["installation"],
       universes: parsed.data.universes as Document["universes"],
       outputs: parsed.data.outputs as Document["outputs"],
@@ -114,7 +116,7 @@ export function parseDocumentFile(text: string): ParsedDocumentFile {
       links: parsed.data.links as Document["links"],
       macros: parsed.data.macros as Document["macros"],
       operational: defaultOperational,
-    },
+    }),
   };
 }
 

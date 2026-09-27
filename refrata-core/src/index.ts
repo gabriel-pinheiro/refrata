@@ -13,6 +13,8 @@ export * from "./document/preset.ts";
 export * from "./document/presets.ts";
 export * from "./document/visual-layers.ts";
 export * from "./document/geometry.ts";
+export * from "./document/region.ts";
+export * from "./document/region-migration.ts";
 export * from "./document/fixture-sets.ts";
 export * from "./document/tags.ts";
 export * from "./document/targets.ts";

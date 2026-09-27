@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-import { linkAt, linkSourceName } from "../address/links.ts";
+import { linkAt, linkSourceName, linksUnder } from "../address/links.ts";
 import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { BlendModeSchema, isTargetedLayer } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";
 import type { Patch } from "../document/patch.ts";
+import { regionPlacePrefix, toCenterRegion } from "../document/region.ts";
 
 /** Why a Layer field a Controller drives cannot be edited by hand, or undefined. */
 function controlled(
@@ -23,7 +24,9 @@ function controlled(
  * Enabled and opacity are also Addresses (`layer/<id>/enabled`,
  * `layer/<id>/opacity`) and refuse a hand edit while a Controller drives
  * them; the Layer Fade fields are Addresses only (`layer/<id>/fade/...`),
- * written with `address.edit`.
+ * written with `address.edit`. Going to the Blend Mode `add`, a Region by
+ * corners becomes its center and size, since on `add` it is an offset; one
+ * with an Aim linked to a Preset refuses, a Preset holding places.
  */
 export const layerUpdate = defineCommand({
   name: "layer.update",
@@ -75,6 +78,24 @@ export const layerUpdate = defineCommand({
     if (payload.blendMode !== undefined) {
       if (!isTargetedLayer(layer))
         return rejected("A Group has no Blend Mode.");
+      const region = layer.kind === "visual" ? layer.region : undefined;
+      if (
+        payload.blendMode === "add" &&
+        layer.blendMode !== "add" &&
+        region !== undefined
+      ) {
+        const link = linksUnder(document.links, regionPlacePrefix(layer.id))[0];
+        if (link !== undefined)
+          return rejected(
+            `The Region of “${layer.name}” is linked to ${linkSourceName(document, link)}, which holds places; on Add a Region is an offset from what is below. Unlink its Aims first.`,
+          );
+        if (region.form === "corners")
+          patches.push({
+            op: "set",
+            path: ["layers", layer.id, "region"],
+            value: toCenterRegion(region),
+          });
+      }
       set("blendMode", payload.blendMode);
     }
     return accepted(patches);

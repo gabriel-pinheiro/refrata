@@ -48,14 +48,18 @@ back over its fade out when hidden. A Smooth Filter at the top of the stack,
 "Position 1.5 s", easing every change of `pan` and `tilt` below it whatever
 Layer caused it, is the other half, designed and not built.
 
-**Effects.** A Figure Visual has two Slots bound to `pan` and `tilt` by
-default, over their whole range, and width and height Parameters in degrees. A new Layer
-of it starts on blend `add`, so it is relative: the figure runs around
-whatever position the Look Layer below set, and each mover draws its own
-around its own focus. On `normal` it is absolute. Spread over a Set, with a
+**Effects.** A Figure Visual has two Slots that run along its Layer's
+Region, a box of pan and tilt in degrees, which it fills. A new Layer
+of it starts on blend `add`, so it is relative: the Region is an offset and
+a size, the figure runs around whatever position the Look Layer below set,
+and each mover draws its own around its own Aim, which a Preset gives it.
+On `normal` it is absolute, and the Region's Aims themselves take
+Presets: a Flyout over `All Movers` with its two corners linked to two
+Presets flies each mover inside its own box. Spread over a Set, with a
 phase Parameter, it becomes a wave of figures. This covers grandMA3's
 absolute and relative phaser layers with one blend mode. Ballyhoo and Fan
-are offsets the same way; Sweep and Flyout write positions. Pan and tilt are
+are offsets the same way, in degrees; Sweep and Flyout write positions
+inside their Region. Pan and tilt are
 angles on a sphere, so a figure drawn as equal degrees on both axes only
 looks like itself away from the pan axis: with the beam along it, a circle
 folds into an eight. The cone-correct figure waits on the geometry below.

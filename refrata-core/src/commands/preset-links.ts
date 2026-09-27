@@ -17,6 +17,7 @@ import { generateId } from "../ids.ts";
 import type { ParameterValue } from "../parameters.ts";
 import { isAttributeKey, type AttributeKey } from "../rig/attributes.ts";
 import { attributeOwners } from "../composition/contributions.ts";
+import { namedPlace, seedFromPlace } from "./region-links.ts";
 
 /** The Look Layer row an Address names: its Layer, row ref and Attribute. */
 export interface NamedRow {
@@ -53,8 +54,9 @@ export function namedRow(
 
 /**
  * Patches linking the Preset `presetId` to each Address, or why one of them
- * cannot be linked: each must be a Look Layer row. An Address linked
- * elsewhere moves to the Preset.
+ * cannot be linked: each must be a Look Layer row, or the place of an Aim
+ * of a Region (`layer/<id>/region/<aim>/<axis>`). One linked elsewhere
+ * moves to the Preset.
  */
 export function presetLinkPatches(
   document: Document,
@@ -63,8 +65,8 @@ export function presetLinkPatches(
 ): Patch[] | { readonly error: string } {
   const patches: Patch[] = [];
   for (const address of new Set(addresses)) {
-    const row = namedRow(document, address);
-    if ("error" in row) return row;
+    const driven = namedPlace(document, address) ?? namedRow(document, address);
+    if ("error" in driven) return driven;
     const existing = linkAt(document, address);
     if (
       existing !== undefined &&
@@ -125,8 +127,9 @@ function shownValue(
 
 /**
  * The Elements and rows a Preset starts with when it grows out of Look
- * Layer rows: every Element those rows' Targets stand for, each holding
- * what it shows from the row now, so linking changes nothing on the rig.
+ * Layer rows or the Aims of a Region: every Element their Targets stand
+ * for, each holding what it shows from them now, so linking changes
+ * nothing on the rig.
  */
 export function seedFromRows(
   document: Document,
@@ -140,6 +143,15 @@ export function seedFromRows(
   const elements: string[] = [];
   const rows: Record<string, Record<string, PresetRow>> = {};
   for (const address of new Set(addresses)) {
+    const place = namedPlace(document, address);
+    if (place !== undefined) {
+      if ("error" in place) return place;
+      for (const [ref, row] of seedFromPlace(document, place)) {
+        if (!elements.includes(ref)) elements.push(ref);
+        rows[ref] = { ...rows[ref], [place.axis]: row };
+      }
+      continue;
+    }
     const row = namedRow(document, address);
     if ("error" in row) return row;
     for (const located of rowElements(document, row)) {

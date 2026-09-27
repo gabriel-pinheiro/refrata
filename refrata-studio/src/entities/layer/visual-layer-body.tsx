@@ -25,6 +25,7 @@ import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand } from "@/lib/client";
 
 import { FrameFields } from "./frame-fields";
+import { RegionFields } from "./region-fields";
 import { VisualBindings } from "./visual-bindings";
 import { VisualPicker } from "./visual-picker";
 
@@ -35,7 +36,7 @@ const MacroIcon = macroIcons.macro;
  * to choose another; one row per Visual Parameter, each an Address a
  * Controller can take; the Slot Bindings; and a button per Cue, whose menu
  * makes the Macro a hub's pad needs. A Geometry Visual's Layer shows its
- * Frame after the Targets.
+ * Frame after the Targets, and a movement Visual's its Region.
  * A Layer whose Visual the Catalog does not know says so and still lets
  * the person choose another.
  */
@@ -91,6 +92,14 @@ export function VisualLayerBody({
       {children}
       {definition?.geometry !== undefined && (
         <FrameFields view={view} layer={layer} />
+      )}
+      {definition !== undefined && (
+        <RegionFields
+          view={view}
+          document={document}
+          layer={layer}
+          definition={definition}
+        />
       )}
       {definition !== undefined && (
         <>
@@ -164,7 +173,7 @@ export function VisualLayerBody({
       {changing && (
         <VisualPicker
           title={`Change the Visual of ${layer.name}`}
-          description="Parameters and bindings start over from the new Visual's defaults, and Links and Macro actions on the old ones go. Targets and opacity stay."
+          description="Parameters, bindings and the Region start over from the new Visual's defaults, and Links and Macro actions on the old ones go. Targets and opacity stay."
           current={layer.visual}
           submitLabel="Change Visual"
           onSubmit={(visual) =>

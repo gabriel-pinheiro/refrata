@@ -31,7 +31,8 @@ import { cn } from "@/lib/utils";
  * One line of a Look Layer for one row ref (a Target, or All Targets): the
  * Control checkbox, the Attribute, then the Control when the row exists (or
  * the Controller driving it) and its Link menu. The control wraps under
- * the label when the inspector is too narrow to give it a usable width. A
+ * the label when the inspector is too narrow to give it a usable width; a
+ * released row keeps its Link menu, so it is linked in one gesture. A
  * Target's line with no row of its own says when an All Targets row reaches
  * it, and one with its own row that it overrides All Targets. A row a
  * Preset drives lists under it what each Element takes from the Preset.
@@ -129,7 +130,12 @@ export function LookLine({
           <LinkMenu resolved={resolved} links={links} />
         </div>
       ) : (
-        <span className="flex-1" />
+        <>
+          <span className="flex-1" />
+          {resolved !== undefined && links !== undefined && (
+            <LinkMenu resolved={resolved} links={links} />
+          )}
+        </>
       )}
       {resolved !== undefined && links?.preset !== undefined && (
         <div className="basis-full pl-5">

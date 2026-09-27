@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import { uniqueName } from "../document/names.ts";
+import { tableEntries } from "../document/document.ts";
+import { numberedName, uniqueName } from "../document/names.ts";
 import {
   PRESET_KINDS,
   PRESET_LABELS,
@@ -15,7 +16,8 @@ import { presetLinkPatches, seedFromRows } from "./preset-links.ts";
 
 /**
  * A new Preset lands first at the root or in the Group it was added to, or
- * right after the sibling `after` names, listing the Elements given: "New
+ * right after the sibling `after` names, listing the Elements given; with
+ * no name it is "Preset 1", the next free number. "New
  * Preset from selection" is this command with the Selection as elements.
  * With `addresses` it grows out of Look Layer rows and is linked to them in
  * the same step: it lists the Elements those rows reach, each holding what
@@ -25,7 +27,7 @@ export const presetCreate = defineCommand({
   name: "preset.create",
   kind: "authoring",
   description:
-    "Add a Preset or a Group. elements lists Element refs (<fixtureId>/<key>) or Sets (set:<id>, taken as their members now); addresses are Look Layer rows it is linked to at once, taking their Elements and what they show.",
+    "Add a Preset or a Group; without a name it is Preset 1, the next free number. elements lists Element refs (<fixtureId>/<key>) or Sets (set:<id>, taken as their members now); addresses are Look Layer rows, or Aims of a Region (layer/<id>/region/<aim>/<axis>), it is linked to at once, taking their Elements and what they show.",
   payload: z
     .object({
       id: z.string().min(1).optional(),
@@ -58,10 +60,16 @@ export const presetCreate = defineCommand({
     if (typeof order !== "string") return rejected(order.error);
     const base = {
       id: presetId,
-      name: uniqueName(
-        siblings.map((sibling) => sibling.name),
-        payload.name ?? PRESET_LABELS[payload.kind],
-      ),
+      name:
+        payload.name === undefined
+          ? numberedName(
+              tableEntries(document.presets).map((preset) => preset.name),
+              PRESET_LABELS[payload.kind],
+            )
+          : uniqueName(
+              siblings.map((sibling) => sibling.name),
+              payload.name,
+            ),
       parentId: payload.parentId,
       order,
     };

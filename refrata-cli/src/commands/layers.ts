@@ -1,30 +1,24 @@
-import { visualDefinition, type Document } from "@refrata/core";
+import { visualDefinition } from "@refrata/core";
 import type { CommandResult } from "@refrata/protocol";
 import type { Command } from "commander";
 
 import type { Cli } from "../cli.ts";
 import { formatStack } from "../composition-lines.ts";
+import { registerLayersFrame } from "./layers-frame.ts";
+import { registerLayersRegion } from "./layers-region.ts";
+import { visualLayer } from "./visual-layer.ts";
 import { resolveId, resolveTargetRef } from "../names.ts";
 import { parseParameterValue } from "../parameter-value.ts";
 import { formatCommandResult } from "../result.ts";
 
 const UNBOUND = "none";
 
-/** The Visual Layer `text` names, with its id, or an error saying what it is instead. */
-function visualLayer(document: Document, text: string) {
-  const layerId = resolveId(document, "layers", text);
-  const layer = document.layers[layerId];
-  if (layer?.kind !== "visual")
-    throw new Error(`“${layer?.name ?? text}” is not a Visual Layer.`);
-  return layer;
-}
-
-/** A Scene's Layers: list the stack, add a Look Layer, a Visual Layer or a Group, spread a Target, and set up a Visual Layer. */
+/** A Scene's Layers: list the stack, add a Look Layer, a Visual Layer or a Group, spread a Target, and set up a Visual Layer; its Frame and its Region are in files of their own. */
 export function registerLayers(program: Command, cli: Cli): void {
   const layers = program
     .command("layers")
     .description(
-      "List a Scene's Layers topmost first (the default), add one, spread a Target, or set up a Visual Layer (visual, param, bind, frame).",
+      "List a Scene's Layers topmost first (the default), add one, spread a Target, or set up a Visual Layer (visual, param, bind, frame, region).",
     );
 
   layers
@@ -230,63 +224,8 @@ export function registerLayers(program: Command, cli: Cli): void {
       }),
     );
 
-  layers
-    .command("frame <layer>")
-    .description(
-      "Set the Frame of a Layer running a Geometry Visual (Wipe, Radar, Spectrum, Ripple): layers frame Wipe --x 0 --y 1 --width 6 --height 2 --rotation 15, fields left out keeping their value; or layers frame Wipe --fit to put it around the Layer's Targets. Metres and degrees; undoable.",
-    )
-    .option("--x <metres>", "the Frame's centre, stage left to right")
-    .option("--y <metres>", "the Frame's centre, floor up")
-    .option("--width <metres>")
-    .option("--height <metres>")
-    .option("--rotation <degrees>", "counterclockwise about the centre")
-    .option("--fit", "fit the Frame to the Layer's Targets instead", false)
-    .action(
-      (
-        layer: string,
-        local: {
-          x?: string;
-          y?: string;
-          width?: string;
-          height?: string;
-          rotation?: string;
-          fit: boolean;
-        },
-      ) =>
-        cli.withDocument(async (client, summary) => {
-          const frame: Record<string, number> = {};
-          for (const field of [
-            "x",
-            "y",
-            "width",
-            "height",
-            "rotation",
-          ] as const) {
-            const text = local[field];
-            if (text === undefined) continue;
-            const number = Number(text);
-            if (text.trim() === "" || !Number.isFinite(number))
-              throw new Error(`--${field} takes a number, not “${text}”.`);
-            frame[field] = number;
-          }
-          if (!local.fit && Object.keys(frame).length === 0)
-            throw new Error(
-              "layers frame needs --fit or at least one of --x, --y, --width, --height, --rotation.",
-            );
-          const { document } = await cli.replica(client, summary.id);
-          const result = await client.command<CommandResult>(
-            summary.id,
-            "layer.frame.set",
-            {
-              layerId: visualLayer(document, layer).id,
-              ...(local.fit ? { fit: true } : { frame }),
-            },
-          );
-          cli.print(result, () =>
-            formatCommandResult(result, "layer.frame.set"),
-          );
-        }),
-    );
+  registerLayersFrame(layers, cli);
+  registerLayersRegion(layers, cli);
 
   layers
     .command("bind <layer> <slot> <attribute>")

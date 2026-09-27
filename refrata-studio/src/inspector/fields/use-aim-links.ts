@@ -8,8 +8,8 @@ import type { AimPairLinks } from "./aim-link-menu";
 import type { RowLinks } from "./link-row";
 
 /**
- * How an Aim takes a Preset as a pair: given the Links of its two axes and
- * a name for a Preset made on the spot, the Preset both are linked to, the
+ * How an Aim takes a Preset as a pair: given the Links of its two axes, the
+ * Preset both are linked to, the
  * Presets they could take, and the commands that link, make and unlink
  * both axes in one undo step. Undefined for an Aim whose rows take no
  * Preset, such as a Preset's own.
@@ -19,11 +19,10 @@ export function useAimLinks(
 ): (
   pan: { readonly address: string; readonly links: RowLinks },
   tilt: { readonly address: string; readonly links: RowLinks },
-  newPresetName: string,
 ) => AimPairLinks | undefined {
   const command = useCommand(view);
   const { select } = useSelection();
-  return (pan, tilt, newPresetName) => {
+  return (pan, tilt) => {
     if (!pan.links.takesPreset || !tilt.links.takesPreset) return undefined;
     const addresses = [pan.address, tilt.address];
     const shared =
@@ -41,7 +40,6 @@ export function useAimLinks(
         const presetId = generateId("preset");
         void command("preset.create", {
           id: presetId,
-          name: newPresetName,
           addresses,
         }).then(() => select({ kind: "preset", id: presetId }));
       },

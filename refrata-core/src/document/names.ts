@@ -36,6 +36,19 @@ export function uniqueName(taken: Iterable<string>, requested: string): string {
 }
 
 /**
+ * The first free "<base> 1", "<base> 2" and so on: the name of an entity
+ * made without one where a bare "<base>" would say nothing, such as a
+ * Preset, which a person then names after a place.
+ */
+export function numberedName(taken: Iterable<string>, base: string): string {
+  const existing = [...taken];
+  for (let index = 1; ; index += 1) {
+    const candidate = `${base} ${index}`;
+    if (!existing.some((name) => sameName(name, candidate))) return candidate;
+  }
+}
+
+/**
  * What to number from: `wanted` without its trailing number when that number
  * is a counter of a taken name, else `wanted` itself.
  */

@@ -2,6 +2,7 @@ import {
   attributeDefinition,
   cueAddress,
   isAttributeKey,
+  isRegionSlot,
   linkAt,
   linkSourceName,
   paramAddress,
@@ -16,12 +17,14 @@ import {
   type VisualLayer,
 } from "@refrata/core";
 
+import { describeRegion } from "./region-lines.ts";
 import { formatRowValue, formatValue } from "./value-lines.ts";
 
 /**
  * Visuals as the CLI shows them: the Catalog one block per Visual, and
  * under a Visual Layer of a stack its Parameters, bindings, Cues, the
- * Frame of a Geometry Visual's Layer and the one-Target warning.
+ * Frame of a Geometry Visual's Layer, the Region of a movement Visual's
+ * and the one-Target warning.
  */
 
 const NONE = "none";
@@ -65,7 +68,7 @@ function describeParameter(
 /** One Visual of the Catalog: what it is, its Slots, Parameters and Cues. */
 export function formatVisual(definition: VisualDefinition): string[] {
   return [
-    `${definition.id}  “${definition.name}”  ${definition.description}${definition.distributes ? "  [distributes across Targets]" : ""}${definition.geometry === undefined ? "" : "  [Geometry Visual: reads where its Targets are in its Layer's Frame]"}`,
+    `${definition.id}  “${definition.name}”  ${definition.description}${definition.distributes ? "  [distributes across Targets]" : ""}${definition.geometry === undefined ? "" : "  [Geometry Visual: reads where its Targets are in its Layer's Frame]"}${definition.region === undefined ? "" : "  [draws inside its Layer's Region: layers region]"}`,
     `  Slots: ${definition.slots
       .map(
         (slot) =>
@@ -115,7 +118,7 @@ export function describeFrame(frame: Frame): string {
   return `${metres(frame.width)} × ${metres(frame.height)} at (${frame.x.toFixed(2)}, ${frame.y.toFixed(2)})${turned}`;
 }
 
-/** The lines under a Visual Layer in a stack: Parameters (a linked one says who drives it), bindings, the Frame, Cues, the warning. */
+/** The lines under a Visual Layer in a stack: Parameters (a linked one says who drives it), bindings, the Frame, the Region, Cues, the warning. */
 export function visualLayerLines(
   document: Document,
   layer: VisualLayer,
@@ -136,10 +139,22 @@ export function visualLayerLines(
   );
   const lines = [
     `parameters: ${parameters.join(", ")}`,
-    `bindings: ${definition.slots
-      .map((slot) => describeBinding(slot, layer.bindings[slot.key]))
-      .join(", ")}`,
+    `bindings: ${
+      definition.slots
+        .filter(
+          (slot) =>
+            layer.region === undefined || !isRegionSlot(definition, slot.key),
+        )
+        .map((slot) => describeBinding(slot, layer.bindings[slot.key]))
+        .join(", ") || NONE
+    }`,
   ];
+  if (definition.region !== undefined)
+    lines.push(
+      layer.region === undefined
+        ? "region: none, so its Slots go through their bindings; set one with layers region"
+        : `region: ${describeRegion(document, layer)}`,
+    );
   if (definition.geometry !== undefined)
     lines.push(
       layer.frame === undefined

@@ -33,7 +33,7 @@ export function LinkMenu({
         aria-label={`${resolved.label} link`}
         title={
           source === undefined
-            ? "Link to a Controller or a Preset"
+            ? linkTitle(resolved, links)
             : `Controlled by ${source.name}`
         }
         className={
@@ -66,14 +66,29 @@ export function LinkMenu({
   );
 }
 
+/** What an unlinked row's Link button says it links to. */
+export function linkTitle(resolved: ResolvedAddress, links: RowLinks): string {
+  const controllers = takesController(resolved, links);
+  return controllers && links.takesPreset
+    ? "Link to a Controller or a Preset"
+    : controllers
+      ? "Link to a Controller"
+      : "Link to a Preset";
+}
+
 /** Whether an Address of this type can take a Controller: numbers, colors and booleans. */
 export function linkableType(resolved: ResolvedAddress): boolean {
   return resolved.type !== "choice" && resolved.type !== "trigger";
 }
 
+/** Whether a Controller may drive the row: by its type, unless the row takes none at all. */
+function takesController(resolved: ResolvedAddress, links: RowLinks): boolean {
+  return links.takesController !== false && linkableType(resolved);
+}
+
 /** Whether the row has anything to link to: a Controller by its type, or a Preset by being resolved per Element. */
-function canLink(resolved: ResolvedAddress, links: RowLinks): boolean {
-  return linkableType(resolved) || links.takesPreset;
+export function canLink(resolved: ResolvedAddress, links: RowLinks): boolean {
+  return takesController(resolved, links) || links.takesPreset;
 }
 
 /**
@@ -103,14 +118,14 @@ export function LinkMenuItems({
       </>
     );
   if (!canLink(resolved, links)) return null;
-  const takesController = linkableType(resolved);
+  const controllers = takesController(resolved, links);
   const kind = resolved.type === "color" ? "color" : "number";
   return (
     <>
       <DropdownMenuSub>
         <DropdownMenuSubTrigger
           disabled={
-            (takesController ? candidates.length : 0) + presets.length === 0
+            (controllers ? candidates.length : 0) + presets.length === 0
           }
         >
           <Link2 /> Link to
@@ -129,7 +144,7 @@ export function LinkMenuItems({
               ))}
             </DropdownMenuGroup>
           )}
-          {takesController && candidates.length > 0 && (
+          {controllers && candidates.length > 0 && (
             <DropdownMenuGroup>
               <DropdownMenuLabel>Controllers</DropdownMenuLabel>
               {candidates.map((candidate) => (
@@ -144,7 +159,7 @@ export function LinkMenuItems({
           )}
         </DropdownMenuSubContent>
       </DropdownMenuSub>
-      {takesController && (
+      {controllers && (
         <DropdownMenuItem onClick={() => links.onCreate(kind)}>
           <Plus /> New {kind === "color" ? "Color" : "Number"} Controller
         </DropdownMenuItem>

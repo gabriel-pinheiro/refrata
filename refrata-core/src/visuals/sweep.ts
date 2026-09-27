@@ -1,16 +1,25 @@
-import { choiceParam, defineVisual, degreesSlot, numberParam } from "./sdk.ts";
+import { choiceParam, defineVisual, numberParam, regionSlot } from "./sdk.ts";
 
 export const sweep = defineVisual({
   id: "sweep",
   name: "Sweep",
   description:
-    "A beam crosses from one end of its range to the other and the rest follow behind, a searchlight chase.",
-  slots: [degreesSlot("position", "Position", "pan")],
+    "A beam crosses from one corner of the Region to the other and the rest follow behind, a searchlight chase.",
+  slots: [regionSlot("position", "Position", "pan")],
+  region: {
+    width: "position",
+    height: "position",
+    default: {
+      form: "corners",
+      from: { pan: -90, tilt: 0 },
+      to: { pan: 90, tilt: 0 },
+    },
+  },
   parameters: {
     duration: {
       kind: "number",
       label: "Duration",
-      description: "Seconds for one crossing, between the binding's ends.",
+      description: "Seconds for one crossing, From to To.",
       min: 0.2,
       max: 60,
       step: 0.1,
@@ -57,9 +66,7 @@ export const sweep = defineVisual({
       default: 0.3,
     },
   },
-  cues: [
-    { key: "sync", label: "Sync", description: "Restart from the first end." },
-  ],
+  cues: [{ key: "sync", label: "Sync", description: "Restart from From." }],
   distributes: true,
   create() {
     let clock = 0;

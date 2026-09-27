@@ -70,8 +70,21 @@ export function presetRowValues(
   attribute: AttributeKey,
   preset: ValuePreset,
 ): readonly PresetEntry[] {
-  const refs =
-    ref === ALL_TARGETS_REF ? layer.targets.map((target) => target.ref) : [ref];
+  return presetTargetValues(
+    document,
+    ref === ALL_TARGETS_REF ? layer.targets.map((target) => target.ref) : [ref],
+    attribute,
+    preset,
+  );
+}
+
+/** What each Element a list of Target refs stands for takes from `preset` for an Attribute, in order, each Element once. */
+export function presetTargetValues(
+  document: Document,
+  refs: readonly string[],
+  attribute: AttributeKey,
+  preset: ValuePreset,
+): readonly PresetEntry[] {
   const entries = new Map<string, PresetEntry>();
   for (const target of refs)
     for (const located of targetElements(document, target))

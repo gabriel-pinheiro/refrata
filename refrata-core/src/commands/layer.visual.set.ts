@@ -4,7 +4,8 @@ import { accepted, defineCommand, rejected } from "../command/command.ts";
 import { frameFittingTargets } from "../document/geometry.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
-import { defaultBindings } from "../document/visual-layers.ts";
+import { regionPlacePrefix } from "../document/region.ts";
+import { startingSlots } from "../document/visual-layers.ts";
 import { defaultParameterValues } from "../parameters.ts";
 import { visualDefinition } from "../visuals/catalog.ts";
 import { dropLayerReferences } from "./layer.remove.ts";
@@ -17,7 +18,8 @@ import { notLayerOf } from "./kind-problems.ts";
  * Targets and opacity stay. The Blend Mode follows the new Visual's own
  * only while it is still the one the old Visual started with. A Geometry
  * Visual gets a Frame fitted to the Targets unless the Layer has one; any
- * other Visual drops it.
+ * other Visual drops it. A Region starts over as the new Visual declares
+ * it, or goes with the Links on its Aims.
  */
 export const layerVisualSet = defineCommand({
   name: "layer.visual.set",
@@ -39,11 +41,17 @@ export const layerVisualSet = defineCommand({
     const patches: Patch[] = dropLayerReferences(document, [
       `layer/${layer.id}/param/`,
       `layer/${layer.id}/cue/`,
+      regionPlacePrefix(layer.id),
     ]);
     const warnings = removalWarnings(document, patches, layer.name);
     const before = visualDefinition(layer.visual)?.blendMode ?? "normal";
     const after = definition.blendMode ?? "normal";
-    if (layer.blendMode === before && after !== before)
+    const follows = layer.blendMode === before && after !== before;
+    const starting = startingSlots(
+      definition,
+      follows ? after : layer.blendMode,
+    );
+    if (follows)
       patches.push({
         op: "set",
         path: ["layers", layer.id, "blendMode"],
@@ -59,9 +67,17 @@ export const layerVisualSet = defineCommand({
       {
         op: "set",
         path: ["layers", layer.id, "bindings"],
-        value: defaultBindings(definition),
+        value: starting.bindings,
       },
     );
+    if (starting.region !== undefined)
+      patches.push({
+        op: "set",
+        path: ["layers", layer.id, "region"],
+        value: starting.region,
+      });
+    else if (layer.region !== undefined)
+      patches.push({ op: "remove", path: ["layers", layer.id, "region"] });
     if (definition.geometry === undefined) {
       if (layer.frame !== undefined)
         patches.push({ op: "remove", path: ["layers", layer.id, "frame"] });

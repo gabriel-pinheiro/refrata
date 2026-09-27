@@ -58,16 +58,16 @@ export function registerPresets(program: Command, cli: Cli): void {
     );
 
   presets
-    .command("add <name> [element...]")
+    .command("add [name] [element...]")
     .description(
-      'Add a Preset listing the Elements given, in order: a Fixture is its root, <fixture>/<key> one Element, set:<set> the members the Set has now. --from grows it out of Look Layer rows instead and links them at once: it takes the Elements those rows reach, each holding what it shows now, so nothing changes on the rig. presets add "Table Blue" set:Movers; presets add Wall --from layer/Spot/row/all/pan layer/Spot/row/all/tilt. --group-kind adds a Group.',
+      'Add a Preset, named Preset 1 (the next free number) when no name is given, listing the Elements given, in order: a Fixture is its root, <fixture>/<key> one Element, set:<set> the members the Set has now. --from grows it out of Look Layer rows instead and links them at once: it takes the Elements those rows reach, each holding what it shows now, so nothing changes on the rig. presets add "Table Blue" set:Movers; presets add Wall --from layer/Spot/row/all/pan layer/Spot/row/all/tilt. --group-kind adds a Group.',
     )
     .option("--group <group>", "the Preset Group to add into, id or name")
     .option("--from <address...>", "Look Layer rows to grow from and link")
     .option("--group-kind", "add a Group of Presets, not a Preset", false)
     .action(
       (
-        name: string,
+        name: string | undefined,
         elements: string[],
         options: { group?: string; from?: string[]; groupKind: boolean },
       ) =>
@@ -77,7 +77,7 @@ export function registerPresets(program: Command, cli: Cli): void {
             summary.id,
             "preset.create",
             {
-              name,
+              ...(name === undefined ? {} : { name }),
               ...(options.groupKind ? { kind: "group" } : {}),
               ...(options.group === undefined
                 ? {}
