@@ -1,14 +1,8 @@
-import {
-  defineVisual,
-  degreesParam,
-  degreesSlot,
-  numberParam,
-  unitOfDegrees,
-} from "./sdk.ts";
+import { defineVisual, numberParam, regionSlot } from "./sdk.ts";
 
 type Point = readonly [number, number];
 
-/** One mover's wander: where it left, where it is going and how far along. */
+/** One mover's wander, in fractions of the Region: where it left, where it is going and how far along. */
 interface Wander {
   from: Point;
   to: Point;
@@ -22,8 +16,18 @@ export const ballyhoo = defineVisual({
   id: "ballyhoo",
   name: "Ballyhoo",
   description:
-    "Every mover wanders to random positions of its own, the searchlight look.",
-  slots: [degreesSlot("x", "X", "pan"), degreesSlot("y", "Y", "tilt")],
+    "Every mover wanders to random positions of its own inside the Region, the searchlight look.",
+  slots: [regionSlot("x", "X", "pan"), regionSlot("y", "Y", "tilt")],
+  region: {
+    width: "x",
+    height: "y",
+    default: {
+      form: "center",
+      center: { pan: 0, tilt: 0 },
+      width: 60,
+      height: 30,
+    },
+  },
   parameters: {
     rate: {
       kind: "number",
@@ -35,8 +39,6 @@ export const ballyhoo = defineVisual({
       unit: "Hz",
       default: 0.5,
     },
-    pan: degreesParam("Pan", 0, 180, 60, "How far it wanders side to side."),
-    tilt: degreesParam("Tilt", 0, 180, 30, "How far it wanders up and down."),
     glide: {
       kind: "number",
       label: "Glide",
@@ -56,7 +58,6 @@ export const ballyhoo = defineVisual({
     },
   ],
   distributes: true,
-  blendMode: "add",
   create({ random }) {
     const wanders = new Map<string, Wander>();
     let next = false;
@@ -66,13 +67,8 @@ export const ballyhoo = defineVisual({
       },
       update({ dt, params, targets }, emit) {
         const interval = 1 / numberParam(params, "rate", 0.5);
-        const pan = numberParam(params, "pan", 60);
-        const tilt = numberParam(params, "tilt", 30);
         const glide = numberParam(params, "glide", 1);
-        const pick = (): Point => [
-          (random() - 0.5) * pan,
-          (random() - 0.5) * tilt,
-        ];
+        const pick = (): Point => [random(), random()];
         const seen = new Set<string>();
         for (const target of targets) {
           seen.add(target.key);
@@ -98,8 +94,8 @@ export const ballyhoo = defineVisual({
             wander.to = pick();
             wander.elapsed = 0;
           }
-          emit("x", target, unitOfDegrees("pan", x));
-          emit("y", target, unitOfDegrees("tilt", y));
+          emit("x", target, x);
+          emit("y", target, y);
         }
         next = false;
         for (const key of wanders.keys())

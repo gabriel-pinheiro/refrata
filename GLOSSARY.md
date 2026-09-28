@@ -921,7 +921,7 @@ nearer a Scene here.
 One typed output a Visual declares, a number or a color: an LFO has one
 number Slot, Rainbow one color Slot, Figure two number Slots (`x`, `y`),
 Shimmer and Chase a color Slot `color` and a number Slot `level`. Numbers
-leave a Slot in 0 to 1; a Slot in degrees (Ballyhoo's, Fan's) spreads its
+leave a Slot in 0 to 1; a Slot in degrees (Fan's) spreads its
 Attribute's whole range over it, so its Visual's degrees mean degrees at
 the default binding, and a Slot along a Region writes fractions of the
 Region. Each frame a Slot carries, per Target, a value and an
@@ -1011,9 +1011,9 @@ is what the Aim goes back to when the Link or the Preset goes.
 
 A Visual declares that it draws inside a Region and which of its Slots runs
 along the width and which along the height: Flyout's `pan` and `tilt`,
-Figure's `x` and `y`, and Sweep's one Slot along both, which is a line from
-one corner to the other. It writes 0 to 1 on them, 0 at From and 1 at To,
-and sees nothing of the Region; the Runtime maps the fractions onto each
+Figure's and Ballyhoo's `x` and `y`, and Sweep's one Slot along both,
+which is a line from one corner to the other. It writes 0 to 1 on them, 0
+at From and 1 at To, and sees nothing of the Region; the Runtime maps the fractions onto each
 Element as the values land, so a Set that is not spread still gives each
 member its own box. Corners may run backwards, which is how a Flyout flies
 down on one mover and up on another. A Visual may name the Parameter that
@@ -1043,9 +1043,9 @@ A new Layer starts with the Region its Visual declares. A Layer may have
 none ("Remove Region"): its Slots then go through Slot Bindings, which is
 how one of them reaches another Attribute, and how a Sweep written before
 Regions keeps crossing `pan` alone. A file from before Regions is given
-them when opened: a Figure's centre, width and height and a Flyout's From,
-To, Pan min and Pan max, as they showed at that moment through the anchors
-they had, become a typed Region with the same output, and the Links and
+them when opened: a Figure's centre, width and height, a Flyout's From,
+To, Pan min and Pan max, and a Ballyhoo's Pan and Tilt, as they showed at
+that moment through the anchors they had, become a typed Region with the same output, and the Links and
 Macro actions on those Parameters go. The CLI has `layers region`.
 
 ### Controller and Parameter Link

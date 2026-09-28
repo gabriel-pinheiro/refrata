@@ -57,8 +57,8 @@ On `normal` it is absolute, and the Region's Aims themselves take
 Presets: a Flyout over `All Movers` with its two corners linked to two
 Presets flies each mover inside its own box. Spread over a Set, with a
 phase Parameter, it becomes a wave of figures. This covers grandMA3's
-absolute and relative phaser layers with one blend mode. Ballyhoo and Fan
-are offsets the same way, in degrees; Sweep and Flyout write positions
+absolute and relative phaser layers with one blend mode. Fan is an offset
+the same way, in degrees; Sweep, Flyout and Ballyhoo write positions
 inside their Region. Pan and tilt are
 angles on a sphere, so a figure drawn as equal degrees on both axes only
 looks like itself away from the pan axis: with the beam along it, a circle

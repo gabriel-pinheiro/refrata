@@ -126,11 +126,11 @@ Working from a shell
              counter, timer, reveal, roulette, wipe, radar, spectrum,
              ripple) over its Targets, with the
              Visual's default Parameters, bindings and Blend Mode (shutter
-             and pump start on multiply; figure, ballyhoo and fan on add,
-             so they run around the position below).
+             and pump start on multiply; figure and fan on add, so they
+             run around the position below).
              layers region <layer>  reads or sets the Region of a Layer
-             running figure, flyout or sweep: the box in pan and tilt the
-             Visual draws inside, in degrees. --from <pan>,<tilt> --to
+             running figure, flyout, sweep or ballyhoo: the box in pan and
+             tilt the Visual draws inside, in degrees. --from <pan>,<tilt> --to
              <pan>,<tilt> writes it by corners (the Visual's 0 at from, its
              1 at to; a Flyout flies from one to the other), --center
              <pan>,<tilt> --width <deg> --height <deg> by center and size,

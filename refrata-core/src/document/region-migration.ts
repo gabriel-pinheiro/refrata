@@ -9,8 +9,8 @@ import type { Region, RegionAxis } from "./region.ts";
 import { paramAddress } from "./visual-layers.ts";
 
 /**
- * Files written before Regions held the box of a Figure or a Flyout in
- * Visual Parameters, in degrees, sent through the anchors of two Slot
+ * Files written before Regions held the box of a Figure, a Flyout or a
+ * Ballyhoo in Visual Parameters, in degrees, sent through the anchors of two Slot
  * Bindings. Opening one, each such Layer takes a typed Region that gives
  * the same output: the box those Parameters showed at that moment, through
  * those anchors. A Layer whose two Slots were not on `pan` and `tilt` keeps
@@ -19,9 +19,9 @@ import { paramAddress } from "./visual-layers.ts";
  * takes no Controller.
  */
 interface Legacy {
-  /** The Parameters that held each axis's two ends, or its center and size. */
+  /** The Parameters that held each axis's two ends, or its center and size; a center given as a number is where the Visual always drew. */
   readonly ends: Readonly<
-    Record<RegionAxis, readonly [string, string, "ends" | "center"]>
+    Record<RegionAxis, readonly [string | number, string, "ends" | "center"]>
   >;
   readonly defaults: Readonly<Record<string, number>>;
 }
@@ -37,6 +37,10 @@ const LEGACY: Readonly<Record<string, Legacy>> = {
   flyout: {
     ends: { pan: ["panMin", "panMax", "ends"], tilt: ["from", "to", "ends"] },
     defaults: { from: -30, to: 60, panMin: -30, panMax: 30 },
+  },
+  ballyhoo: {
+    ends: { pan: [0, "pan", "center"], tilt: [0, "tilt", "center"] },
+    defaults: { pan: 60, tilt: 30 },
   },
 };
 
@@ -96,13 +100,16 @@ function migrateLayer(
   const box = {} as Record<RegionAxis, { from: number; to: number }>;
   for (const axis of ["pan", "tilt"] as const) {
     const [first, second, kind] = legacy.ends[axis];
-    const a = shown(
-      document,
-      layer,
-      first,
-      legacy.defaults[first] ?? 0,
-      legacyRange(axis, false),
-    );
+    const a =
+      typeof first === "number"
+        ? first
+        : shown(
+            document,
+            layer,
+            first,
+            legacy.defaults[first] ?? 0,
+            legacyRange(axis, false),
+          );
     const b = shown(
       document,
       layer,
@@ -157,7 +164,7 @@ function migrateLayer(
   const relative = layer.blendMode === "add";
   const backwards =
     ends.pan.from > ends.pan.to || ends.tilt.from > ends.tilt.to;
-  // A Figure is by center and size; a Flyout, or a box that ran backwards, keeps its corners where the Blend Mode allows them.
+  // A Figure or a Ballyhoo is by center and size; a Flyout, or a box that ran backwards, keeps its corners where the Blend Mode allows them.
   const corners = !relative && (layer.visual === "flyout" || backwards);
   const region: Region = corners
     ? {

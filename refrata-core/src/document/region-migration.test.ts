@@ -8,7 +8,7 @@ import { migrateRegions } from "./region-migration.ts";
 
 /** The stage with a Visual Layer as a file from before Regions held it. */
 function before(
-  visual: "figure" | "flyout",
+  visual: "figure" | "flyout" | "ballyhoo",
   old: Partial<VisualLayer> & Pick<VisualLayer, "parameters">,
 ): Document {
   const document = run(stage(), "layer.create", {
@@ -20,7 +20,7 @@ function before(
     targets: ["set:movers"],
   }).document;
   const { region: _region, ...layer } = document.layers.move as VisualLayer;
-  const slots = visual === "figure" ? ["x", "y"] : ["pan", "tilt"];
+  const slots = visual === "flyout" ? ["pan", "tilt"] : ["x", "y"];
   return {
     ...document,
     layers: {
@@ -44,7 +44,7 @@ const moved = (document: Document): VisualLayer =>
 /** What the Layer lands on Left when its Visual writes these fractions. */
 function lands(document: Document, x: number, y: number) {
   const [width, height] =
-    moved(document).visual === "figure" ? ["x", "y"] : ["pan", "tilt"];
+    moved(document).visual === "flyout" ? ["pan", "tilt"] : ["x", "y"];
   const at = (value: number) => new Map([["set:movers", { value, alpha: 1 }]]);
   const values = visualContributions(
     document,
@@ -129,6 +129,27 @@ describe("migrateRegions", () => {
       height: 10,
     });
     expect(lands(migrated, 1, 0.5)).toEqual([25, -10]);
+  });
+
+  it("gives a Ballyhoo the box it wandered in around the center", () => {
+    const migrated = migrateRegions(
+      before("ballyhoo", {
+        parameters: { rate: 0.5, pan: 40, tilt: 20, glide: 1 },
+        blendMode: "add",
+        bindings: {
+          x: { attribute: "pan", from: -270, to: 270 },
+          y: { attribute: "tilt", from: -135, to: 135 },
+        },
+      }),
+    );
+    const region = moved(migrated).region;
+    if (region?.form !== "center") throw new Error("Expected center and size.");
+    expect(region.center.pan).toBeCloseTo(0);
+    expect(region.center.tilt).toBeCloseTo(0);
+    expect(region.width).toBeCloseTo(40);
+    expect(region.height).toBeCloseTo(20);
+    expect(moved(migrated).parameters).toEqual({ rate: 0.5, glide: 1 });
+    expect(Object.keys(moved(migrated).bindings)).toEqual([]);
   });
 
   it("keeps the bindings of Slots that reached something else, anchored to the box", () => {

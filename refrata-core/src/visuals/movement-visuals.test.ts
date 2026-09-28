@@ -69,16 +69,15 @@ describe("Figure", () => {
 });
 
 describe("Ballyhoo", () => {
-  it("sends each mover somewhere of its own within Pan and Tilt", () => {
-    const written = play("ballyhoo", { pan: 40, tilt: 20 }).frame(0, [
-      "a",
-      "b",
-    ]);
-    const xa = pan(written.x?.a?.[0]);
-    const xb = pan(written.x?.b?.[0]);
+  it("sends each mover somewhere of its own inside the Region", () => {
+    const written = play("ballyhoo", {}).frame(0, ["a", "b"]);
+    const xa = written.x?.a?.[0] as number;
+    const xb = written.x?.b?.[0] as number;
     expect(xa).not.toBeCloseTo(xb);
-    expect(Math.abs(xa)).toBeLessThanOrEqual(20);
-    expect(Math.abs(tilt(written.y?.a?.[0]))).toBeLessThanOrEqual(10);
+    for (const value of [xa, xb, written.y?.a?.[0], written.y?.b?.[0]]) {
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(1);
+    }
   });
 
   it("jumps at Glide 0, glides otherwise, and moves on Next", () => {

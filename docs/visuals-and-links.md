@@ -38,7 +38,7 @@ their place.
 
 Units: a number Slot is always 0 to 1 and the binding's anchors carry the
 units. A Visual therefore never sees degrees or hertz. When it should (a
-Ballyhoo with a pan in degrees), the pan is a Visual Parameter in degrees
+Fan with a pan in degrees), the pan is a Visual Parameter in degrees
 and the Slot still leaves 0 to 1 over the binding's range. What makes the
 degrees true is that a Slot in degrees writes over its Attribute's whole
 range, pan −270° to 270° and tilt −135° to 135°, which is what a new Layer
@@ -47,10 +47,10 @@ Layer that rebinds scales them. This is the same division Difracta makes
 between a Parameter's units and a Link's anchors.
 
 A Visual whose output is a place, not an amount, goes one step further:
-Figure, Flyout and Sweep write fractions of a **Region**, a box of pan and
-tilt stored on the Layer, by corners or by centre and size. It stands in
-for the bindings of the Slots that run along it, and its Aims are typed or
-linked to a Preset, so each mover takes its own box. The degrees are the
+Figure, Flyout, Sweep and Ballyhoo write fractions of a **Region**, a box
+of pan and tilt stored on the Layer, by corners or by centre and size. It
+stands in for the bindings of the Slots that run along it, and its Aims are
+typed or linked to a Preset, so each mover takes its own box. The degrees are the
 Region's, the Visual's Parameters are what is performed inside it, and a
 Layer without a Region sends those Slots through their bindings as any
 other.
@@ -269,16 +269,16 @@ Multiply.
 The Geometry Visuals, which read each Target's point in the Layer's Frame,
 are tabled in docs/geometry-visuals.md: Wipe, Radar, Spectrum and Ripple.
 
-The movement Visuals, for movers. Figure, Flyout and Sweep draw inside
-their Layer's Region; Ballyhoo and Fan are on degrees Slots over the whole
-of pan and tilt. Figure, Ballyhoo and Fan ask for Add, so they run around
-whatever position the Look Layer below set; Flyout and Sweep are absolute.
+The movement Visuals, for movers. Figure, Flyout, Sweep and Ballyhoo draw
+inside their Layer's Region; Fan is on degrees Slots over the whole of pan
+and tilt. Figure and Fan ask for Add, so they run around whatever position
+the Look Layer below set; Flyout, Sweep and Ballyhoo are absolute.
 
 | Visual   | Slots (default binding)                                            | Parameters                                                  | Cues         |
 | -------- | ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------ |
 | Figure   | `x` along the width, `y` along the height                          | form, rate, size, rotation, direction, phase spread         | `sync`       |
 | Sweep    | `position` along both, corner to corner                            | duration, hold, run, ease, follow                           | `sync`       |
-| Ballyhoo | `x` (`pan`), `y` (`tilt`)                                          | rate, pan, tilt, glide                                      | `next`       |
+| Ballyhoo | `x` along the width, `y` along the height                          | rate, glide                                                 | `next`       |
 | Fan      | `x` (`pan`), `y` (`tilt`)                                          | form, pan, tilt                                             |              |
 | Flyout   | `tilt` along the height, `pan` along the width, `level` (`dimmer`) | level, direction, duration, fade in, gap, run, phase spread | `go`, `sync` |
 
@@ -294,7 +294,7 @@ searchlight chase: one crossing from the Region's From to its To in
 `duration` seconds, both axes at once, `hold` at each
 end, bouncing or jumping back, each Target `follow` seconds behind the one
 before. Ballyhoo is the console effect of that name: each mover wanders to
-random positions of its own inside `pan` by `tilt`, `rate` moves a second,
+random positions of its own inside the Region, `rate` moves a second,
 `glide` the part of each move spent travelling (0 jumps and lets the motor
 travel). Fan is still: it leans the beams apart by their place in the row,
 first to last or ends away from the middle, the console's fan. Flyout
