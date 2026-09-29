@@ -4,7 +4,7 @@
   "key": "generic/beam-moving-head",
   "manufacturer": "Generic",
   "model": "Beam Moving Head",
-  "notes": "Beam moving head with a colour wheel, a gobo wheel with shake, a prism and a reset: pan 540 degrees and tilt 180 degrees over two bytes each. Channel 5 (motor speed, 0 fastest), channel 7 (strobe, 0 to 15 open then 16 to 255 slow to fast) and channel 11 (automatic modes) rest at 0 and are not mapped. Swatch colours are standard names, not measured; the wheel's two reds are one swatch. Colour and gobo cycling ranges are not mapped.",
+  "notes": "Beam moving head with a colour wheel, a gobo wheel with shake, a prism and a reset: pan 540 degrees and tilt 180 degrees over two bytes each. Channel 5 (motor speed, 0 fastest), channel 7 (strobe, 0 to 15 open then 16 to 255 slow to fast) and channel 11 (automatic modes) rest at 0 and are not mapped. Swatch colours were judged by eye against an RGB panel and swatches are named for what they show, not for the chart. The colour wheel's settle time was measured from video at 120 frames a second. Colour and gobo cycling ranges are not mapped.",
   "modes": {
     "12ch": {
       "name": "12ch",
@@ -25,10 +25,7 @@
         "root": {
           "name": "Beam Moving Head",
           "parameters": {
-            "pan": {
-              "default": 0,
-              "encode": { "scale": "pan" }
-            },
+            "pan": { "default": 0, "encode": { "scale": "pan" } },
             "tilt": {
               "default": 0,
               "min": -90,
@@ -47,20 +44,30 @@
               "swatches": [
                 { "label": "White", "color": [1, 1, 1], "bytes": [0, 9] },
                 { "label": "Red", "color": [1, 0, 0], "bytes": [10, 19] },
-                { "label": "Amber", "color": [1, 0.75, 0], "bytes": [20, 29] },
-                { "label": "Azure", "color": [0, 0.5, 1], "bytes": [30, 39] },
+                { "label": "Amber", "color": [1, 0.706, 0], "bytes": [20, 29] },
+                { "label": "Azure", "color": [0, 0.314, 1], "bytes": [30, 39] },
                 { "label": "Green", "color": [0, 1, 0], "bytes": [40, 49] },
-                { "label": "Orange", "color": [1, 0.5, 0], "bytes": [50, 59] },
-                { "label": "Magenta", "color": [1, 0, 1], "bytes": [60, 69] },
+                {
+                  "label": "Orange",
+                  "color": [1, 0.549, 0],
+                  "bytes": [50, 59]
+                },
+                { "label": "Pink", "color": [1, 0, 0.627], "bytes": [60, 69] },
                 {
                   "label": "Warm White",
-                  "color": [1, 0.9, 0.8],
+                  "color": [1, 0.659, 0.341],
                   "bytes": [70, 79]
                 },
                 { "label": "Cyan", "color": [0, 1, 1], "bytes": [80, 89] },
-                { "label": "Pink", "color": [1, 0.4, 0.8], "bytes": [90, 99] },
+                { "label": "Magenta", "color": [1, 0, 1], "bytes": [90, 99] },
+                {
+                  "label": "Orange Red",
+                  "color": [1, 0.235, 0],
+                  "bytes": [100, 109]
+                },
                 { "label": "Blue", "color": [0, 0, 1], "bytes": [110, 119] }
               ],
+              "settle": { "base": 0.08, "perSlot": 0.052 },
               "encode": { "wheel": "color", "multiply": ["dimmer"] }
             },
             "gobo1": {

@@ -17,6 +17,7 @@ import {
   type Encode,
   type FixtureType,
   type Mode,
+  type SettleTime,
   type Swatch,
 } from "./fixture-type.ts";
 
@@ -36,6 +37,8 @@ export interface ElementParameter {
   readonly options?: readonly DeclaredOption[];
   /** A colour's discrete gamut, when it sits on a wheel. */
   readonly swatches?: readonly Swatch[];
+  /** The settle time of the wheel, when the type declares one. */
+  readonly settle?: SettleTime;
 }
 
 export interface Element {
@@ -111,6 +114,7 @@ function parametersOf(
       ...(parameter.swatches === undefined
         ? {}
         : { swatches: parameter.swatches }),
+      ...(parameter.settle === undefined ? {} : { settle: parameter.settle }),
     };
   }
   return result;

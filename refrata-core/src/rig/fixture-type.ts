@@ -65,6 +65,19 @@ export const SwatchSchema = z
   .strict();
 export type Swatch = z.infer<typeof SwatchSchema>;
 
+/**
+ * How long a wheel needs to reach a new slot, in seconds: `base` before and
+ * after the travel, plus `perSlot` for every slot it crosses. Declaring it
+ * is what turns Settle on for the Parameter.
+ */
+export const SettleTimeSchema = z
+  .object({
+    base: z.number().min(0),
+    perSlot: z.number().min(0),
+  })
+  .strict();
+export type SettleTime = z.infer<typeof SettleTimeSchema>;
+
 export const ParameterDeclarationSchema = z
   .object({
     default: ParameterValueSchema.optional(),
@@ -77,6 +90,8 @@ export const ParameterDeclarationSchema = z
     options: z.array(DeclaredOptionSchema).min(1).optional(),
     /** The discrete gamut of a colour on a wheel, in wheel order. */
     swatches: z.array(SwatchSchema).min(1).optional(),
+    /** The settle time of the wheel the swatches sit on. */
+    settle: SettleTimeSchema.optional(),
     encode: EncodeSchema,
     notes: z.string().optional(),
   })

@@ -77,7 +77,7 @@ export function modeProblems(mode: Mode): string[] {
   return problems;
 }
 
-/** Why a Parameter's rule, options and swatches do not fit its Attribute. */
+/** Why a Parameter's rule, options, swatches and settle time do not fit its Attribute. */
 function ruleProblems(
   where: string,
   attribute: keyof typeof ATTRIBUTES,
@@ -99,6 +99,8 @@ function ruleProblems(
     problems.push(`${where} encodes as a wheel but declares no swatches`);
   if (parameter.swatches !== undefined && kind !== "color")
     problems.push(`${where} is not a color and cannot declare swatches`);
+  if (parameter.settle !== undefined && parameter.swatches === undefined)
+    problems.push(`${where} declares a settle time but no swatches`);
   if ("spread" in parameter.encode) {
     const by = siblings[parameter.encode.by];
     const byKind = isAttributeKey(parameter.encode.by)

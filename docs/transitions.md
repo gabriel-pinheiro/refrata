@@ -125,6 +125,9 @@ heights so the one that shows is always the one on top.
   Layer by stack order, since only what is below it is eased, and anything
   below it, a running Visual included, is damped. Designed in
   docs/layers-model.md, not built.
+- **A dark gap in a fade.** A colour fading on a wheel changes slot midway
+  and Settle (see the glossary) darkens the Element for the travel; the fade
+  itself knows nothing of it.
 - **Scene crossfades.** Playing Scene B while A is active, blending the two
   resolved outputs over a time, with Move in Black and a cue-list Next and
   Previous. Designed and removed; Scenes are not cues here.

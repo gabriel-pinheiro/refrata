@@ -246,15 +246,16 @@ describe("Encoding a wheel head", () => {
 describe("Gamut", () => {
   const swatches = elementsOf(beam12)[0]!.parameters.color!.swatches!;
 
-  it("snaps by hue, keeps brightness and sends black and grey to white", () => {
+  it("snaps to the nearest swatch, keeps brightness and sends black and grey to white", () => {
     expect(nearestSwatch([0.3, 0, 0, 1], swatches)?.label).toBe("Red");
     expect(nearestSwatch([0, 0, 0, 1], swatches)?.label).toBe("White");
     expect(nearestSwatch([0.4, 0.4, 0.4, 1], swatches)?.label).toBe("White");
-    expect(nearestSwatch([1, 0.95, 0.85, 1], swatches)?.label).toBe(
-      "Warm White",
-    );
-    expect(snapToGamut([0.5, 0.2, 0, 0.7], swatches)).toEqual([
-      0.5, 0.25, 0, 0.7,
+    expect(nearestSwatch([1, 0.7, 0.4, 1], swatches)?.label).toBe("Warm White");
+    expect(nearestSwatch([1, 0.95, 0.85, 1], swatches)?.label).toBe("White");
+    expect(nearestSwatch([1, 0.2, 0, 1], swatches)?.label).toBe("Orange Red");
+    expect(nearestSwatch([0.5, 0, 1, 1], swatches)?.label).toBe("Magenta");
+    expect(snapToGamut([0.5, 0.25, 0, 0.7], swatches)).toEqual([
+      0.5, 0.2745, 0, 0.7,
     ]);
   });
 });

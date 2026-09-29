@@ -291,11 +291,12 @@ colour never drives intensity on its own.
 A Parameter may feed zero, one or many Channels, and a Channel may be fed by
 several Parameters; see Encoding.
 
-A Parameter whose hardware travels (a wheel, a pan motor) may declare a
-**settle time**: how long the device needs to physically reach a new value,
-as a base plus a per-step or per-degree term. GDTF carries it as RealFade
-and RealAcceleration; when the library lacks it, the Fixture Type carries a
-guess a person can correct. It is what a Settle Filter reads.
+A colour on a wheel may declare a **settle time**: how long the wheel needs
+to reach a new slot, in seconds, as a `base` plus a `perSlot` term for every
+slot it crosses. Slots are counted along the swatches, which are listed in
+wheel order, and a wheel is taken never to wrap. GDTF carries the same as
+RealFade; when the library lacks it, a person measures it from video of the
+unit. Declaring it is what turns Settle on for that Parameter.
 
 The word has two homes, the same two as in Difracta. An **Element Parameter**
 is a fixture control: many Layers contribute to it and Resolve composites them.
@@ -1075,18 +1076,31 @@ Link, or to released when there is none.
 
 A Layer that transforms the accumulated values below it for its Targets, or for
 everything when it has none: Smooth (ease changes of an Attribute over a time),
-Master (scale `dimmer`), Tint, Limit (clamp a range), Invert, Settle (see
-below). Difracta's Filter scoped to Targets. Unlike Encoding, a Filter has
+Master (scale `dimmer`), Tint, Limit (clamp a range), Invert. Difracta's
+Filter scoped to Targets. Unlike Encoding, a Filter has
 state and time, so it can react to a change, not only to a value.
 
-### Settle Filter (deferred)
+### Settle
 
-A Filter that would hide hardware travel: when a discrete Parameter of an
-Element below it changes swatch or slot, it contributes `dimmer` 0 for that
-Parameter's settle time, then releases. Deferred: the fixture-side answer, a
-`control` option such as "blackout on colour change" that most wheel fixtures
-offer, is preferred because only the fixture knows when the wheel has
-arrived. Kept here so the settle time on Parameter has a stated purpose.
+What hides a wheel's travel: while a wheel crosses slots nobody asked for,
+the Element's `dimmer` is held at 0, then let go at once. It is a stage of
+the Rig between Resolve and Encoding, not a Layer, because travel is a fact
+of the hardware and wanted in every Scene: a Fixture Type turns it on by
+declaring a settle time on the Parameter, and every Fixture of the type
+follows. It reacts to the swatch changing, whatever changed it (a Layer, a
+Layer Fade, a Scene played, a Highlight), and the 0 comes after Master and
+Highlight, so nothing lifts it. Studio shows the dark and the swatch.
+
+The dark lasts the settle time for the slots between where the wheel was
+last sent and where it is asked. Neighbouring slots change lit: the beam
+then only shows the two colours asked. A change during the dark adds its
+slots to what is left. Blackout sends the wheel to the slot at byte 0, so
+letting Blackout go settles from there. Pan and tilt do not settle.
+
+Do not call it Move in Black: that is a console preparing a dark fixture
+for its next cue, which Refrata does not do. A fixture's own "blackout
+while the wheel moves" `control` option does the same from inside the
+fixture, where it exists.
 
 ### Group
 

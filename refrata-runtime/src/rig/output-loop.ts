@@ -1,6 +1,7 @@
 import {
   LayerFades,
   resolveDocument,
+  Settle,
   settings,
   universeFrames,
   VisualPlayer,
@@ -25,12 +26,14 @@ export interface OutputLoopOptions {
 /**
  * The output loop: at the output rate, step the playing Scene's Visuals
  * and Layer Fades, resolve the open Installation with what they wrote,
- * encode one DMX Frame per Universe, hand the frames to the Outputs, and
- * keep the latest resolved values for the Resolved Stream and the CLI. It
- * runs whenever an Installation with a Universe is open, Outputs or not.
- * The Visual instances and the fade envelopes live here and nowhere else:
- * playing a Scene, the playing one included, makes them anew, and a Cue
- * reaches the instance of its Layer.
+ * let Settle darken the Elements whose wheel is travelling, encode one DMX
+ * Frame per Universe, hand the frames to the Outputs, and keep the latest
+ * resolved values, the dark included, for the Resolved Stream and the CLI.
+ * It runs whenever an Installation with a Universe is open, Outputs or not.
+ * The Visual instances, the fade envelopes and the wheel positions live
+ * here and nowhere else: playing a Scene, the playing one included, makes
+ * the first two anew, and a Cue reaches the instance of its Layer. The
+ * wheel positions last until another document is followed.
  */
 export class OutputLoop {
   readonly #options: OutputLoopOptions;
@@ -49,6 +52,7 @@ export class OutputLoop {
   #unsubscribeEvents: (() => void) | undefined;
   readonly #visuals = new VisualPlayer();
   readonly #fades = new LayerFades();
+  readonly #settle = new Settle();
   #steppedAt: number | undefined;
 
   constructor(options: OutputLoopOptions) {
@@ -132,13 +136,14 @@ export class OutputLoop {
     });
     this.#visuals.restart();
     this.#fades.restart();
+    this.#settle.restart();
     this.#document = session?.document;
     void this.#options.outputs.sync(session?.document.outputs ?? {});
     // A new document must not keep showing the old one's values.
     this.tick();
   }
 
-  /** One frame: resolve, encode, send, announce. Public so tests step it by hand. */
+  /** One frame: resolve, settle, encode, send, announce. Public so tests step it by hand. */
   tick(): void {
     const session = this.#options.store.currentSession();
     const document = session?.document;
@@ -154,10 +159,14 @@ export class OutputLoop {
       this.#frames = new Map();
       return;
     }
-    this.#resolved = resolveDocument(
+    this.#resolved = this.#settle.step(
       document,
-      this.#visuals.step(document, dt),
-      this.#fades.step(document, dt),
+      resolveDocument(
+        document,
+        this.#visuals.step(document, dt),
+        this.#fades.step(document, dt),
+      ),
+      dt,
     );
     this.#frames = universeFrames(document, this.#resolved);
     this.#options.outputs.send(this.#frames);

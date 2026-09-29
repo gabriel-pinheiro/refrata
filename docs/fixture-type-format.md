@@ -86,7 +86,10 @@ Field by field:
 - An open choice (`gobo1`, `control`) lists its `options`, each a `value`
   key, a `label` and the `bytes` that select it, low to high. A closed choice
   (`shutter`) cannot. A colour on a wheel lists its `swatches`, each a
-  `label`, an RGB `color` 0 to 1 and its `bytes`.
+  `label`, an RGB `color` 0 to 1 and its `bytes`, in wheel order. It may
+  declare a `settle` time, `{ "base": 0.08, "perSlot": 0.052 }` in seconds,
+  which turns Settle on for the wheel: the Element is dark while the wheel
+  crosses more than one slot, for `base` plus `perSlot` per slot.
 - `actions` is keyed by Action key; each has a `name`, the `channel` it
   holds, the `byte` and how many `seconds` the Runtime holds it.
 - `notes` on the type or a Mode is free text for what the Encoding cannot say,
@@ -113,7 +116,7 @@ of 0 to 99. Precedence on one byte (a strobe rate beating an open
 shutter) is designed in the glossary and waits for a type that needs it.
 
 `generic/beam-moving-head` shows the four new ones together: `color` is a
-`wheel` of eleven swatches multiplying `dimmer`, `gobo1` a `range` over
+`wheel` of twelve swatches multiplying `dimmer`, with a settle time, `gobo1` a `range` over
 fifteen options, `gobo1-shake` a `spread` by `gobo1` over each slot's shake
 range, `prism` a `switch` and `prism-rotation` a `spread` by `prism` over
 the spin range, with a `reset` Action on the control channel.

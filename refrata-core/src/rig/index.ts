@@ -5,5 +5,6 @@ export * from "./encoding.ts";
 export * from "./gamut.ts";
 export * from "./shapes.ts";
 export * from "./frames.ts";
+export * from "./settle.ts";
 export * from "./tester.ts";
 export * from "./universe-map.ts";
