@@ -1,4 +1,10 @@
-import { choiceParam, defineVisual, numberParam, regionSlot } from "./sdk.ts";
+import {
+  booleanParam,
+  choiceParam,
+  defineVisual,
+  numberParam,
+  regionSlot,
+} from "./sdk.ts";
 
 export const sweep = defineVisual({
   id: "sweep",
@@ -45,6 +51,13 @@ export const sweep = defineVisual({
         { value: "loop", label: "Loop" },
       ],
     },
+    automatic: {
+      kind: "boolean",
+      label: "Automatic",
+      description:
+        "Cross all the time; off waits at the end it is at and crosses once per Go Cue.",
+      default: true,
+    },
     ease: {
       kind: "choice",
       label: "Ease",
@@ -66,13 +79,28 @@ export const sweep = defineVisual({
       default: 0.3,
     },
   },
-  cues: [{ key: "sync", label: "Sync", description: "Restart from From." }],
+  cues: [
+    { key: "sync", label: "Sync", description: "Restart from From." },
+    {
+      key: "go",
+      label: "Go",
+      description:
+        "With Automatic off, cross once; sat out while a Target is still crossing.",
+    },
+  ],
   distributes: true,
   create() {
     let clock = 0;
+    /** With Automatic off, the crossings the Go Cue has let through. */
+    let crossings = 0;
+    let go = false;
     return {
       cue(key) {
-        if (key === "sync") clock = 0;
+        if (key === "sync") {
+          clock = 0;
+          crossings = 0;
+        }
+        if (key === "go") go = true;
       },
       update({ dt, params, targets }, emit) {
         clock += dt;
@@ -81,9 +109,26 @@ export const sweep = defineVisual({
         const bounce = choiceParam(params, "run", "bounce") === "bounce";
         const smooth = choiceParam(params, "ease", "smooth") === "smooth";
         const follow = numberParam(params, "follow", 0.3);
+        const automatic = booleanParam(params, "automatic", true);
         const period = bounce ? 2 * leg : leg;
+        if (automatic) crossings = Math.floor(clock / leg) + 1;
+        else if (go) {
+          const last = follow * Math.max(0, targets.length - 1);
+          const crossed = (crossings - 1) * leg + duration + last;
+          if (crossings === 0 || clock >= crossed) {
+            clock = crossings * leg;
+            crossings += 1;
+          }
+        }
+        go = false;
         for (const target of targets) {
-          const since = clock - follow * target.index;
+          // With Automatic off a Target waits where its last crossing ended until the next Go reaches it.
+          const since = automatic
+            ? clock - follow * target.index
+            : Math.min(
+                Math.max(clock - follow * target.index, (crossings - 1) * leg),
+                crossings * leg,
+              );
           const t = since < 0 ? 0 : since - Math.floor(since / period) * period;
           const progress =
             t < leg

@@ -109,6 +109,43 @@ describe("the Geometry SDK", () => {
   });
 });
 
+describe("Wipe with Automatic off", () => {
+  it("writes nothing until a Go, crosses once, and sits out a Go while crossing", () => {
+    const wipe = playGeometry("wipe", {
+      automatic: false,
+      rate: 1,
+      width: 0.2,
+      softness: 0,
+    });
+    expect(wipe.frame(5, { mid: [0, 0] })).toEqual({});
+    wipe.cue("go");
+    wipe.frame(0, { mid: [0, 0] });
+    wipe.cue("go");
+    expect(alphaOf(wipe.frame(0.5, { mid: [0, 0] }), "mid")).toBe(1);
+    expect(wipe.pose().centre).toBeCloseTo(0.5);
+    expect(wipe.frame(0.5, { mid: [0, 0] })).toEqual({});
+    expect(wipe.frame(5, { mid: [0, 0] })).toEqual({});
+  });
+
+  it("crosses the other way on each Go of a Bounce", () => {
+    const wipe = playGeometry("wipe", {
+      automatic: false,
+      run: "bounce",
+      rate: 1,
+      width: 0.2,
+    });
+    wipe.cue("go");
+    wipe.frame(0, {});
+    wipe.frame(0.25, {});
+    expect(wipe.pose().centre).toBeCloseTo(0.2);
+    wipe.frame(1, {});
+    wipe.cue("go");
+    wipe.frame(0, {});
+    wipe.frame(0.25, {});
+    expect(wipe.pose().centre).toBeCloseTo(0.8);
+  });
+});
+
 describe("Wipe", () => {
   it("lights the Targets under the band and releases the rest", () => {
     const wipe = playGeometry("wipe", { rate: 0, width: 0.25, softness: 0 });

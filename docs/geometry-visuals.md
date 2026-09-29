@@ -74,16 +74,18 @@ the pose is null and only the Frame is drawn.
 
 All distribute across Targets, so the one-Target warning applies.
 
-| Visual   | Family   | Slots (default binding)               | Parameters                                             | Cues   | Pose        |
-| -------- | -------- | ------------------------------------- | ------------------------------------------------------ | ------ | ----------- |
-| Wipe     | envelope | `color` (`color`), `level` (`dimmer`) | color, level, rate, width, softness, run               | `sync` | band centre |
-| Radar    | envelope | `color` (`color`), `level` (`dimmer`) | color, level, rate, angle, softness, direction         | `sync` | heading     |
-| Spectrum | value    | `color` (`color`)                     | rate, hue spread, saturation                           | `sync` | phase       |
-| Ripple   | envelope | `color` (`color`), `level` (`dimmer`) | color, level, rate, travel, width, softness, direction | `fire` | ring radii  |
+| Visual   | Family   | Slots (default binding)               | Parameters                                             | Cues         | Pose        |
+| -------- | -------- | ------------------------------------- | ------------------------------------------------------ | ------------ | ----------- |
+| Wipe     | envelope | `color` (`color`), `level` (`dimmer`) | color, level, rate, width, softness, automatic, run    | `sync`, `go` | band centre |
+| Radar    | envelope | `color` (`color`), `level` (`dimmer`) | color, level, rate, angle, softness, direction         | `sync`       | heading     |
+| Spectrum | value    | `color` (`color`)                     | rate, hue spread, saturation                           | `sync`       | phase       |
+| Ripple   | envelope | `color` (`color`), `level` (`dimmer`) | color, level, rate, travel, width, softness, direction | `fire`       | ring radii  |
 
 Wipe is named for the film cut, since Sweep is the pan movement. Its band
 enters from outside the Frame on Forward and Backward and turns at the edges
-on Bounce. Radar starts pointing up and turns clockwise as the audience sees
+on Bounce. With Automatic off it writes nothing until a `go`, which
+crosses once at the `rate`, the other way each time on Bounce, and is sat
+out while the band is still crossing. Radar starts pointing up and turns clockwise as the audience sees
 it. Spectrum is Rainbow by position; Rainbow stays the order-based one.
 Ripple launches a ring per Fire, or at its rate, and each ring takes Travel
 seconds from the centre to the Frame's corners, or the other way on Inward.

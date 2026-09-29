@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ATTRIBUTES, type AttributeKey } from "../rig/attributes.ts";
 import { formPoint } from "./figure.ts";
 import { unitOfDegrees } from "./sdk.ts";
-import { lit, play } from "./visual-harness.ts";
+import { play } from "./visual-harness.ts";
 
 /** What a degrees Slot wrote, back in degrees at the default binding: the Attribute's whole range. */
 const degreesOf =
@@ -80,18 +80,42 @@ describe("Ballyhoo", () => {
     }
   });
 
-  it("jumps at Glide 0, glides otherwise, and moves on Next", () => {
-    const jumpy = play("ballyhoo", { rate: 1, glide: 0 });
+  it("jumps at Travel 0, travels otherwise, and waits out its Rate", () => {
+    const jumpy = play("ballyhoo", { rate: 1, variance: 0, travel: 0 });
     const before = jumpy.frame(0, ["a"]).x?.a?.[0];
-    expect(jumpy.frame(0.1, ["a"]).x?.a?.[0]).toBe(before);
-    const gliding = play("ballyhoo", { rate: 1, glide: 1 });
-    const from = gliding.frame(0, ["a"]).x?.a?.[0];
-    expect(gliding.frame(0.1, ["a"]).x?.a?.[0]).not.toBe(from);
-    const held = play("ballyhoo", { rate: 0.05, glide: 0 });
-    const resting = held.frame(0, ["a"]).x?.a?.[0];
+    expect(jumpy.frame(1, ["a"]).x?.a?.[0]).not.toBe(before);
+    const settled = jumpy.frame(0.1, ["a"]).x?.a?.[0];
+    expect(jumpy.frame(0.1, ["a"]).x?.a?.[0]).toBe(settled);
+    const travelling = play("ballyhoo", { rate: 1, variance: 0, travel: 1 });
+    travelling.frame(0, ["a"]);
+    const from = travelling.frame(1, ["a"]).x?.a?.[0];
+    expect(travelling.frame(0.1, ["a"]).x?.a?.[0]).not.toBe(from);
+  });
+
+  it("at Rate 0 moves on Next alone, every mover arriving together", () => {
+    const held = play("ballyhoo", { rate: 0, travel: 2 });
+    const resting = held.frame(0, ["a", "b"]);
+    expect(held.frame(60, ["a", "b"])).toEqual(resting);
     held.cue("next");
-    expect(held.frame(0, ["a"]).x?.a?.[0]).toBe(resting);
-    expect(held.frame(1, ["a"]).x?.a?.[0]).not.toBe(resting);
+    expect(held.frame(0, ["a", "b"])).toEqual(resting);
+    const halfway = held.frame(1, ["a", "b"]);
+    expect(halfway.x?.a?.[0]).not.toBe(resting.x?.a?.[0]);
+    expect(halfway.x?.b?.[0]).not.toBe(resting.x?.b?.[0]);
+    const arrived = held.frame(1, ["a", "b"]);
+    expect(arrived.x?.a?.[0]).not.toBe(halfway.x?.a?.[0]);
+    expect(held.frame(5, ["a", "b"])).toEqual(arrived);
+  });
+
+  it("holds a move by the Rate until a cued one has arrived", () => {
+    const wander = play("ballyhoo", { rate: 1, variance: 0, travel: 3 });
+    const from = wander.frame(0, ["a"]).x?.a?.[0] as number;
+    wander.cue("next");
+    wander.frame(0, ["a"]);
+    const halfway = wander.frame(1.5, ["a"]).x?.a?.[0] as number;
+    wander.frame(1.4, ["a"]);
+    const arrived = wander.frame(0.1, ["a"]).x?.a?.[0] as number;
+    expect(halfway).toBeCloseTo((from + arrived) / 2);
+    expect(wander.frame(0.5, ["a"]).x?.a?.[0]).not.toBeCloseTo(arrived);
   });
 });
 
@@ -115,8 +139,10 @@ describe("Fan", () => {
 });
 
 describe("Flyout", () => {
+  const loop = { settle: 0, gap: 1, duration: 2 };
+
   it("tilts along the Region while the level fades in, then sits dark at the start", () => {
-    const fly = play("flyout", { duration: 2, gap: 1, fadeIn: 0.5 });
+    const fly = play("flyout", { ...loop, fadeIn: 0.5 });
     const start = fly.frame(0, ["m"]);
     expect(start.tilt?.m?.[0]).toBe(0);
     expect(start.level?.m?.[0]).toBe(0);
@@ -126,39 +152,83 @@ describe("Flyout", () => {
     const dark = fly.frame(1.5, ["m"]);
     expect(dark.tilt?.m?.[0]).toBe(0);
     expect(dark.level?.m?.[0]).toBe(0);
-    expect(fly.frame(0.5, ["m"]).level?.m?.[0]).toBe(0);
+    const again = fly.frame(1, ["m"]);
+    expect(again.tilt?.m?.[0]).toBeCloseTo(0.25);
   });
 
-  it("flies from To to From on Direction Backward", () => {
-    const fly = play("flyout", { duration: 2, gap: 1, direction: "backward" });
+  it("flies from To to From on Tilt falling", () => {
+    const fly = play("flyout", { ...loop, direction: "falling" });
     expect(fly.frame(0, ["m"]).tilt?.m?.[0]).toBe(1);
     expect(fly.frame(1, ["m"]).tilt?.m?.[0]).toBeCloseTo(0.5);
     expect(fly.frame(1.5, ["m"]).tilt?.m?.[0]).toBe(1);
   });
 
-  it("on Go flies once per cue and writes nothing in between", () => {
-    const fly = play("flyout", { run: "go", duration: 1, gap: 0 });
-    expect(lit(fly.frame(0, ["m"]), "tilt")).toEqual([]);
-    fly.cue("go");
-    expect(lit(fly.frame(0, ["m"]), "level")).toEqual(["m"]);
-    fly.frame(0.5, ["m"]);
-    expect(lit(fly.frame(0.6, ["m"]), "tilt")).toEqual([]);
+  it("waits out Settle and Gap between the flies of a Loop", () => {
+    const fly = play("flyout", { duration: 1, settle: 0.5, gap: 1 });
+    fly.frame(0, ["m"]);
+    expect(fly.frame(0.4, ["m"]).level?.m?.[0]).toBe(0);
+    expect(fly.frame(0.6, ["m"]).tilt?.m?.[0]).toBeCloseTo(0.5);
+    expect(fly.frame(0.5, ["m"]).tilt?.m?.[0]).toBe(0);
+    expect(fly.frame(1.4, ["m"]).tilt?.m?.[0]).toBe(0);
+    expect(fly.frame(0.6, ["m"]).tilt?.m?.[0]).toBeCloseTo(0.5);
   });
 
-  it("picks each fly a pan across the Region and holds it while lit", () => {
-    const fly = play("flyout", { duration: 1, gap: 1, fadeIn: 0 });
-    const first = fly.frame(0, ["m"]).pan?.m?.[0] as number;
-    expect(first).toBeGreaterThanOrEqual(0);
-    expect(first).toBeLessThanOrEqual(1);
-    const mid = fly.frame(0.5, ["m"]);
-    expect(mid.level?.m?.[0]).toBe(1);
-    expect(mid.pan?.m?.[0]).toBeCloseTo(first);
-    const dark = fly.frame(0.6, ["m"]);
-    expect(dark.level?.m?.[0]).toBe(0);
-    const second = dark.pan?.m?.[0] as number;
-    expect(second).not.toBeCloseTo(first);
-    expect(fly.frame(0.4, ["m"]).pan?.m?.[0]).toBeCloseTo(second);
-    expect(fly.frame(0.5, ["m"]).pan?.m?.[0]).toBeCloseTo(second);
+  it("on Go waits dark at the start, at the pan of the fly to come", () => {
+    const fly = play("flyout", { run: "go", duration: 1, settle: 0 });
+    const waiting = fly.frame(5, ["m"]);
+    expect(waiting.level?.m?.[0]).toBe(0);
+    expect(waiting.tilt?.m?.[0]).toBe(0);
+    fly.cue("go");
+    fly.frame(0, ["m"]);
+    const flying = fly.frame(0.5, ["m"]);
+    expect(flying.level?.m?.[0]).toBe(1);
+    expect(flying.tilt?.m?.[0]).toBeCloseTo(0.5);
+    expect(flying.pan?.m?.[0]).toBe(waiting.pan?.m?.[0]);
+    const back = fly.frame(0.5, ["m"]);
+    expect(back.level?.m?.[0]).toBe(0);
+    expect(back.pan?.m?.[0]).not.toBe(waiting.pan?.m?.[0]);
+    expect(fly.frame(5, ["m"])).toEqual(back);
+  });
+
+  it("sits out a Go while flying or settling", () => {
+    const fly = play("flyout", { run: "go", duration: 1, settle: 1 });
+    fly.frame(0, ["m"]);
+    fly.frame(1, ["m"]);
+    fly.cue("go");
+    fly.frame(0, ["m"]);
+    fly.cue("go");
+    expect(fly.frame(0.5, ["m"]).tilt?.m?.[0]).toBeCloseTo(0.5);
+    fly.frame(0.5, ["m"]);
+    fly.cue("go");
+    expect(fly.frame(0.5, ["m"]).level?.m?.[0]).toBe(0);
+    expect(fly.frame(5, ["m"]).level?.m?.[0]).toBe(0);
+    fly.cue("go");
+    fly.frame(0, ["m"]);
+    expect(fly.frame(0.5, ["m"]).tilt?.m?.[0]).toBeCloseTo(0.5);
+  });
+
+  it("sends each Target Follow seconds after the one before, each judged when its turn comes", () => {
+    const fly = play("flyout", {
+      run: "go",
+      duration: 1,
+      settle: 0,
+      follow: 0.5,
+    });
+    fly.cue("go");
+    fly.frame(0, ["a", "b"]);
+    const early = fly.frame(0.25, ["a", "b"]);
+    expect(early.tilt?.a?.[0]).toBeCloseTo(0.25);
+    expect(early.level?.b?.[0]).toBe(0);
+    const later = fly.frame(0.5, ["a", "b"]);
+    expect(later.tilt?.a?.[0]).toBeCloseTo(0.75);
+    expect(later.tilt?.b?.[0]).toBeCloseTo(0.25);
+    // A Go now finds the first still flying and, half a second on, the second too.
+    fly.cue("go");
+    fly.frame(0, ["a", "b"]);
+    fly.frame(0.5, ["a", "b"]);
+    const after = fly.frame(0.5, ["a", "b"]);
+    expect(after.level?.a?.[0]).toBe(0);
+    expect(after.level?.b?.[0]).toBe(0);
   });
 });
 
@@ -193,5 +263,48 @@ describe("Sweep", () => {
       ease: "linear",
     });
     expect(jumped.frame(2.5, ["a"]).position?.a?.[0]).toBeCloseTo(0.25);
+  });
+});
+
+describe("Sweep with Automatic off", () => {
+  it("crosses once per Go, the other way on Bounce, and sits out a Go while crossing", () => {
+    const sweep = play("sweep", {
+      automatic: false,
+      duration: 2,
+      hold: 1,
+      follow: 1,
+      ease: "linear",
+    });
+    expect(sweep.frame(10, ["a", "b"]).position?.a?.[0]).toBe(0);
+    sweep.cue("go");
+    sweep.frame(0, ["a", "b"]);
+    sweep.cue("go");
+    const mid = sweep.frame(1, ["a", "b"]);
+    expect(mid.position?.a?.[0]).toBeCloseTo(0.5);
+    expect(mid.position?.b?.[0]).toBe(0);
+    const there = sweep.frame(10, ["a", "b"]);
+    expect(there.position?.a?.[0]).toBe(1);
+    expect(there.position?.b?.[0]).toBe(1);
+    sweep.cue("go");
+    sweep.frame(0, ["a", "b"]);
+    const back = sweep.frame(1, ["a", "b"]);
+    expect(back.position?.a?.[0]).toBeCloseTo(0.5);
+    expect(back.position?.b?.[0]).toBe(1);
+    expect(sweep.frame(10, ["a", "b"]).position?.b?.[0]).toBeCloseTo(0);
+  });
+
+  it("comes back to From after each crossing on Loop", () => {
+    const sweep = play("sweep", {
+      automatic: false,
+      run: "loop",
+      duration: 2,
+      hold: 1,
+      follow: 0,
+      ease: "linear",
+    });
+    sweep.cue("go");
+    sweep.frame(0, ["a"]);
+    expect(sweep.frame(2.5, ["a"]).position?.a?.[0]).toBe(1);
+    expect(sweep.frame(10, ["a"]).position?.a?.[0]).toBe(0);
   });
 });

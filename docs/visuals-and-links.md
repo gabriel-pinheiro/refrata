@@ -274,13 +274,13 @@ inside their Layer's Region; Fan is on degrees Slots over the whole of pan
 and tilt. Figure and Fan ask for Add, so they run around whatever position
 the Look Layer below set; Flyout, Sweep and Ballyhoo are absolute.
 
-| Visual   | Slots (default binding)                                            | Parameters                                                  | Cues         |
-| -------- | ------------------------------------------------------------------ | ----------------------------------------------------------- | ------------ |
-| Figure   | `x` along the width, `y` along the height                          | form, rate, size, rotation, direction, phase spread         | `sync`       |
-| Sweep    | `position` along both, corner to corner                            | duration, hold, run, ease, follow                           | `sync`       |
-| Ballyhoo | `x` along the width, `y` along the height                          | rate, glide                                                 | `next`       |
-| Fan      | `x` (`pan`), `y` (`tilt`)                                          | form, pan, tilt                                             |              |
-| Flyout   | `tilt` along the height, `pan` along the width, `level` (`dimmer`) | level, direction, duration, fade in, gap, run, phase spread | `go`, `sync` |
+| Visual   | Slots (default binding)                                            | Parameters                                             | Cues         |
+| -------- | ------------------------------------------------------------------ | ------------------------------------------------------ | ------------ |
+| Figure   | `x` along the width, `y` along the height                          | form, rate, size, rotation, direction, phase spread    | `sync`       |
+| Sweep    | `position` along both, corner to corner                            | duration, hold, run, automatic, ease, follow           | `sync`, `go` |
+| Ballyhoo | `x` along the width, `y` along the height                          | rate, variance, travel                                 | `next`       |
+| Fan      | `x` (`pan`), `y` (`tilt`)                                          | form, pan, tilt                                        |              |
+| Flyout   | `tilt` along the height, `pan` along the width, `level` (`dimmer`) | direction, duration, fade in, settle, gap, run, follow | `go`         |
 
 Figure is one Visual with a `form`, as QLC+'s EFX is one function with a
 pattern and grandMA3's pan/tilt phaser one phaser with a form: circle,
@@ -293,17 +293,29 @@ and at 45° is a diagonal; the polygons walk their corners at one speed
 searchlight chase: one crossing from the Region's From to its To in
 `duration` seconds, both axes at once, `hold` at each
 end, bouncing or jumping back, each Target `follow` seconds behind the one
-before. Ballyhoo is the console effect of that name: each mover wanders to
-random positions of its own inside the Region, `rate` moves a second,
-`glide` the part of each move spent travelling (0 jumps and lets the motor
-travel). Fan is still: it leans the beams apart by their place in the row,
+before. With `automatic` off it waits at the end it is at and crosses once
+per `go`, the other way each time on Bounce; a `go` that comes while a
+Target is still crossing is sat out. Ballyhoo is the console effect of that
+name: each mover wanders to random positions of its own inside the Region,
+`rate` moves a second, each wait straying from it by up to `variance` so
+no mover is a metronome, and every move taking `travel` seconds (0 jumps
+and lets the motor travel). At `rate` 0 it moves on `next` alone. `next`
+sends every mover at once, so they arrive together, and leaves their own
+clocks alone; a move by the `rate` waits for a cued one to arrive. Fan is still: it leans the beams apart by their place in the row,
 first to last or ends away from the middle, the console's fan. Flyout
-tilts along the Region's height, From to To (`direction` Backward the
-other way), while the level fades in over `fade in` of the fly, cuts, and
-sits dark for `gap`; each fly is at a pan picked at random across the
-Region's width, moved to at the cut while dark and held until the next
-cut, so the beam never swings while lit. On `run` On Go it
-flies once per `go` and writes nothing in between, so the look below shows.
+tilts along the Region's height, From to To (`direction` Tilt falling the
+other way), while the level fades in over `fade in` of the fly, and cuts;
+each fly is at a pan picked at random across the Region's width, moved to
+at the cut while dark and held until the next cut, so the beam never
+swings while lit. It has no level of its own: it owns the dimmer at alpha
+1, so a Multiply Layer above dims it. Every mover goes through fly,
+settle, ready. `settle` is the seconds a mover needs to get back to the
+start, found while composing; `gap` is the wait after it, performed live.
+A `go` reaches each Target `follow` seconds after the one before, and a
+mover still flying or settling when its turn comes sits that `go` out, so
+a beam never snaps back lit. On `run` On Go it waits dark at the start,
+already at the pan of the fly to come, and flies once per `go`; Loop is
+the same with a `go` of its own every `duration`, `settle` and `gap`.
 
 Strobe, Shutter and Pump share one clock: a phase advancing at `rate`, a
 pulse per Target each time its own offset phase passes a beat, and a length

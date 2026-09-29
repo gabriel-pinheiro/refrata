@@ -182,7 +182,7 @@ function migrateLayer(
         height: Math.abs(ends.tilt.to - ends.tilt.from),
       };
   if (layer.visual === "flyout" && !corners && ends.tilt.from > ends.tilt.to)
-    parameters.direction = "backward";
+    parameters.direction = "falling";
   return { layer: { ...layer, parameters, bindings, region }, lost };
 }
 

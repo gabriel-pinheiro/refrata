@@ -1,10 +1,30 @@
 import { choiceParam, defineVisual, numberParam, regionSlot } from "./sdk.ts";
 
+/** One mover: the pan it waits or flies at, and where it is between flying and resting. */
+interface Mover {
+  /** A fraction of the Region's width, picked when the last fly ended. */
+  pan: number;
+  /** Seconds into its fly; undefined while it rests at the start. */
+  flying: number | undefined;
+  /** Seconds since it came back to the start. */
+  rested: number;
+}
+
+/** One Go on its way down the Targets, each reached Follow seconds after the one before. */
+interface Go {
+  age: number;
+  /** The index of the first Target it has not reached. */
+  next: number;
+}
+
+/** What two clocks that count the same seconds may differ by. */
+const EPSILON = 1e-9;
+
 export const flyout = defineVisual({
   id: "flyout",
   name: "Flyout",
   description:
-    "Beams fade in as they tilt along the Region, cut, and come back dark, each fly at a random pan across it.",
+    "Beams fade in as they tilt along the Region, cut, and come back dark, each fly at a random pan across it; in a loop or on a Cue.",
   slots: [
     regionSlot("tilt", "Tilt", "tilt"),
     regionSlot("pan", "Pan", "pan"),
@@ -20,30 +40,21 @@ export const flyout = defineVisual({
     },
   },
   parameters: {
-    level: {
-      kind: "number",
-      label: "Level",
-      min: 0,
-      max: 1,
-      step: 0.01,
-      percent: true,
-      default: 1,
-    },
     direction: {
       kind: "choice",
       label: "Direction",
       description:
-        "Forward flies from the Region's From to its To; Backward the other way.",
-      default: "forward",
+        "Tilt rising flies from the Region's From to its To; Tilt falling the other way.",
+      default: "rising",
       options: [
-        { value: "forward", label: "Forward" },
-        { value: "backward", label: "Backward" },
+        { value: "rising", label: "Tilt rising" },
+        { value: "falling", label: "Tilt falling" },
       ],
     },
     duration: {
       kind: "number",
       label: "Duration",
-      description: "Seconds from one end of the Region to the other.",
+      description: "Seconds a fly takes, from lighting up to the cut.",
       min: 0.2,
       max: 30,
       step: 0.1,
@@ -60,10 +71,21 @@ export const flyout = defineVisual({
       percent: true,
       default: 0.3,
     },
+    settle: {
+      kind: "number",
+      label: "Settle",
+      description:
+        "Seconds a mover needs to get back to the start, dark; it flies again only after them.",
+      min: 0,
+      max: 30,
+      step: 0.1,
+      unit: "s",
+      default: 0.5,
+    },
     gap: {
       kind: "number",
       label: "Gap",
-      description: "Seconds dark at the start before the next fly.",
+      description: "On Loop, seconds waited after Settle before the next fly.",
       min: 0,
       max: 30,
       step: 0.1,
@@ -73,85 +95,105 @@ export const flyout = defineVisual({
     run: {
       kind: "choice",
       label: "Run",
-      description: "On Go, one fly per Go cue and nothing written in between.",
+      description:
+        "On Go waits dark at the start and flies once per Go Cue; Loop flies by itself too.",
       default: "loop",
       options: [
         { value: "loop", label: "Loop" },
         { value: "go", label: "On Go" },
       ],
     },
-    phaseSpread: {
+    follow: {
       kind: "number",
-      label: "Phase spread",
-      description: "Flies of offset from the first Target to the last.",
+      label: "Follow",
+      description: "Seconds each Target flies after the one before it.",
       min: 0,
-      max: 1,
-      step: 0.01,
+      max: 10,
+      step: 0.1,
+      unit: "s",
       default: 0,
     },
   },
   cues: [
-    { key: "go", label: "Go", description: "Fly now." },
-    { key: "sync", label: "Sync", description: "Restart at the start." },
+    {
+      key: "go",
+      label: "Go",
+      description: "Fly now; a mover still flying or settling sits it out.",
+    },
   ],
   distributes: false,
   create({ random }) {
-    /** Seconds since the first Target's fly began; undefined while On Go waits. */
-    let clock: number | undefined;
-    let go = false;
-    /** Per Target, the fly its pan was picked for and that pan, a fraction of the Region's width; the fly counts up from the first. */
-    const pans = new Map<string, { fly: number; pan: number }>();
+    const movers = new Map<string, Mover>();
+    let gos: Go[] = [];
+    let cued = false;
+    /** Seconds since the last Go, the Loop's own or a Cue's; undefined before the first frame. */
+    let sinceGo: number | undefined;
     return {
       cue(key) {
-        if (key === "go") go = true;
-        if (key === "sync") clock = 0;
+        if (key === "go") cued = true;
       },
       update({ dt, params, targets }, emit) {
-        const loop = choiceParam(params, "run", "loop") === "loop";
         const duration = numberParam(params, "duration", 2);
-        const cycle = duration + numberParam(params, "gap", 1);
-        const spread = numberParam(params, "phaseSpread", 0);
-        if (go) clock = 0;
-        else if (clock !== undefined) clock += dt;
-        else if (loop) clock = 0;
-        go = false;
-        if (clock === undefined) return;
-        if (!loop && clock >= cycle * (1 + spread)) {
-          clock = undefined;
-          return;
+        const settle = numberParam(params, "settle", 0.5);
+        const follow = numberParam(params, "follow", 0);
+        const cycle = duration + settle + numberParam(params, "gap", 1);
+        for (const go of gos) go.age += dt;
+        // The first fly of a Loop comes once the movers have settled.
+        sinceGo = sinceGo === undefined ? cycle - settle : sinceGo + dt;
+        if (cued) {
+          gos.push({ age: 0, next: 0 });
+          sinceGo = 0;
+        } else if (
+          choiceParam(params, "run", "loop") === "loop" &&
+          sinceGo >= cycle - EPSILON
+        ) {
+          sinceGo = Math.max(0, Math.min(sinceGo - cycle, cycle));
+          gos.push({ age: sinceGo, next: 0 });
         }
-        const level = numberParam(params, "level", 1);
-        const backward =
-          choiceParam(params, "direction", "forward") === "backward";
+        cued = false;
+
+        const falling =
+          choiceParam(params, "direction", "rising") === "falling";
         const fadeIn = numberParam(params, "fadeIn", 0.3);
         const seen = new Set<string>();
         for (const target of targets) {
-          let t = clock - (spread * target.index * cycle) / target.count;
-          const nth = Math.floor(t / cycle);
-          if (loop) t -= nth * cycle;
-          else if (t < 0 || t >= cycle) continue;
-          const progress = Math.min(1, t / duration);
-          const flying = t < duration;
-          // The gap belongs to the next fly: the pan moves at the cut, dark, and holds until the next cut.
-          const fly = flying ? nth : nth + 1;
           seen.add(target.key);
-          let picked = pans.get(target.key);
-          if (picked?.fly !== fly) {
-            picked = { fly, pan: random() };
-            pans.set(target.key, picked);
+          let mover = movers.get(target.key);
+          if (mover === undefined) {
+            mover = { pan: random(), flying: undefined, rested: 0 };
+            movers.set(target.key, mover);
+          } else if (mover.flying === undefined) mover.rested += dt;
+          else mover.flying += dt;
+          if (mover.flying !== undefined && mover.flying >= duration) {
+            // The pan moves at the cut, dark, and holds until the next cut.
+            mover.rested = mover.flying - duration;
+            mover.flying = undefined;
+            mover.pan = random();
           }
-          const along = flying ? progress : 0;
-          emit("pan", target, picked.pan);
-          emit("tilt", target, backward ? 1 - along : along);
+          const delay = follow * target.index;
+          for (const go of gos) {
+            if (target.index < go.next || go.age + EPSILON < delay) continue;
+            go.next = target.index + 1;
+            if (mover.flying !== undefined) continue;
+            if (mover.rested + EPSILON < settle) continue;
+            mover.flying = Math.max(0, go.age - delay);
+          }
+          const along =
+            mover.flying === undefined ? 0 : mover.flying / duration;
+          emit("pan", target, mover.pan);
+          emit("tilt", target, falling ? 1 - along : along);
           emit(
             "level",
             target,
-            flying
-              ? level * (fadeIn <= 0 ? 1 : Math.min(1, progress / fadeIn))
-              : 0,
+            mover.flying === undefined
+              ? 0
+              : fadeIn <= 0
+                ? 1
+                : Math.min(1, along / fadeIn),
           );
         }
-        for (const key of pans.keys()) if (!seen.has(key)) pans.delete(key);
+        gos = gos.filter((go) => go.next < targets.length);
+        for (const key of movers.keys()) if (!seen.has(key)) movers.delete(key);
       },
     };
   },

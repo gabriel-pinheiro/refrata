@@ -42,7 +42,7 @@ describe("the Catalog", () => {
     expect(text).toContain("rate (number) 0 Hz to 20 Hz, default 2 Hz");
     expect(text).toContain("Cues: step (Advance one step now.), restart");
     expect(text).toContain(
-      "wipe  “Wipe”  A band of color crosses the Frame; Targets outside the band are released.  [distributes across Targets]  [Geometry Visual: reads where its Targets are in its Layer's Frame]",
+      "wipe  “Wipe”  A band of color crosses the Frame, all the time or once per Cue; Targets outside the band are released.  [distributes across Targets]  [Geometry Visual: reads where its Targets are in its Layer's Frame]",
     );
   });
 
