@@ -2,14 +2,18 @@ import type { Document } from "../document/document.ts";
 import { allFixtures, fixtureElements } from "../document/fixtures.ts";
 import type { Color, ParameterValue, ParameterValues } from "../parameters.ts";
 import { elementRef, type ElementParameter } from "./elements.ts";
+import type { SettleTime } from "./fixture-type.ts";
 import type { ResolvedValuesByRef } from "./frames.ts";
 import { nearestSwatch } from "./gamut.ts";
 
 interface Wheel {
   /** The slot the wheel was last sent to, by its place among the swatches. */
   at: number;
-  /** Seconds of dark left. */
-  dark: number;
+  /** Where the wheel has got to on its way there, in slots. */
+  position: number;
+  dark: boolean;
+  /** Seconds of `base` left once the wheel has arrived. */
+  hold: number;
 }
 
 /**
@@ -18,8 +22,10 @@ interface Wheel {
  * asked is more than one slot from where the wheel was last sent, holds the
  * Element's `dimmer` at 0 for `base` plus `perSlot` per slot crossed, then
  * lets it go at once. Neighbouring slots change lit, since the beam only
- * ever shows the two colours asked. A change during the dark adds its own
- * slots to what is left. It reacts to the swatch, whatever moved it: a
+ * ever shows the two colours asked. The wheel is followed on its way, a
+ * slot every `perSlot`, so a change during the dark settles from where the
+ * wheel has got to and the dark never outlasts one travel of the whole
+ * wheel. It reacts to the swatch, whatever moved it: a
  * Layer, a Fade, a Scene played, a Highlight. Under Blackout the wheel is
  * sent to the slot holding byte 0, so leaving Blackout settles from there.
  * A wheel first seen is taken to be where it is asked. The positions live
@@ -80,21 +86,37 @@ export class Settle {
   #travel(
     key: string,
     asked: number,
-    time: { readonly base: number; readonly perSlot: number },
+    time: SettleTime,
     step: number,
     blackout: boolean,
   ): boolean {
     const wheel = this.#wheels.get(key);
     if (wheel === undefined || blackout) {
-      this.#wheels.set(key, { at: asked, dark: 0 });
+      this.#wheels.set(key, {
+        at: asked,
+        position: asked,
+        dark: false,
+        hold: 0,
+      });
       return false;
     }
-    wheel.dark = Math.max(0, wheel.dark - step);
-    const slots = Math.abs(asked - wheel.at);
-    if (wheel.dark > 0) wheel.dark += time.perSlot * slots;
-    else if (slots > 1) wheel.dark = time.base + time.perSlot * slots;
-    wheel.at = asked;
-    return wheel.dark > 0;
+    const left = Math.abs(wheel.at - wheel.position) * time.perSlot;
+    if (step < left)
+      wheel.position +=
+        (Math.sign(wheel.at - wheel.position) * step) / time.perSlot;
+    else {
+      wheel.position = wheel.at;
+      wheel.hold -= step - left;
+      if (wheel.hold <= 0) wheel.dark = false;
+    }
+    if (asked !== wheel.at) {
+      if (wheel.dark || Math.abs(asked - wheel.position) > 1) {
+        wheel.dark = true;
+        wheel.hold = time.base;
+      }
+      wheel.at = asked;
+    }
+    return wheel.dark;
   }
 }
 

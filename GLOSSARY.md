@@ -1093,9 +1093,11 @@ Highlight, so nothing lifts it. Studio shows the dark and the swatch.
 
 The dark lasts the settle time for the slots between where the wheel was
 last sent and where it is asked. Neighbouring slots change lit: the beam
-then only shows the two colours asked. A change during the dark adds its
-slots to what is left. Blackout sends the wheel to the slot at byte 0, so
-letting Blackout go settles from there. Pan and tilt do not settle.
+then only shows the two colours asked. The wheel is followed on its way, so
+a change during the dark settles from where it has got to and the dark
+never outlasts one travel of the whole wheel. Blackout sends the wheel to
+the slot at byte 0, so letting Blackout go settles from there. Pan and tilt
+do not settle.
 
 Do not call it Move in Black: that is a console preparing a dark fixture
 for its next cue, which Refrata does not do. A fixture's own "blackout

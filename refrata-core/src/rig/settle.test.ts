@@ -114,13 +114,22 @@ describe("Settle", () => {
     expect(step(settle, stage(RED)).dimmer).toBe(1);
   });
 
-  it("adds the slots of a change made during the dark", () => {
+  it("settles a change made during the dark from where the wheel has got to", () => {
     const settle = new Settle();
     step(settle, stage(RED));
     step(settle, stage(AZURE));
-    // 0.184 s asked, one tick gone, then one more slot: 0.159 + 0.052 s.
+    // One tick on, the wheel is half a slot from Amber: 0.025 + 0.08 s.
     expect(step(settle, stage(AMBER))).toEqual({ dimmer: 0, wheel: 20 });
-    expect(darkTicks(settle, stage(AMBER))).toBe(8);
+    expect(darkTicks(settle, stage(AMBER))).toBe(4);
+  });
+
+  it("is never dark for longer than the whole wheel takes, however fast the colour changed", () => {
+    const settle = new Settle();
+    step(settle, stage(RED));
+    for (let tick = 0; tick < 400; tick += 1)
+      step(settle, stage(tick % 2 === 0 ? BLUE : RED));
+    // At most Red to Blue, ten slots: 0.08 + 10 x 0.052 s from the last change.
+    expect(darkTicks(settle, stage(BLUE))).toBeLessThanOrEqual(25);
   });
 
   it("settles from the slot at byte 0 when Blackout is let go", () => {
