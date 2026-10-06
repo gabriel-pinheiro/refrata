@@ -145,6 +145,7 @@ describe("OSC and the composition", () => {
     expect(session.document.installation).toMatchObject({
       activeScene: "verse",
       master: 1,
+      outputDelayMs: 0,
     });
     await send(encodeMessage({ address: "/macro/play-chorus", args: [] }));
     await wait(40);

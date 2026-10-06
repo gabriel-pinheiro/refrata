@@ -259,7 +259,7 @@ export function registerRig(program: Command, cli: Cli): void {
   program
     .command("dmx <universe>")
     .description(
-      "Print the DMX Frame a Universe is sending now: 512 bytes, runs of one value grouped as <Nx value>. --map cuts it into what each Fixture is patched over and the free gaps between.",
+      "Print the DMX Frame a Universe has now, before any Output Delay: 512 bytes, runs of one value grouped as <Nx value>. --map cuts it into what each Fixture is patched over and the free gaps between.",
     )
     .option("--map", "One line per patched Fixture and per free gap")
     .action((universe: string, options: { map?: boolean }) =>

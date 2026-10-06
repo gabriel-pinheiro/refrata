@@ -264,6 +264,7 @@ describe("DocumentStore", () => {
       name: "Living",
       activeScene: null,
       master: 1,
+      outputDelayMs: 0,
     });
     expect(await listAutosaves(filePath)).toEqual([]);
     expect(

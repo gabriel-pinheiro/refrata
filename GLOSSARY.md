@@ -111,6 +111,29 @@ frames per second actually delivered (a device that holds its slots, like the
 uDMX, is sent only what changed, and a frame it already holds counts). Reported by the Runtime to Studio the way
 Difracta reports Output Telemetry. Never saved.
 
+### Output Delay
+
+How long the Runtime holds every DMX Frame before the Outputs send it: one
+number of milliseconds for the Installation, 0 unless set. It is there for
+what Refrata does not drive and cannot hurry, a projector or an LED
+processor that shows its picture late: the lights wait for it, so a hit
+from the hub lands on both at once. It is one value for every Output
+because what it answers is outside the rig; a delay per Output was declined
+until a transport is slow enough to need one.
+
+The delay comes after Encoding, so nothing above the frame knows of it and
+everything is late alike: a Layer, a Visual, Settle's dark, a Highlight,
+the DMX Tester and Blackout. It is a whole number of frames, the nearest
+to what was asked. The Resolved Stream, the Universe View and the CLI's
+frame dump show the frame before the delay, so Studio runs ahead of the
+fixtures by it; the status strip says so while it is set. While a longer
+delay fills, the Outputs are sent nothing and keep their last frame; after
+a stall, frames it overtook are dropped, not sent late. Saved with the
+Installation, since it describes the room, and not an Address.
+
+**Elsewhere:** no counterpart in QLC+ or grandMA3; media servers delay
+their own outputs the same way.
+
 ## 2. Library
 
 ### Fixture Library

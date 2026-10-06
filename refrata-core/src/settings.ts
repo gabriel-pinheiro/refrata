@@ -79,6 +79,8 @@ export const settings = {
   output: {
     /** Resolve and DMX Frame rate; every frame goes to every Output. */
     rateHz: 40,
+    /** The longest Output Delay, in milliseconds. */
+    maxDelayMs: 1_000,
     /** How long the break line is held before a frame on an Open DMX widget. */
     openDmxBreakMs: 1,
     /** How long to wait before looking again for a widget that is missing or failed. */

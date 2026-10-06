@@ -8,6 +8,7 @@ import {
   type MacroId,
 } from "../ids.ts";
 import { ColorSchema } from "../parameters.ts";
+import { settings } from "../settings.ts";
 import { DEFAULT_ORDER_KEY } from "./order.ts";
 import {
   FixtureSchema,
@@ -74,6 +75,8 @@ export const InstallationSchema = z
     activeScene: z.string().min(1).nullable().default(null),
     /** The grand master: scales every `dimmer` after Resolve, 0 to 1. */
     master: z.number().min(0).max(1).default(1),
+    /** The Output Delay: how long every DMX Frame is held before the Outputs send it, in milliseconds. */
+    outputDelayMs: z.number().min(0).max(settings.output.maxDelayMs).default(0),
   })
   .strict();
 export type Installation = Entity<typeof InstallationSchema, InstallationId>;
@@ -355,6 +358,7 @@ export function emptyDocument(name: string): Document {
       name,
       activeScene: null,
       master: 1,
+      outputDelayMs: 0,
     },
     universes: {
       [universeId]: {

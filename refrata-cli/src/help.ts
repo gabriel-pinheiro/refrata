@@ -21,7 +21,7 @@ Working from a shell
              commands, describe <command> (its payload fields; --json for
              the schema), dmx <universe> (the 512 bytes going out, runs
              grouped as <Nx value>; --map lists what each Fixture is
-             patched over and the free gaps between), master.
+             patched over and the free gaps between), master, delay.
 
   Rig        fixtures add <typeKey> <modeKey> [--name] [--universe]
              [--address] [--unpatched]  copies the type in and patches at
@@ -92,6 +92,10 @@ Working from a shell
              dimmer, positions kept; blackout on|off sends 0 on every address
              of every Universe, whatever the patch, the kill switch. play and
              blackout are show control (never undone); the rest is authoring.
+             delay <ms>  the Output Delay: the Outputs send every DMX Frame
+             that late, Blackout included, so lights land with a projector
+             or screen that lags. 0 sends at once. "dmx" and Studio show
+             frames before the delay.
 
   Presets    A Preset is a named bundle of values that Look Layer rows link
              to: rows per Element, and All Elements rows every Element takes

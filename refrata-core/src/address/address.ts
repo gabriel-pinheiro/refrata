@@ -99,6 +99,7 @@ export function addressSource(partial: Partial<AddressSource>): AddressSource {
       name: "",
       activeScene: null,
       master: 1,
+      outputDelayMs: 0,
     },
     controllers: {},
     presets: {},

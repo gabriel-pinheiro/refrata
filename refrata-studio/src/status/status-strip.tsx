@@ -25,7 +25,7 @@ import { BlackoutToggle } from "@/menu/blackout-toggle";
 import { useInPageBar } from "@/menu/use-in-page-bar";
 import { useSelectionIfAny } from "@/selection/selection";
 
-/** Bottom strip: runtime connection, save state, which Scene is edited versus playing, Master, the OSC door, the DMX Tester's hold and blackout at a glance. */
+/** Bottom strip: runtime connection, save state, which Scene is edited versus playing, Master, the Output Delay, the OSC door, the DMX Tester's hold and blackout at a glance. */
 export function StatusStrip() {
   const client = useClient();
   const phase = useSignal(client.phase);
@@ -134,6 +134,8 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
   const blackout =
     useDocumentPath<boolean>(view, ["operational", "blackout"]) ?? false;
   const master = useDocumentPath<number>(view, ["installation", "master"]) ?? 1;
+  const outputDelayMs =
+    useDocumentPath<number>(view, ["installation", "outputDelayMs"]) ?? 0;
   const tester = useDocumentPath<Tester | null>(view, [
     "operational",
     "tester",
@@ -167,6 +169,14 @@ function DocumentStatus({ view }: { readonly view: DocumentView }) {
         >
           {String(delivering)}/{String(statuses.length)}{" "}
           {statuses.length === 1 ? "output" : "outputs"} delivering
+        </span>
+      )}
+      {outputDelayMs > 0 && (
+        <span
+          title="Output Delay: the Outputs send every DMX Frame this late"
+          className="tabular-nums"
+        >
+          Delay {String(outputDelayMs)} ms
         </span>
       )}
       {osc?.port != null && (

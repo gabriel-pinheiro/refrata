@@ -4,6 +4,7 @@ import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
 import { orderedEntries } from "../document/order.ts";
 import { applyPatches } from "../document/patch.ts";
+import { settings } from "../settings.ts";
 import { createBuiltInRegistry } from "./index.ts";
 
 const registry = createBuiltInRegistry();
@@ -25,6 +26,23 @@ describe("built-in commands", () => {
     expect(
       run(renamed.document, "installation.rename", { name: "Club" }).patches,
     ).toEqual([]);
+  });
+
+  it("sets the Output Delay as one coalesced, undoable step, within its limit", () => {
+    const start = emptyDocument("Living");
+    expect(start.installation.outputDelayMs).toBe(0);
+    const delayed = run(start, "installation.delay", { ms: 150 });
+    expect(delayed.document.installation.outputDelayMs).toBe(150);
+    expect(delayed.label).toBe("Change Output Delay");
+    expect(delayed.coalesceKey).toBe("installation.delay");
+    expect(applyPatches(delayed.document, delayed.inverse)).toEqual(start);
+    expect(
+      run(delayed.document, "installation.delay", { ms: 150 }).patches,
+    ).toEqual([]);
+    for (const ms of [-1, settings.output.maxDelayMs + 1])
+      expect(
+        executeCommand(registry, start, "installation.delay", { ms }).ok,
+      ).toBe(false);
   });
 
   it("moves entities among their siblings with one order patch", () => {

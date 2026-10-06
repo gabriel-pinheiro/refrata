@@ -13,6 +13,7 @@ import type { DmxLive } from "@refrata/protocol";
 
 import type { DocumentSession } from "../documents/document-session.ts";
 import type { DocumentStore } from "../documents/document-store.ts";
+import { FrameDelay } from "../output/frame-delay.ts";
 import type { OutputManager } from "../output/output-manager.ts";
 
 export interface OutputLoopOptions {
@@ -27,8 +28,10 @@ export interface OutputLoopOptions {
  * The output loop: at the output rate, step the playing Scene's Visuals
  * and Layer Fades, resolve the open Installation with what they wrote,
  * let Settle darken the Elements whose wheel is travelling, encode one DMX
- * Frame per Universe, hand the frames to the Outputs, and keep the latest
- * resolved values, the dark included, for the Resolved Stream and the CLI.
+ * Frame per Universe, hand the Outputs the frames the Output Delay lets go,
+ * and keep the latest resolved values, the dark included, and the latest
+ * frames, not delayed, for the Resolved Stream, the Universe View and the
+ * CLI.
  * It runs whenever an Installation with a Universe is open, Outputs or not.
  * The Visual instances, the fade envelopes and the wheel positions live
  * here and nowhere else: playing a Scene, the playing one included, makes
@@ -53,10 +56,13 @@ export class OutputLoop {
   readonly #visuals = new VisualPlayer();
   readonly #fades = new LayerFades();
   readonly #settle = new Settle();
+  readonly #delay: FrameDelay;
   #steppedAt: number | undefined;
 
   constructor(options: OutputLoopOptions) {
     this.#options = options;
+    // Half a tick: an Output Delay is a whole number of frames.
+    this.#delay = new FrameDelay(500 / this.rateHz);
   }
 
   get rateHz(): number {
@@ -137,6 +143,7 @@ export class OutputLoop {
     this.#visuals.restart();
     this.#fades.restart();
     this.#settle.restart();
+    this.#delay.clear();
     this.#document = session?.document;
     void this.#options.outputs.sync(session?.document.outputs ?? {});
     // A new document must not keep showing the old one's values.
@@ -157,6 +164,7 @@ export class OutputLoop {
     if (document === undefined) {
       this.#resolved = new Map();
       this.#frames = new Map();
+      this.#delay.clear();
       return;
     }
     this.#resolved = this.#settle.step(
@@ -169,7 +177,12 @@ export class OutputLoop {
       dt,
     );
     this.#frames = universeFrames(document, this.#resolved);
-    this.#options.outputs.send(this.#frames);
+    const due = this.#delay.step(
+      this.#frames,
+      steppedAt,
+      document.installation.outputDelayMs,
+    );
+    if (due !== undefined) this.#options.outputs.send(due);
     this.#ticks += 1;
     const now = Date.now();
     if (now - this.#sampledAt >= 1_000) {
@@ -196,6 +209,7 @@ export class OutputLoop {
     this.#unsubscribeEvents?.();
     this.#visuals.restart();
     this.#fades.restart();
+    this.#delay.clear();
     await this.#options.outputs.close();
   }
 }

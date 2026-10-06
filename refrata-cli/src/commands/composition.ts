@@ -1,3 +1,4 @@
+import { settings } from "@refrata/core";
 import type { CommandResult } from "@refrata/protocol";
 import type { Command } from "commander";
 
@@ -7,7 +8,7 @@ import { parseValue } from "../connection.ts";
 import { resolveId, resolveRowRef } from "../names.ts";
 import { formatCommandResult } from "../result.ts";
 
-/** Scenes, Looks, Master and Blackout: composing a show from the shell. Layers are in `layers.ts`, Sets in `sets.ts`. */
+/** Scenes, Looks, Master, the Output Delay and Blackout: composing a show from the shell. Layers are in `layers.ts`, Sets in `sets.ts`. */
 export function registerComposition(program: Command, cli: Cli): void {
   const scenes = program
     .command("scenes")
@@ -133,6 +134,35 @@ export function registerComposition(program: Command, cli: Cli): void {
         cli.print({ address, ...result }, () =>
           result.changed
             ? `${address} = ${value} (revision ${String(result.revision)})`
+            : "No change.",
+        );
+      }),
+    );
+
+  program
+    .command("delay [ms]")
+    .description(
+      `Read the Output Delay, or set it (0 to ${String(settings.output.maxDelayMs)} ms): every DMX Frame is held that long before the Outputs send it, to match a slower projector or screen. Whole frames, ${String(1_000 / settings.output.rateHz)} ms each. Saved and undoable.`,
+    )
+    .action((ms: string | undefined) =>
+      cli.withDocument(async (client, summary) => {
+        if (ms === undefined) {
+          const { document } = await cli.replica(client, summary.id);
+          const outputDelayMs = document.installation.outputDelayMs;
+          cli.print(
+            { outputDelayMs },
+            () => `Output Delay ${String(outputDelayMs)} ms`,
+          );
+          return;
+        }
+        const result = await client.command<CommandResult>(
+          summary.id,
+          "installation.delay",
+          { ms: Number(ms) },
+        );
+        cli.print({ outputDelayMs: Number(ms), ...result }, () =>
+          result.changed
+            ? `Output Delay ${ms} ms (revision ${String(result.revision)})`
             : "No change.",
         );
       }),

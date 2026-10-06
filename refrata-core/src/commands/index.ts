@@ -23,6 +23,7 @@ import { fixtureTagsAdd } from "./fixture.tags.add.ts";
 import { fixtureTagsRemove } from "./fixture.tags.remove.ts";
 import { fixtureUngroup } from "./fixture.ungroup.ts";
 import { fixtureUpdate } from "./fixture.update.ts";
+import { installationDelay } from "./installation.delay.ts";
 import { installationRename } from "./installation.rename.ts";
 import { layerBindingSet } from "./layer.binding.set.ts";
 import { layerCreate } from "./layer.create.ts";
@@ -103,6 +104,7 @@ import { universeRename } from "./universe.rename.ts";
 /** Every built-in command. Add one import line per new command file. */
 export const builtInCommands: readonly CommandDefinition<never>[] = [
   installationRename,
+  installationDelay,
   universeCreate,
   universeRename,
   universeRemove,
