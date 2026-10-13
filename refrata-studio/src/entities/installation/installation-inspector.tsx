@@ -15,12 +15,10 @@ import { NumberField } from "@/inspector/fields/number-field";
 import { useRowLinks } from "@/inspector/fields/use-row-links";
 import { useCommand, useDocumentPath } from "@/lib/client";
 
-import { FixtureTypesSection } from "./fixture-types-section";
-
 /** One DMX Frame's share of the Output Delay, in milliseconds. */
 const FRAME_MS = 1_000 / settings.output.rateHz;
 
-/** Settings of the Installation itself: its name, the grand Master (a Controller can take it), what is playing, the Output Delay, and its Fixture Types against the library. */
+/** Settings of the Installation itself: its name, the grand Master (a Controller can take it), what is playing and the Output Delay. */
 export function InstallationInspector({
   view,
 }: {
@@ -89,7 +87,6 @@ export function InstallationInspector({
           frames of {String(FRAME_MS)}ms.
         </p>
       </InspectorSection>
-      <FixtureTypesSection view={view} />
     </>
   );
 }

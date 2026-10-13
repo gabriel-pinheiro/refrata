@@ -120,7 +120,8 @@ function parametersOf(
   return result;
 }
 
-function definitionOf(
+/** The Parameter as a Control sees it, from the Attribute and what the Mode declares over it. */
+export function definitionOf(
   attribute: AttributeDefinition,
   parameter: Mode["elements"][string]["parameters"][string],
 ): ParameterDefinition {

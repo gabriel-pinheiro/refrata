@@ -1,9 +1,7 @@
 import {
-  fixtureTypeDrift,
   footprintOf,
   parseFixtureType,
   settings,
-  type Document,
   type FixtureType,
 } from "@refrata/core";
 import type { LibraryEntry } from "@refrata/protocol";
@@ -11,14 +9,17 @@ import { watch, type FSWatcher } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
+/** The extensions a library file may have: `.refrata-fixture`, and `.json` for a folder written before it. */
+const EXTENSIONS = [".refrata-fixture", ".json"] as const;
+
 /**
  * The Fixture Library: every Fixture Type file under the library folder,
- * keyed by the type's own key. Read at startup and read again when a file
- * under the folder changes, so a type being written is seen at once; an
- * Installation's copies never change by themselves, a reload does that. A
- * type an Installation holds is listed too, so a file opened on another
- * machine still offers what it uses. A file that does not parse is logged
- * and skipped; nothing else stops the runtime.
+ * keyed by the type's own key. Read-only, read at startup and read again
+ * when a file under the folder changes, so a type being written is seen at
+ * once; an Installation's types never change by themselves, a reload does
+ * that. It answers about its own files only: what an Installation holds is
+ * in the document. A file that does not parse is logged and skipped;
+ * nothing else stops the runtime.
  */
 export class FixtureLibrary {
   #types = new Map<string, FixtureType>();
@@ -31,7 +32,7 @@ export class FixtureLibrary {
     this.#log = log;
   }
 
-  /** Reads every `.json` under `dir`, recursively, replacing what was read before. */
+  /** Reads every Fixture Type file under `dir`, recursively, replacing what was read before. */
   async load(dir: string): Promise<void> {
     let names: string[];
     try {
@@ -42,7 +43,7 @@ export class FixtureLibrary {
     }
     const types = new Map<string, FixtureType>();
     for (const name of names
-      .filter((entry) => entry.endsWith(".json"))
+      .filter((entry) => EXTENSIONS.some((ending) => entry.endsWith(ending)))
       .sort()) {
       const file = path.join(dir, name);
       try {
@@ -104,37 +105,18 @@ export class FixtureLibrary {
     this.#notify();
   }
 
-  /** The library's own file for `key`, never an Installation's copy: what a reload loads. */
-  libraryType(key: string): FixtureType | undefined {
+  get(key: string): FixtureType | undefined {
     return this.#types.get(key);
   }
 
-  get(key: string, document?: Document): FixtureType | undefined {
-    return this.#types.get(key) ?? document?.fixtureTypes[key]?.type;
-  }
-
-  list(document?: Document): readonly LibraryEntry[] {
-    const entries = new Map<string, LibraryEntry>();
-    for (const type of this.#types.values()) {
-      const stored = document?.fixtureTypes[type.key]?.type;
-      const stale =
-        stored !== undefined && fixtureTypeDrift(stored, type) === "stale";
-      entries.set(type.key, {
-        ...entryOf(type, "library"),
-        ...(stale ? { stale: true } : {}),
-      });
-    }
-    for (const stored of Object.values(document?.fixtureTypes ?? {}))
-      if (!entries.has(stored.type.key))
-        entries.set(stored.type.key, entryOf(stored.type, "installation"));
-    return [...entries.values()].sort((a, b) => a.key.localeCompare(b.key));
+  list(): readonly LibraryEntry[] {
+    return [...this.#types.values()]
+      .map(entryOf)
+      .sort((a, b) => a.key.localeCompare(b.key));
   }
 }
 
-function entryOf(
-  type: FixtureType,
-  source: LibraryEntry["source"],
-): LibraryEntry {
+function entryOf(type: FixtureType): LibraryEntry {
   return {
     key: type.key,
     manufacturer: type.manufacturer,
@@ -144,6 +126,5 @@ function entryOf(
       name: mode.name,
       footprint: footprintOf(mode),
     })),
-    source,
   };
 }

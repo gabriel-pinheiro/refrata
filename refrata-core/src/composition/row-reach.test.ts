@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
-import moverJson from "../../../refrata-library/generic/moving-head.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
+import moverJson from "../../../refrata-library/generic/moving-head.refrata-fixture";
 import { executeCommand } from "../command/execute.ts";
 import { createBuiltInRegistry } from "../commands/index.ts";
 import type { LookLayer } from "../document/composition.ts";

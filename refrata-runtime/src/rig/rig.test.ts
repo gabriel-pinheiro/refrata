@@ -10,11 +10,11 @@ import { ResolvedStream } from "../live/resolved-streams.ts";
 import { createDrivers } from "../output/drivers.ts";
 import { OutputManager } from "../output/output-manager.ts";
 import { fakeSerialFactory, FTDI_PORT } from "../output/serial/fake-serial.ts";
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
 import { ActionTimeout } from "./action-timeout.ts";
 import { HighlightTimeout } from "./highlight-timeout.ts";
 import { TesterTimeout } from "./tester-timeout.ts";
-import { FixtureTypeDriftTracker } from "./fixture-type-drift.ts";
+import { FixtureTypeStandingTracker } from "./fixture-type-standing.ts";
 import { FixtureLibrary } from "./library.ts";
 import { OutputLoop } from "./output-loop.ts";
 
@@ -280,51 +280,84 @@ describe("TesterTimeout", () => {
   });
 });
 
-describe("Fixture Type drift", () => {
-  it("marks a held type stale when the library changes, current again after a reload", async () => {
+describe("Fixture Type standing", () => {
+  it("follows the library and the Installation: newer, matching after a reload, edited, both", async () => {
     const { documentId } = await stageStrobe();
-    const tracker = new FixtureTypeDriftTracker(store, library);
+    const key = "generic/atomic-like-panel";
+    const tracker = new FixtureTypeStandingTracker(store, library);
     const seen: unknown[] = [];
     tracker.onChange((state) => seen.push(state));
     tracker.start();
-    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "current" });
-    const edited = structuredClone(
-      library.libraryType("generic/atomic-like-panel")!,
-    );
+    expect(tracker.state()).toEqual({ [key]: "matches" });
+    const edited = structuredClone(library.get(key)!);
     (edited as { notes?: string }).notes = "Edited while probing";
     library.add(edited);
-    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "stale" });
-    expect(library.list(store.session(documentId)!.document).at(0)?.stale).toBe(
-      true,
-    );
+    expect(tracker.state()).toEqual({ [key]: "newer" });
     const session = store.session(documentId)!;
-    const reloaded = session.execute(
-      "fixture.reload",
-      { types: [edited] },
-      "test",
+    const execute = (name: string, payload: unknown): void => {
+      const result = session.execute(name, payload, "test");
+      if (!result.ok) throw new Error(result.error);
+    };
+    execute("fixture.reload", { types: [edited] });
+    expect(tracker.state()).toEqual({ [key]: "matches" });
+    execute("type.update", { typeKey: key, notes: "Edited here" });
+    expect(tracker.state()).toEqual({ [key]: "edited" });
+    library.add({ ...edited, notes: "Edited there" });
+    expect(tracker.state()).toEqual({ [key]: "both" });
+    // Starting publishes the first state, then each change of standing.
+    expect(seen).toEqual(
+      ["matches", "newer", "matches", "edited", "both"].map((standing) => ({
+        [key]: standing,
+      })),
     );
-    if (!reloaded.ok) throw new Error(reloaded.error);
-    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "current" });
-    // Starting publishes the first state, then the library edit, then the reload.
-    expect(seen).toEqual([
-      { "generic/atomic-like-panel": "current" },
-      { "generic/atomic-like-panel": "stale" },
-      { "generic/atomic-like-panel": "current" },
-    ]);
     tracker.close();
   });
 
-  it("reads the folder again when a file under it changes", async () => {
+  it("gives a type from a file or made in the Installation no standing", async () => {
+    const { documentId } = await stageStrobe();
+    const session = store.session(documentId)!;
+    for (const [name, payload] of [
+      ["type.create", { manufacturer: "Acme", model: "Par" }],
+      [
+        "type.import",
+        {
+          fixtureType: library.get("generic/rgb-3ch"),
+          origin: { from: "file", file: "rgb.refrata-fixture" },
+        },
+      ],
+    ] as const) {
+      const result = session.execute(name, payload, "test");
+      if (!result.ok) throw new Error(result.error);
+    }
+    const tracker = new FixtureTypeStandingTracker(store, library);
+    tracker.start();
+    expect(tracker.state()).toEqual({ "generic/atomic-like-panel": "matches" });
+    tracker.close();
+  });
+
+  it("reads both extensions, and the folder again when a file under it changes", async () => {
     const folder = path.join(dir, "library");
     await mkdir(folder, { recursive: true });
     const source = await readFile(
-      path.join(libraryDir, "generic/rgb-3ch.json"),
+      path.join(libraryDir, "generic/rgb-3ch.refrata-fixture"),
       "utf8",
     );
     const file = path.join(folder, "rgb.json");
     await writeFile(file, source);
+    await writeFile(
+      path.join(folder, "dimmer.refrata-fixture"),
+      await readFile(
+        path.join(libraryDir, "generic/dimmer-1ch.refrata-fixture"),
+        "utf8",
+      ),
+    );
+    await writeFile(path.join(folder, "notes.txt"), source);
     const watched = new FixtureLibrary(() => undefined);
     await watched.load(folder);
+    expect(watched.list().map((entry) => entry.key)).toEqual([
+      "generic/dimmer-1ch",
+      "generic/rgb-3ch",
+    ]);
     watched.watch(folder);
     const changed = new Promise<void>((resolve) =>
       watched.onChange(() => resolve()),
@@ -333,9 +366,7 @@ describe("Fixture Type drift", () => {
     json.model = "RGB 3ch (edited)";
     await writeFile(file, JSON.stringify(json));
     await changed;
-    expect(watched.libraryType("generic/rgb-3ch")?.model).toBe(
-      "RGB 3ch (edited)",
-    );
+    expect(watched.get("generic/rgb-3ch")?.model).toBe("RGB 3ch (edited)");
     watched.close();
   });
 });

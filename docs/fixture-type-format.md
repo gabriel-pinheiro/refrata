@@ -1,23 +1,42 @@
 # The Fixture Type file
 
 The project's own format for a Fixture Type: the Mode model written down as
-JSON, validated with Zod, hand-written today and produced by importers from
-slice 7 on. Terms are in [../GLOSSARY.md](../GLOSSARY.md) section 2; where a
+JSON, validated with Zod, written by the Fixture Editor or by hand and
+produced by importers later. Terms are in [../GLOSSARY.md](../GLOSSARY.md) section 2; where a
 type comes from is in [fixture-sources.md](fixture-sources.md). This note is
 the shape of the file and the reasons for it.
 
 ## Where files live
 
-`refrata-library/<manufacturer>/<model>.json`, loaded by the Runtime at startup,
-read again whenever a file under the folder changes, and listed by `refrata
-library`. A file is identified by its `key` (`generic/rgb-3ch`,
-`generic/moving-head`). When a Fixture uses a type, the type is copied
-into the Installation under that key and dropped again when the last Fixture
-using it goes, so an Installation opens the same on another machine. Editing a library
-file never changes an Installation by itself: Studio and `refrata library`
-say which copies differ, and a reload (`refrata fixtures reload`, or the
-buttons on a Fixture and on the Installation) takes the new file as one undo
-step.
+A Fixture Type file has the extension `.refrata-fixture` and holds exactly
+this format, wherever it sits:
+
+- In the Fixture Library, `refrata-library/<manufacturer>/<model>.refrata-fixture`,
+  read by the Runtime at startup, read again whenever a file under the folder
+  changes, and listed by `refrata library`. A folder named by
+  `REFRATA_LIBRARY_DIR` may still hold `.json` files; both are read.
+- As a file exported from the Fixture Editor, or by the CLI's
+  `refrata types export`, and imported into another Installation.
+
+A type is identified by its `key` (`generic/rgb-3ch`, `generic/moving-head`).
+The types an Installation uses are not files: they belong to the
+Installation and travel inside its `.refrata` file, each stored with its
+**origin**, which no Fixture Type file carries:
+
+- `{ "from": "library", "digest": "…" }`: imported from the library; the
+  digest is of the type as it came in, and is what tells later whether the
+  Installation's type or the library's file changed. An Installation saved
+  before origins has none, which reads as from the library with nothing
+  remembered.
+- `{ "from": "file", "file": "par.refrata-fixture" }`: imported from a file,
+  whose name is kept for display only.
+- `{ "from": "installation" }`: made or duplicated in the Installation.
+
+Editing a library file never changes an Installation by itself: the Fixture
+Editor and `refrata types` say how each type from the library stands, and
+taking the library's definition (`refrata fixtures reload`, or the Fixture
+Editor) is one undo step. A type made in an Installation reaches another
+through an exported file; there is no library to write into.
 
 ## The shape
 

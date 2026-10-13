@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import { releaseFixtureType } from "../document/fixture-types.ts";
 import { descendantFixtures } from "../document/fixtures.ts";
 import type { Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
@@ -9,15 +8,15 @@ import { parseElementRef } from "../rig/elements.ts";
 import { dropElementReferences } from "./rig-removal.ts";
 
 /**
- * Removing a Fixture drops its held highlights and running Actions, its Elements from every
- * Fixture Set and Look Layer, and, when it was the last of its type, the
- * type's copy; a Group goes with its contents.
+ * Removing a Fixture drops its held highlights and running Actions and its
+ * Elements from every Fixture Set and Look Layer; a Group goes with its
+ * contents. Its Fixture Type stays in the Installation.
  */
 export const fixtureRemove = defineCommand({
   name: "fixture.remove",
   kind: "authoring",
   description:
-    "Remove a Fixture or a Group with its contents; Sets and Layers drop its Elements, and a Fixture Type nothing uses any more goes too.",
+    "Remove a Fixture or a Group with its contents; Sets and Layers drop its Elements. Its Fixture Type stays.",
   payload: z.object({ fixtureId: z.string().min(1) }).strict(),
   label: () => "Remove Fixture",
   apply({ document, payload }) {
@@ -45,11 +44,6 @@ export const fixtureRemove = defineCommand({
         if (leaving.has(fixtureId))
           patches.push({ op: "remove", path: ["operational", table, ref] });
       }
-    const typeKeys = new Set(
-      removed.flatMap((row) => (row.kind === "fixture" ? [row.typeKey] : [])),
-    );
-    for (const typeKey of typeKeys)
-      patches.push(...releaseFixtureType(document, typeKey, leaving));
     for (const id of leaving)
       patches.push({ op: "remove", path: ["fixtures", id] });
     return accepted(patches, undefined, warnings);

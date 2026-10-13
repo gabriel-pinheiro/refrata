@@ -1,5 +1,10 @@
-import { formatFrame, settings, type FixtureType } from "@refrata/core";
-import type { CommandResult, DmxFrame, LibraryEntry } from "@refrata/protocol";
+import {
+  canTakeLibrary,
+  formatFrame,
+  settings,
+  type FixtureType,
+} from "@refrata/core";
+import type { CommandResult, DmxFrame } from "@refrata/protocol";
 import type { Command } from "commander";
 
 import type { Cli } from "../cli.ts";
@@ -7,7 +12,6 @@ import { resolveId } from "../names.ts";
 import { formatCommandResult } from "../result.ts";
 import {
   formatFixtures,
-  formatLibrary,
   formatUniverseMap,
   universeMapRuns,
 } from "../rig-lines.ts";
@@ -16,21 +20,6 @@ const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 export function registerRig(program: Command, cli: Cli): void {
-  program
-    .command("library")
-    .description(
-      "List the Fixture Types the runtime knows, with their Modes and footprints.",
-    )
-    .action(() =>
-      cli.withClient(async (client) => {
-        const { types } = await client.request<{ types: LibraryEntry[] }>(
-          "library.list",
-          {},
-        );
-        cli.print(types, () => formatLibrary(types).join("\n"));
-      }),
-    );
-
   const fixtures = program
     .command("fixtures")
     .description(
@@ -52,7 +41,7 @@ export function registerRig(program: Command, cli: Cli): void {
   fixtures
     .command("add <typeKey> <modeKey>")
     .description(
-      "Add a Fixture of a library type and Mode, e.g. fixtures add generic/rgb-3ch 3ch. It takes the next free address unless told.",
+      "Add a Fixture of a Fixture Type and Mode, e.g. fixtures add generic/rgb-3ch 3ch: a type the Installation holds, or one of the library, which comes in with it. It takes the next free address unless told.",
     )
     .option("--name <name>", "the Fixture's name (default: the model)")
     .option("--universe <universe>", "Universe id or name (default: the first)")
@@ -71,17 +60,21 @@ export function registerRig(program: Command, cli: Cli): void {
       ) =>
         cli.withDocument(async (client, summary) => {
           const { document } = await cli.replica(client, summary.id);
-          const { type } = await client.request<{ type: FixtureType }>(
-            "library.get",
-            { key: typeKey },
-          );
+          const fromLibrary =
+            typeKey in document.fixtureTypes
+              ? undefined
+              : await client.request<{ type: FixtureType }>("library.get", {
+                  key: typeKey,
+                });
           const reply = await client.command<CommandResult>(
             summary.id,
             "fixture.create",
             {
               typeKey,
               modeKey,
-              fixtureType: type,
+              ...(fromLibrary === undefined
+                ? {}
+                : { fixtureType: fromLibrary.type }),
               ...(local.name === undefined ? {} : { name: local.name }),
               ...(local.universe === undefined
                 ? {}
@@ -131,22 +124,40 @@ export function registerRig(program: Command, cli: Cli): void {
   fixtures
     .command("reload [type]")
     .description(
-      "Reload a Fixture Type the Installation holds from the library (a type key, or a Fixture's name for its type), or every held type when none is given. Its Fixtures take the new definition as one undo step; refused when a Mode is gone or a Footprint would overlap.",
+      "Take the library's definition of a Fixture Type the Installation holds (a type key, or a Fixture's name for its type), edited here or not. With no type, of every type where the library is newer and nothing was edited here. One undo step; refused when a Mode a Fixture is on is gone or a Footprint would overlap.",
     )
     .action((type: string | undefined) =>
       cli.withDocument(async (client, summary) => {
-        const { document } = await cli.replica(client, summary.id);
-        const held = Object.keys(document.fixtureTypes);
-        let keys: readonly string[] = held;
-        if (type !== undefined) {
-          if (held.includes(type)) keys = [type];
-          else {
-            const fixture =
-              document.fixtures[resolveId(document, "fixtures", type)];
-            if (fixture?.kind !== "fixture")
-              throw new Error(`“${type}” is a Group, not a Fixture.`);
-            keys = [fixture.typeKey];
-          }
+        const { document, view } = await cli.replica(client, summary.id);
+        const standings = view.liveState.get().fixtureTypes;
+        let keys: readonly string[];
+        if (type === undefined)
+          keys = Object.keys(standings).filter(
+            (key) => standings[key] === "newer",
+          );
+        else if (type in document.fixtureTypes) keys = [type];
+        else {
+          const fixture =
+            document.fixtures[resolveId(document, "fixtures", type)];
+          if (fixture?.kind !== "fixture")
+            throw new Error(`“${type}” is a Group, not a Fixture.`);
+          keys = [fixture.typeKey];
+        }
+        if (keys.length === 0) {
+          const edited = Object.keys(standings).filter(
+            (key) =>
+              standings[key] !== "newer" && canTakeLibrary(standings[key]),
+          );
+          cli.print({ changed: false, edited }, () =>
+            [
+              "No Fixture Type is behind the library.",
+              ...edited.map(
+                (key) =>
+                  `  edited here, reload it by name to take the library's: ${key}`,
+              ),
+            ].join("\n"),
+          );
+          return;
         }
         const types: FixtureType[] = [];
         const skipped: string[] = [];
@@ -154,7 +165,7 @@ export function registerRig(program: Command, cli: Cli): void {
           try {
             const reply = await client.request<{ type: FixtureType }>(
               "library.get",
-              { key, libraryOnly: true },
+              { key },
             );
             types.push(reply.type);
           } catch {
@@ -163,9 +174,7 @@ export function registerRig(program: Command, cli: Cli): void {
         }
         if (types.length === 0)
           throw new Error(
-            keys.length === 0
-              ? "The Installation holds no Fixture Types yet."
-              : `The library has no ${keys.map((key) => `“${key}”`).join(", ")}.`,
+            `The library has no ${keys.map((key) => `“${key}”`).join(", ")}.`,
           );
         const result = await client.command<CommandResult>(
           summary.id,

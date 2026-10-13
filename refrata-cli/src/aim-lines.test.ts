@@ -7,8 +7,8 @@ import {
 } from "@refrata/core";
 import { describe, expect, it } from "vitest";
 
-import beamJson from "../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
-import moverJson from "../../refrata-library/generic/moving-head.json" with { type: "json" };
+import beamJson from "../../refrata-library/generic/beam-moving-head.refrata-fixture";
+import moverJson from "../../refrata-library/generic/moving-head.refrata-fixture";
 import { aimReport, formatAim } from "./aim-lines.ts";
 
 const registry = createBuiltInRegistry();

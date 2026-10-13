@@ -138,34 +138,81 @@ their own outputs the same way.
 
 ### Fixture Library
 
-The set of Fixture Types the Runtime knows: a bundled snapshot of the Open
-Fixture Library, types imported from GDTF, OFL JSON or QLC+ `.qxf` files, and
-types authored by hand. Studio picks from it when adding a Fixture; the CLI lists
-and describes it. It is the Difracta Catalog's counterpart.
-
-A Fixture Type used by an Installation is copied into the Installation, so a file opens the same
-on another machine and a later library update never silently changes a rig.
-The copy is dropped when the last Fixture using it goes. The Runtime watches
-the library folder and says, per held type, whether its copy is the same as
-the library file, differs, or is no longer in the library; a reload (one
-type from its Fixture, or every one that differs from the Installation) is
-an undoable command that takes the library's file, refused when a Fixture's
-Mode is gone or its Footprint would overlap, and dropping what pointed at
-Element keys the new Mode lacks. Fixture Types have no
-navigator section; the Add Fixture picker lists the library. Types are JSON
-files, validated with Zod, carrying a `formatVersion` from day one, loaded from
-a `refrata-library/` folder at startup.
+The Fixture Types that ship with Refrata, read-only: a folder of Fixture
+Type files (`refrata-library/`, each a `.refrata-fixture`) the Runtime reads
+at startup and reads again when a file under it changes. It is one of the
+places a Fixture Type comes from, never where an Installation's types live:
+the Add Fixture picker and the Fixture Editor offer its types, the CLI lists
+them, and importing one brings it into the Installation. There is one
+library and nothing writes into it; a type made in one Installation reaches
+another as a file, or inside the Installation file that uses it. It is the
+Difracta Catalog's counterpart. Importers for the Open Fixture Library, GDTF
+and QLC+ `.qxf` are designed in docs/fixture-sources.md.
 
 **Elsewhere:** grandMA3 "fixture library" with types imported into the show;
 QLC+ installed definitions referenced by manufacturer and model.
 
 ### Fixture Type
 
-A reusable description of one device model: manufacturer, model, physical facts
-(weight, lumens, beam angle, later a visualizer shape) and one or more Modes.
-A Fixture Type controls nothing by itself; a Mode does.
+A description of one device model: manufacturer, model, notes and one or
+more Modes. A Fixture Type controls nothing by itself; a Mode does.
 
-**Elsewhere:** grandMA3 "fixture type", QLC+ "fixture definition".
+A Fixture Type belongs to the Installation. It is made there from nothing,
+imported from the Fixture Library or from a `.refrata-fixture` file, or
+duplicated from another, and it remembers which: its **origin**. It stays
+until a person removes it, which is refused while a Fixture uses it;
+removing the last Fixture of a type leaves the type. The Installation file
+carries its types, so it opens the same on another machine and a library
+update never silently changes a rig.
+
+Every type can be edited, whatever its origin, and a type is always valid:
+an edit that would break it is refused and says why, so there is no
+half-finished state. Editing a type changes every Fixture of it at once;
+an edit that would grow a Fixture's Footprint into its neighbour, or take
+away a Mode a Fixture is on, is refused, and one that removes an Element
+takes what pointed at it on those Fixtures along, as one undo step.
+
+A type's key (`manufacturer/model`) is its identity and is fixed when the
+type is created; renaming the manufacturer or the model later does not
+change it. Three keys inside a type are pointed at from the rest of the
+Installation and are fixed the same way, each made from the name given at
+creation: an Element's key, a Mode's key and an option's value. So is an
+Action's, which is part of its Address. A Channel's key is used only inside
+its Mode and follows the Channel's name.
+
+A type whose origin is the library has a **standing** against the library's
+file: it matches; it was edited here; the library is newer; both changed;
+it is no longer in the library; or, for a type from a file saved before
+origins were kept, it differs with no direction known. A standing is
+information, never a lock. Taking the library's definition is explicit, one
+undo step, and leaves the type matching again. A type from a file or made
+in the Installation has no standing.
+
+Fixture Types have no navigator section; the Fixture Editor is where they
+are listed.
+
+**Elsewhere:** grandMA3 "fixture type", imported into the show and edited
+there; QLC+ "fixture definition", edited in a separate Fixture Editor.
+
+### Fixture Editor
+
+The centre tab of Studio where Fixture Types are made, imported, edited,
+tried and exported. It lists the Installation's types, then the library's
+that the Installation lacks, and for the open type its Modes and, per Mode,
+four lists: Channels, Elements, Parameters and Actions. Whatever is picked
+in a list is selected and edited in the inspector, and every edit is a
+command, so the CLI reaches all of it.
+
+The **probe** is how a type is tried while it is edited: the DMX Tester's
+hold aimed at one patched Fixture of the type. Nothing is held until Hold is
+pressed; Hold then sends 0 to every Channel of that Fixture, exactly as the
+DMX Tester does, and each Channel has a fader over its whole width (0 to
+65535 for two bytes). It adds no state of its own: there is still one held
+range per Installation, shown on the tester's tab and in the status strip,
+and the editor is holding when that range is exactly the Fixture's.
+
+**Elsewhere:** grandMA3 "fixture type editor"; QLC+ "Fixture Definition
+Editor", a separate application.
 
 ### Mode
 
@@ -188,11 +235,14 @@ mode.
 ### Channel
 
 One slot of a Channel Layout: a name for humans, a width of one, two or three
-bytes, the Element it belongs to, and a safe default byte value. A Channel is
-written only by Encoding. It has no semantic of its own: the semantic lives in
-the Parameters that feed it.
+bytes, the Element it belongs to, and the byte it rests at while no Parameter
+writes it, its rest byte. A Channel is written only by Encoding. It has no
+semantic of its own: the semantic lives in the Parameters that feed it.
 
-A two-byte Channel is one Channel, never a "coarse" and a "fine" Channel.
+A Channel has one number: its place in the Footprint, counted from 1, as a
+manual's chart prints it. A two-byte Channel is one Channel, never a
+"coarse" and a "fine" Channel, and it reads "1–2"; there is no separate
+channel ordinal.
 
 **Elsewhere:** QLC+ "channel" (with a channel group, a preset and capabilities:
 the semantic is on the channel there). grandMA3 and GDTF "DMX channel" with
@@ -227,7 +277,7 @@ is designed here and shown from slice 2; in slice 1 an intermediate Element's
 inspector lists only its own Parameters.
 
 Elements are not Installation entities. They are derived from the Mode of the
-Fixture's copied-in Fixture Type and referenced everywhere as
+Fixture's Fixture Type and referenced everywhere as
 `<fixtureId>/<key>`, so a Fixture Set or a Look Layer row can point at
 `Panel 3 of Atomic 2` without a row for it. A key is unique within its Mode,
 so the reference is as stable as an id: changing a Fixture's Mode keeps every
@@ -426,8 +476,10 @@ The rules cover every shape that real fixtures have:
   components.
 
 Importers from OFL, GDTF and `.qxf` produce Encoding rules; a person authoring a
-Fixture Type composes them from a small set of primitives. Studio never shows
-them to a programmer.
+Fixture Type composes them from a small set of primitives, which the Fixture
+Editor offers by the names the file gives them: Scale, Color, Multiply,
+Wheel, Range, Switch and Spread, each only for the kind of Parameter it
+reads. Studio never shows them to a programmer.
 
 Two fixed rules of the first build: a `color` landing on red, green, blue and
 white emitters takes the white as the smallest of the three and subtracts it
@@ -474,7 +526,7 @@ shows. Do not call it `the app`, `the Electron app` or `the shell`.
 ### Rig
 
 The physical half of an Installation: its Universes, Outputs, Fixtures with their
-Elements and Tags, and Fixture Sets, plus the Fixture Types copied in. The Rig
+Elements and Tags, and Fixture Sets, plus its Fixture Types. The Rig
 is what the setup phase produces and what programming takes for granted. It is
 a layer name, not an entity.
 
@@ -1169,7 +1221,8 @@ Runtime when nobody touches it for a while, so a closed tab, a closed Studio
 or a crashed client never leaves channels forced. Never saved, not an
 Address, never undone. In Studio it is the centre column's second tab, each
 fader named after the Fixture patched over its channel, and a pill in the
-status strip says it is holding; the CLI has `tester`.
+status strip says it is holding; the CLI has `tester`. The Fixture Editor's
+probe is this same hold, aimed at one Fixture's range.
 
 **Elsewhere:** QLC+ Simple Desk, grandMA3 DMX Tester.
 
@@ -1263,4 +1316,3 @@ Never saved.
 - **Activation pairs**: Attributes stored together when one is touched, a
   programming-layer concern. An Aim covers pan and tilt.
 - **DMX input**, merging and RDM.
-- **Fixture Type Editor** in Studio; v1 authors types as files.

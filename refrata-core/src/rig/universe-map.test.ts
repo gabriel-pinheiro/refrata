@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import moverJson from "../../../refrata-library/generic/moving-head.json" with { type: "json" };
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
+import moverJson from "../../../refrata-library/generic/moving-head.refrata-fixture";
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
 import { createBuiltInRegistry } from "../commands/index.ts";
 import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";

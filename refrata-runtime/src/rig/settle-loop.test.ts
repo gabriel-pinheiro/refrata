@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DocumentStore } from "../documents/document-store.ts";
 import { createDrivers } from "../output/drivers.ts";
 import { OutputManager } from "../output/output-manager.ts";
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
 import { OutputLoop } from "./output-loop.ts";
 
 describe("OutputLoop with Settle", () => {

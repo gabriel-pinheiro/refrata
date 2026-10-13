@@ -6,6 +6,14 @@ import type { RowParent } from "@/navigator/ancestor-rows";
 
 import { controllerEntity } from "./controller/controller-entity";
 import { elementEntity, fixtureEntity } from "./fixture/fixture-entity";
+import {
+  fixtureTypeEntity,
+  typeActionEntity,
+  typeChannelEntity,
+  typeElementEntity,
+  typeModeEntity,
+  typeParameterEntity,
+} from "./fixture-type/fixture-type-entity";
 import { layerEntity } from "./layer/layer-entity";
 import { macroEntity } from "./macro/macro-entity";
 import { presetEntity } from "./preset/preset-entity";
@@ -38,9 +46,9 @@ export interface Removal {
  * adding a kind is one folder plus one line in `entities` below.
  */
 export interface EntityModule {
-  /** Section label in the navigator, plural. */
+  /** The kind's name, plural: its section label in the navigator, and how a selection counts it. */
   readonly label: string;
-  /** Top-level kinds have a section; child kinds render rows under their parent instead. */
+  /** Top-level kinds have a section; child kinds render rows under their parent, and the Fixture Editor's kinds are listed there instead. */
   readonly Section?: ComponentType<{ readonly view: DocumentView }>;
   readonly Inspector: ComponentType<{
     readonly view: DocumentView;
@@ -63,6 +71,12 @@ export const entities = {
   layer: layerEntity,
   controller: controllerEntity,
   macro: macroEntity,
+  fixtureType: fixtureTypeEntity,
+  typeMode: typeModeEntity,
+  typeChannel: typeChannelEntity,
+  typeElement: typeElementEntity,
+  typeParameter: typeParameterEntity,
+  typeAction: typeActionEntity,
 } as const satisfies Record<string, EntityModule>;
 
 export type EntityKind = keyof typeof entities;

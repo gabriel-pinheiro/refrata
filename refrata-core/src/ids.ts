@@ -12,7 +12,7 @@ export type MacroId = Id<"macro">;
 export type UniverseId = Id<"universe">;
 export type OutputId = Id<"output">;
 export type FixtureId = Id<"fixture">;
-/** A Fixture Type copied into the Installation is keyed by its library key, such as `generic/rgb-3ch`. */
+/** A Fixture Type of the Installation is keyed by its own key, such as `generic/rgb-3ch`. */
 export type FixtureTypeId = Id<"fixtureType">;
 export type SceneId = Id<"scene">;
 export type LayerId = Id<"layer">;

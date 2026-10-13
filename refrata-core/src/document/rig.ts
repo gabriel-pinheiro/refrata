@@ -11,7 +11,7 @@ import { FixtureTypeSchema } from "../rig/fixture-type.ts";
 import { DEFAULT_ORDER_KEY } from "./order.ts";
 
 /**
- * The Rig tables: Universes, Outputs, the Fixture Types copied in, and
+ * The Rig tables: Universes, Outputs, the Installation's Fixture Types, and
  * Fixtures with their navigator Groups. Elements are not rows; a Fixture's
  * Element tree is derived from its Mode (see `rig/elements.ts`).
  */
@@ -66,9 +66,34 @@ export const OutputSchema = z
   .strict();
 export type Output = Entity<typeof OutputSchema, OutputId>;
 
-/** A Fixture Type copied into the Installation, keyed by its library key. */
+/**
+ * Where a Fixture Type came from: Refrata's library (with a digest of what
+ * it was when it came in, to tell later which side changed), a file (its
+ * name, for display only), or this Installation, new or duplicated.
+ */
+export const FixtureTypeOriginSchema = z.discriminatedUnion("from", [
+  z
+    .object({
+      from: z.literal("library"),
+      digest: z.string().min(1).optional(),
+    })
+    .strict(),
+  z.object({ from: z.literal("file"), file: z.string().min(1) }).strict(),
+  z.object({ from: z.literal("installation") }).strict(),
+]);
+export type FixtureTypeOrigin = z.infer<typeof FixtureTypeOriginSchema>;
+
+/**
+ * A Fixture Type of the Installation, keyed by its `manufacturer/model`
+ * key. A file saved before origins has none, which reads as from the
+ * library with nothing remembered.
+ */
 export const StoredFixtureTypeSchema = z
-  .object({ id: z.string().min(1), type: FixtureTypeSchema })
+  .object({
+    id: z.string().min(1),
+    type: FixtureTypeSchema,
+    origin: FixtureTypeOriginSchema.optional(),
+  })
   .strict();
 export type StoredFixtureType = Entity<
   typeof StoredFixtureTypeSchema,
@@ -121,7 +146,7 @@ export const FIXTURE_LABELS: Record<FixtureKind, string> = {
 };
 
 /**
- * One device in the Rig: its type and Mode (the type is copied into
+ * One device in the Rig: its type and Mode (the type is one of
  * `fixtureTypes`), its Patch or none, its Position, and the Tags a person
  * added: `tags` on the Fixture itself, which is the root Element of the tree
  * its Mode declares, and `elementTags` by key on the Elements below it.

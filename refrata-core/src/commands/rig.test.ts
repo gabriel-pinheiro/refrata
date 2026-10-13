@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.refrata-fixture";
 import { listAddresses, resolveAddress } from "../address/address.ts";
 import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
@@ -204,7 +204,7 @@ describe("Fixtures", () => {
     expect(order(document)).toEqual(["first", "par", "second", "strobe"]);
   });
 
-  it("group, move, ungroup, remove, dropping unused types", () => {
+  it("group, move, ungroup, remove, keeping the types", () => {
     let document = stage();
     document = run(document, "fixture.create", {
       id: "g",
@@ -226,7 +226,7 @@ describe("Fixtures", () => {
     ).toContain("not a Fixture Group");
     const removal = run(document, "fixture.remove", { fixtureId: "g" });
     expect(removal.document.fixtures.par).toBeUndefined();
-    expect(removal.document.fixtureTypes["generic/rgb-3ch"]).toBeUndefined();
+    expect(removal.document.fixtureTypes["generic/rgb-3ch"]).toBeDefined();
     expect(
       removal.document.fixtureTypes["generic/atomic-like-panel"],
     ).toBeDefined();

@@ -110,6 +110,10 @@ export const settings = {
     /** Library file changes are gathered this long before the library is read again, since an editor's save is several events. */
     watchDebounceMs: 250,
   },
+  fixtureTypes: {
+    /** The most Channels a new blank Fixture Type starts with: a whole Universe. */
+    maxNewChannels: 512,
+  },
   tester: {
     /** The most channels one DMX Tester range holds: any single fixture fits, the tab stays a row of faders. */
     maxChannels: 64,

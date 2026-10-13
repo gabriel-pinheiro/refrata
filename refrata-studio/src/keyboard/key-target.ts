@@ -15,9 +15,10 @@ export function keyBelongsElsewhere(event: KeyboardEvent): boolean {
     )
       return true;
   }
-  return (
-    document.querySelector(
+  // A select keeps its list in the page, hidden, once it has been opened.
+  return [
+    ...document.querySelectorAll(
       '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]',
-    ) !== null
-  );
+    ),
+  ].some((popup) => popup.closest("[hidden]") === null);
 }

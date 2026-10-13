@@ -5,13 +5,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
 import { buildRuntime, type Runtime } from "../server.ts";
 
 let dir: string;
 let runtime: Runtime;
 let url: string;
-const rgbType = rgbJson as unknown as FixtureType;
+const rgbType = rgbJson as FixtureType;
 
 async function waitFor(done: () => boolean, timeoutMs = 2_000): Promise<void> {
   const started = Date.now();

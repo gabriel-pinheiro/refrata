@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 
 import { useClient } from "@/lib/client";
 
-/** The Fixture Library as the runtime lists it, fetched once per mount. */
-export function useLibrary(): {
+/** The Fixture Library as the runtime lists it, fetched on mount and again whenever `refresh` changes. */
+export function useLibrary(refresh = ""): {
   readonly entries: readonly LibraryEntry[] | undefined;
   readonly error: string | undefined;
 } {
@@ -30,11 +30,11 @@ export function useLibrary(): {
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [client, refresh]);
   return { entries, error };
 }
 
-/** One Fixture Type, the whole file, for a `fixture.create` payload. */
+/** One Fixture Type of the library, the whole file, for a `fixture.create` payload. */
 export async function fetchFixtureType(
   client: ReturnType<typeof useClient>,
   key: string,

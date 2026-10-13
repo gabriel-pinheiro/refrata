@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.refrata-fixture";
 import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
 import {
-  fixtureTypeDrift,
+  fixtureTypeStanding,
+  libraryOrigin,
   sameFixtureType,
 } from "../document/fixture-types.ts";
 import { parseFixtureType, type FixtureType } from "../rig/fixture-type.ts";
@@ -129,18 +130,48 @@ function stage(): Document {
 }
 
 describe("fixture.reload", () => {
-  it("compares types whatever their key order, and says how a copy stands", () => {
+  it("compares types whatever their key order", () => {
     const rgb = variant(rgbJson, () => undefined);
     const reordered = JSON.parse(
       JSON.stringify(rgb, Object.keys(rgb).reverse()),
     ) as FixtureType;
     expect(sameFixtureType(rgb, { ...reordered, modes: rgb.modes })).toBe(true);
+  });
+
+  it("says how a type from the library stands, and gives one from elsewhere no standing", () => {
+    const rgb = variant(rgbJson, () => undefined);
     const brighter = variant(rgbJson, (raw) => {
       parameterOf(modeOf(raw, "3ch"), "root", "dimmer").highlight = 0.5;
     });
-    expect(fixtureTypeDrift(rgb, rgb)).toBe("current");
-    expect(fixtureTypeDrift(rgb, brighter)).toBe("stale");
-    expect(fixtureTypeDrift(rgb, undefined)).toBe("missing");
+    const dimmer = variant(rgbJson, (raw) => {
+      parameterOf(modeOf(raw, "3ch"), "root", "dimmer").highlight = 0.2;
+    });
+    const held = { type: rgb, origin: libraryOrigin(rgb) };
+    expect(fixtureTypeStanding(held, rgb)).toBe("matches");
+    expect(fixtureTypeStanding(held, brighter)).toBe("newer");
+    expect(fixtureTypeStanding({ ...held, type: brighter }, rgb)).toBe(
+      "edited",
+    );
+    expect(fixtureTypeStanding({ ...held, type: brighter }, dimmer)).toBe(
+      "both",
+    );
+    // Both changed to the same thing.
+    expect(fixtureTypeStanding({ ...held, type: brighter }, brighter)).toBe(
+      "matches",
+    );
+    expect(fixtureTypeStanding(held, undefined)).toBe("gone");
+    // A file saved before origins: from the library, nothing remembered.
+    const old = { type: rgb };
+    expect(fixtureTypeStanding(old, rgb)).toBe("matches");
+    expect(fixtureTypeStanding(old, brighter)).toBe("differs");
+    expect(fixtureTypeStanding(old, undefined)).toBe("gone");
+    for (const origin of [
+      { from: "file", file: "rgb.refrata-fixture" },
+      { from: "installation" },
+    ] as const)
+      expect(
+        fixtureTypeStanding({ ...held, origin }, brighter),
+      ).toBeUndefined();
   });
 
   it("replaces the copy, and changes nothing when it is the same", () => {
@@ -217,5 +248,37 @@ describe("fixture.reload", () => {
     ).toEqual(["par/root"]);
     expect(after.links).toEqual({});
     expect(after.operational.highlight).toEqual({});
+  });
+
+  it("leaves each type from the library and matching it, whatever it was before", () => {
+    let document = stage();
+    document = run(document, "type.update", {
+      typeKey: "generic/rgb-3ch",
+      notes: "Edited here",
+    }).document;
+    const rgb = variant(rgbJson, () => undefined);
+    expect(
+      fixtureTypeStanding(document.fixtureTypes["generic/rgb-3ch"]!, rgb),
+    ).toBe("edited");
+    const taken = run(document, "fixture.reload", { types: [rgb] });
+    expect(taken.document.fixtureTypes["generic/rgb-3ch"]).toEqual({
+      id: "generic/rgb-3ch",
+      type: rgb,
+      origin: libraryOrigin(rgb),
+    });
+    // A type from a file that says the same becomes the library's by its origin alone.
+    const fromFile = run(document, "type.import", {
+      fixtureType: rgb,
+      origin: { from: "file", file: "rgb.refrata-fixture" },
+      onHeld: "replace",
+    }).document;
+    const adopted = run(fromFile, "fixture.reload", { types: [rgb] });
+    expect(adopted.patches).toEqual([
+      {
+        op: "set",
+        path: ["fixtureTypes", "generic/rgb-3ch", "origin"],
+        value: libraryOrigin(rgb),
+      },
+    ]);
   });
 });

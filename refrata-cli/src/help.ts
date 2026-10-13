@@ -14,7 +14,8 @@ Working from a shell
              address:port to pass. REFRATA_ACTOR names the owner of this
              shell's undo history (default: user@host).
 
-  Read       health, library, fixtures, tags, sets, scenes, layers <scene>,
+  Read       health, library, types, fixtures, tags, sets, scenes,
+             layers <scene>,
              visuals [id] (the Catalog, or one Visual of it),
              presets, presets show <preset>,
              controllers, macros, osc, get [path|Address], addresses,
@@ -24,11 +25,10 @@ Working from a shell
              patched over and the free gaps between), master, delay.
 
   Rig        fixtures add <typeKey> <modeKey> [--name] [--universe]
-             [--address] [--unpatched]  copies the type in and patches at
-             the next free address.  patch <fixture> <universe> <address>.
-             fixtures reload [type|fixture]  takes the library's current
-             file for a held type, or every held type, as one undo step;
-             "library" marks copies that differ.
+             [--address] [--unpatched]  adds a Fixture of a type the
+             Installation holds, or of one from the library, which comes
+             in with it, and patches at the next free address.
+             patch <fixture> <universe> <address>.
              highlight <fixture>[/<element>] [--on|--off]  lights it at its
              Highlight values (${String(settings.cli.highlightHoldMs / 1000)} s unless held). Elements are
              <fixtureId>/<key>, listed by "fixtures".
@@ -40,6 +40,39 @@ Working from a shell
              runtime's ${String(settings.tester.timeoutMs / 1000)} s timeout) to learn what a device does before
              it has a Fixture Type; tester release lets go. Never saved;
              Blackout kills it with the rest.
+
+  Types      A Fixture Type belongs to the Installation: made in it, or
+             imported from the library or from a .refrata-fixture file,
+             and kept until removed. Every type can be edited.
+             types  lists them: where each came from, how one from the
+             library stands (matches, edited here, library is newer, both,
+             no longer in the library) and how many Fixtures use it.
+             "library" lists the library and marks what is held.
+             types show <type> [mode]  prints a Mode as a chart: each
+             Channel's place in the Footprint (a two-byte one reads 1–2),
+             name, Element, the Parameters that write it and their byte
+             ranges, then the Actions.
+             types import <file|library key> [--replace|--copy]  brings a
+             type in; a key already held needs one of the two flags.
+             types export <type> [path]  writes a .refrata-fixture file.
+             types duplicate <type> [--model <m>], types remove <type>
+             (refused while a Fixture uses it).
+             fixtures reload [type|fixture]  takes the library's definition
+             of a held type, edited here or not, as one undo step; with no
+             type, of every type where only the library changed.
+             Edits are type.* commands for "run" ("commands" lists them,
+             "describe <command>" its fields): type.create, type.update,
+             type.mode.add|update|remove, type.channel.add|update|move|
+             remove, type.element.add|update|move|remove, type.parameter.
+             add|update|remove, type.encoding.set, type.option.add|update|
+             remove, type.swatch.add|update|remove, type.action.add|update|
+             remove. A type is always valid: a change that would break it
+             is refused and says why, and one to a type Fixtures use
+             reaches them at once (refused when a Footprint would grow
+             into a neighbour). Keys the rest of the Installation points
+             at (an Element's, a Mode's, an option's value, an Action's)
+             come from the name given at creation and never change; a
+             Channel's key follows its name.
 
   Tags       tag <fixture>[/<key>] <tag...>  adds a person's Tags to a
              Fixture (its root Element) or to one Element; untag removes
@@ -243,6 +276,14 @@ Working from a shell
              cue Breathe sync
              dmx "Universe 1"
              dmx "Universe 1" --map
+             run type.create '{"manufacturer":"Acme","model":"Mini Par",
+                 "channels":4}'
+             run type.channel.update '{"typeKey":"acme/mini-par","modeKey":
+                 "4ch","channel":"channel-1","name":"Dimmer"}'
+             run type.parameter.add '{"typeKey":"acme/mini-par","modeKey":
+                 "4ch","element":"root","attribute":"dimmer"}'
+             types show acme/mini-par
+             fixtures add acme/mini-par 4ch --name Mini
              layers add Verse Fly --visual flyout --target set:Movers
              presets add "Crowd Low" set:Movers
              presets aim "Crowd Low" "Mover 1" --pan -20 --tilt -30

@@ -1,29 +1,25 @@
 import type { DocumentView } from "@refrata/client";
 import type { Tester } from "@refrata/core";
-import { Grid3x3, SlidersHorizontal, Theater } from "lucide-react";
+import { Grid3x3, Lightbulb, SlidersHorizontal, Theater } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FixtureEditor } from "@/fixture-editor/fixture-editor";
 import { useDocumentPath } from "@/lib/client";
-import { useStoredState } from "@/lib/storage";
 import { RigView } from "@/rig-view/rig-view";
 import { TesterView } from "@/tester/tester-view";
 import { UniverseView } from "@/universe-view/universe-view";
 
-const TAB_KEY = "refrata.workspace.centerTab";
-const TABS = ["rig", "tester", "universe"] as const;
-type CenterTab = (typeof TABS)[number];
-const isTab = (candidate: unknown): candidate is CenterTab =>
-  TABS.includes(candidate as CenterTab);
+import { isCenterTab, useCenterTab } from "./center-tab";
 
 /**
- * The centre column's tabs: the Rig View, the DMX Tester and the Universe
- * View. The open tab is remembered per browser. Leaving the tester tab
- * keeps its range held, so the Rig View can be watched while probing; the
- * status strip says so. The Universe View streams its frame only while
- * open.
+ * The centre column's tabs: the Rig View, the DMX Tester, the Universe
+ * View and the Fixture Editor, in a strip that scrolls when the column is
+ * narrow. Leaving the tester tab keeps its range held, so the Rig View can
+ * be watched while probing; the status strip says so. The Universe View
+ * streams its frame only while open.
  */
 export function Center({ view }: { readonly view: DocumentView }) {
-  const [tab, setTab] = useStoredState<CenterTab>(TAB_KEY, "rig", isTab);
+  const { tab, show } = useCenterTab();
   const tester = useDocumentPath<Tester | null>(view, [
     "operational",
     "tester",
@@ -32,13 +28,13 @@ export function Center({ view }: { readonly view: DocumentView }) {
     <Tabs
       value={tab}
       onValueChange={(next) => {
-        if (isTab(next)) setTab(next);
+        if (isCenterTab(next)) show(next);
       }}
-      className="h-full min-h-0 gap-0 bg-background"
+      className="h-full min-h-0 min-w-0 gap-0 overflow-hidden bg-background"
     >
       <TabsList
         variant="line"
-        className="h-7 w-full shrink-0 justify-start rounded-none border-b px-1"
+        className="h-7 w-full shrink-0 justify-start overflow-x-auto overflow-y-hidden rounded-none border-b px-1 [scrollbar-width:none]"
       >
         <TabsTrigger value="rig" className="flex-none">
           <Theater /> Rig View
@@ -55,6 +51,9 @@ export function Center({ view }: { readonly view: DocumentView }) {
         <TabsTrigger value="universe" className="flex-none">
           <Grid3x3 /> Universe View
         </TabsTrigger>
+        <TabsTrigger value="fixture-editor" className="flex-none">
+          <Lightbulb /> Fixture Editor
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="rig" className="min-h-0 flex-1">
         <RigView view={view} />
@@ -64,6 +63,9 @@ export function Center({ view }: { readonly view: DocumentView }) {
       </TabsContent>
       <TabsContent value="universe" className="min-h-0 flex-1">
         <UniverseView view={view} />
+      </TabsContent>
+      <TabsContent value="fixture-editor" className="min-h-0 flex-1">
+        <FixtureEditor view={view} />
       </TabsContent>
     </Tabs>
   );

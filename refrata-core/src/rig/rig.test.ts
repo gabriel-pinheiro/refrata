@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import dimmerJson from "../../../refrata-library/generic/dimmer-1ch.json" with { type: "json" };
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
-import moverJson from "../../../refrata-library/generic/moving-head.json" with { type: "json" };
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import rgbwJson from "../../../refrata-library/generic/rgbw-4ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import dimmerJson from "../../../refrata-library/generic/dimmer-1ch.refrata-fixture";
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
+import moverJson from "../../../refrata-library/generic/moving-head.refrata-fixture";
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
+import rgbwJson from "../../../refrata-library/generic/rgbw-4ch.refrata-fixture";
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.refrata-fixture";
 
 import {
   elementsOf,
@@ -261,16 +261,26 @@ describe("Gamut", () => {
 });
 
 describe("Fixture Type rules", () => {
+  /** The parts of the beam's file these tests rebuild. */
+  const beamRaw = beamJson as {
+    readonly modes: {
+      readonly "12ch": {
+        readonly elements: {
+          readonly root: { readonly parameters: Record<string, object> };
+        };
+      };
+    };
+  };
   const withRoot = (parameters: unknown, options?: unknown): unknown => ({
-    ...beamJson,
+    ...beamRaw,
     modes: {
       "12ch": {
-        ...beamJson.modes["12ch"],
+        ...beamRaw.modes["12ch"],
         elements: {
           root: {
             name: "Head",
             parameters: {
-              ...beamJson.modes["12ch"].elements.root.parameters,
+              ...beamRaw.modes["12ch"].elements.root.parameters,
               ...(parameters as object),
             },
           },

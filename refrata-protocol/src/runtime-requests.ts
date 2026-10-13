@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Runtime-scoped requests: the document, the Fixture Type library and the
+ * Runtime-scoped requests: the document, the Fixture Library and the
  * DMX Tester. These are not Document commands; they manage which Document
  * the runtime has open, or read what the runtime knows and sends. Names and
  * payload schemas live here so the runtime, Studio and CLI agree.
@@ -49,16 +49,13 @@ export const RuntimeRequestSchemas = {
   "documents.close": z
     .object({ documentId: z.string().min(1), discard: z.boolean().optional() })
     .strict(),
-  /** The Fixture Types the runtime knows: bundled files and anything the open Installation holds. */
+  /** The Fixture Types of the library; what the Installation holds is in the document. */
   "library.list": z.object({}).strict(),
   /**
-   * One Fixture Type by key, the whole file, for a `fixture.create` or
-   * `fixture.reload` payload. Falls back to the open Installation's copy
-   * unless `libraryOnly`, which a reload asks for.
+   * One Fixture Type of the library by key, the whole file, for a
+   * `fixture.create`, `type.import` or `fixture.reload` payload.
    */
-  "library.get": z
-    .object({ key: z.string().min(1), libraryOnly: z.boolean().optional() })
-    .strict(),
+  "library.get": z.object({ key: z.string().min(1) }).strict(),
   /** Keeps the DMX Tester's range held: the runtime releases it when nobody touches it for a while. */
   "tester.touch": z.object({ documentId: z.string().min(1) }).strict(),
   /** The DMX Frame a Universe is sending right now, 512 bytes. */
@@ -85,10 +82,6 @@ export const LibraryEntrySchema = z
     manufacturer: z.string(),
     model: z.string(),
     modes: z.array(LibraryModeSchema),
-    /** Where it came from: a bundled file, or the open Installation. */
-    source: z.enum(["library", "installation"]),
-    /** True when the open Installation holds a different copy, so `fixture.reload` would change it. */
-    stale: z.boolean().optional(),
   })
   .strict();
 export type LibraryEntry = z.infer<typeof LibraryEntrySchema>;

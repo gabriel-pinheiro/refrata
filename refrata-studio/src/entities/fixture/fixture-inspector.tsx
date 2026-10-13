@@ -11,6 +11,7 @@ import {
 } from "@refrata/core";
 import { useEffect } from "react";
 
+import { useFixtureEditor } from "@/entities/fixture-type/editor-state";
 import { TargetActionsSection } from "@/entities/target/target-actions";
 import { InspectorHeading } from "@/inspector/fields/inspector-heading";
 import { InspectorSection } from "@/inspector/fields/inspector-section";
@@ -20,12 +21,13 @@ import { SelectField } from "@/inspector/fields/select-field";
 import { TagsField } from "@/inspector/fields/tags-field";
 import { useCommand, useDocumentPath } from "@/lib/client";
 import { useSelection } from "@/selection/selection";
+import { useCenterTab } from "@/workspace/center-tab";
 
-import { FixtureTypeReload } from "./fixture-type-reload";
 import { ParameterRows } from "./parameter-rows";
 
 /**
- * A Fixture's name, Mode, Tags, Patch and Position, the root Element's
+ * A Fixture's name, its type (a line that opens it in the Fixture Editor),
+ * Mode, Tags, Patch and Position, the root Element's
  * Parameters with their resolved values, and what it can be used for as a
  * Target. A Group shows only its name.
  */
@@ -73,6 +75,8 @@ function PatchedFixtureBody({
   readonly fixture: Extract<Fixture, { kind: "fixture" }>;
 }) {
   const command = useCommand(view);
+  const editor = useFixtureEditor();
+  const { show: showTab } = useCenterTab();
   const stored = useDocumentPath<StoredFixtureType>(view, [
     "fixtureTypes",
     fixture.typeKey,
@@ -91,16 +95,21 @@ function PatchedFixtureBody({
   return (
     <>
       <InspectorSection storageKey="fixture-type" label="Type">
-        <p className="text-xs">
-          {type === undefined
-            ? `${fixture.typeKey} (missing)`
-            : `${type.manufacturer} ${type.model}`}
-        </p>
-        <FixtureTypeReload
-          view={view}
-          typeKey={fixture.typeKey}
-          model={type?.model ?? fixture.typeKey}
-        />
+        {type === undefined ? (
+          <p className="text-xs">{fixture.typeKey} (missing)</p>
+        ) : (
+          <button
+            type="button"
+            className="w-fit max-w-full truncate text-left text-xs hover:underline"
+            title="Open it in the Fixture Editor"
+            onClick={() => {
+              editor.openType(fixture.typeKey, fixture.modeKey);
+              showTab("fixture-editor");
+            }}
+          >
+            {type.manufacturer} {type.model}
+          </button>
+        )}
         <SelectField
           label="Mode"
           value={fixture.modeKey}

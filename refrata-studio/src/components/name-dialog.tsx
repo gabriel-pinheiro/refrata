@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -88,4 +88,16 @@ function NameForm({
       </form>
     </DialogContent>
   );
+}
+
+/** A name dialog of one's own: a function that asks, and the dialog to render. */
+export function useNameDialog(): readonly [
+  ask: (request: NameRequest) => void,
+  dialog: ReactNode,
+] {
+  const [request, setRequest] = useState<NameRequest | undefined>(undefined);
+  return [
+    setRequest,
+    <NameDialog request={request} onClose={() => setRequest(undefined)} />,
+  ];
 }

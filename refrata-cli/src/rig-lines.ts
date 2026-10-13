@@ -88,14 +88,18 @@ export function formatFixtures(document: Document): string[] {
   return lines;
 }
 
-export function formatLibrary(entries: readonly LibraryEntry[]): string[] {
+/** The library one type per line, the ones whose key the Installation holds marked. */
+export function formatLibrary(
+  entries: readonly LibraryEntry[],
+  held: readonly string[] = [],
+): string[] {
   return entries.map(
     (entry) =>
       `${entry.key.padEnd(24)} ${entry.manufacturer} ${entry.model}  modes: ${entry.modes
         .map((mode) => `${mode.key} (${String(mode.footprint)}ch)`)
         .join(
           ", ",
-        )}${entry.source === "installation" ? "  [from the Installation]" : ""}${entry.stale === true ? "  [the Installation's copy differs: fixtures reload]" : ""}`,
+        )}${held.includes(entry.key) ? "  [in the Installation]" : ""}`,
   );
 }
 

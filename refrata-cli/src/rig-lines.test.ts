@@ -6,8 +6,8 @@ import {
 } from "@refrata/core";
 import { describe, expect, it } from "vitest";
 
-import rgbJson from "../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import rgbJson from "../../refrata-library/generic/rgb-3ch.refrata-fixture";
+import strobeJson from "../../refrata-library/generic/atomic-like-panel.refrata-fixture";
 import {
   formatFixtures,
   formatLibrary,
@@ -70,18 +70,21 @@ describe("Rig lines", () => {
     expect(lines).toHaveLength(3 + 18);
   });
 
-  it("lists the library one type per line", () => {
-    expect(
-      formatLibrary([
-        {
-          key: "generic/rgb-3ch",
-          manufacturer: "Generic",
-          model: "RGB 3ch",
-          modes: [{ key: "3ch", name: "3ch", footprint: 3 }],
-          source: "library",
-        },
-      ]),
-    ).toEqual(["generic/rgb-3ch          Generic RGB 3ch  modes: 3ch (3ch)"]);
+  it("lists the library one type per line, marking what the Installation holds", () => {
+    const entries = [
+      {
+        key: "generic/rgb-3ch",
+        manufacturer: "Generic",
+        model: "RGB 3ch",
+        modes: [{ key: "3ch", name: "3ch", footprint: 3 }],
+      },
+    ];
+    expect(formatLibrary(entries)).toEqual([
+      "generic/rgb-3ch          Generic RGB 3ch  modes: 3ch (3ch)",
+    ]);
+    expect(formatLibrary(entries, ["generic/rgb-3ch"])).toEqual([
+      "generic/rgb-3ch          Generic RGB 3ch  modes: 3ch (3ch)  [in the Installation]",
+    ]);
   });
 });
 

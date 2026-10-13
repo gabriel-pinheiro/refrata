@@ -1,10 +1,7 @@
 import { z } from "zod";
 
 import { accepted, defineCommand, rejected } from "../command/command.ts";
-import {
-  ensureFixtureType,
-  releaseFixtureType,
-} from "../document/fixture-types.ts";
+import { ensureFixtureType } from "../document/fixture-types.ts";
 import { patchProblem } from "../document/fixtures.ts";
 import { applyPatches, type Patch } from "../document/patch.ts";
 import { removalWarnings } from "../document/removal.ts";
@@ -14,8 +11,8 @@ import { dropElementReferences } from "./rig-removal.ts";
 
 /**
  * Changes a Fixture's type or Mode (refused when the new Footprint would
- * overlap a neighbour in its Universe; the old type's copy goes when nothing
- * else uses it). Every Set member, Layer Target and person's Tag whose
+ * overlap a neighbour in its Universe; the old type stays in the
+ * Installation). Every Set member, Layer Target and person's Tag whose
  * Element key the new Mode keeps survives; the rest are dropped with a
  * warning.
  */
@@ -76,20 +73,12 @@ export const fixtureUpdate = defineCommand({
         references.warnings,
       );
       patches.push(...typePatches);
-      if (typeKey !== fixture.typeKey) {
+      if (typeKey !== fixture.typeKey)
         patches.push({
           op: "set",
           path: ["fixtures", fixture.id, "typeKey"],
           value: typeKey,
         });
-        patches.push(
-          ...releaseFixtureType(
-            document,
-            fixture.typeKey,
-            new Set([fixture.id]),
-          ),
-        );
-      }
       if (modeKey !== fixture.modeKey)
         patches.push({
           op: "set",

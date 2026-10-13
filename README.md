@@ -13,6 +13,19 @@ a projection-mapping engine built the same way.
 
 ## Status
 
+The Fixture Editor: a Fixture Type now belongs to the Installation, made
+there from nothing, imported from the library or from a `.refrata-fixture`
+file, edited completely in Studio and exported to a file. A new centre tab
+lists the types and, for one Mode, its Channels, Elements, Parameters and
+Actions; what is picked is edited in the inspector, with each Encoding rule
+by the name the file gives it. A probe, the DMX Tester's hold aimed at one
+Fixture, tries the type on the rig while it is edited. A type is always
+valid: an edit that would break it is refused and says why. A type from the
+library says how it stands against it (matches, edited here, library is
+newer, both, gone), and taking the library's definition is one undo step.
+The CLI gained `types`, `types show`, `types import`, `types export`,
+`types duplicate` and `types remove`, and every edit is a `type.*` command.
+
 Geometry Visuals: Wipe, Radar, Spectrum and Ripple read where their
 Targets hang. A Layer of one carries a Frame, a rectangle placed on the
 stage that the Rig View draws and drags while the Layer is selected, with
@@ -57,8 +70,8 @@ the Target rule, Master after Resolve and Blackout on the frame, Scene play as a
 Layer Addresses linkable to Controllers, one ordered selection across the Rig View and the
 navigator with Targets outlined and a picker to fill Layers and Sets, a DMX
 Tester holding raw channels over the show, a Universe View of one Universe's
-addresses with what is patched over each and the bytes going out, a watched library with a reload
-of the Installation's Fixture Type copies, and the CLI's `scenes`, `play`,
+addresses with what is patched over each and the bytes going out, a watched library whose
+definitions the Installation's Fixture Types can take, and the CLI's `scenes`, `play`,
 `layers`, `look`, `sets`, `master`, `blackout` and `tester`. Slice 1's Rig
 (Universes, Enttec-compatible and uDMX USB Outputs, Fixture Types from
 `refrata-library/`, Patch, Highlight, Encoding at 40 Hz, the Resolved
@@ -88,7 +101,7 @@ The design the rest is built against is in `GLOSSARY.md` and `docs/`.
 - [docs/fixture-sources.md](docs/fixture-sources.md), how Open Fixture
   Library, GDTF and QLC+ definitions map onto Modes.
 - [docs/fixture-type-format.md](docs/fixture-type-format.md), the JSON shape
-  of a hand-authored Fixture Type and the Encoding primitives.
+  of a Fixture Type, the `.refrata-fixture` file and the Encoding primitives.
 - [docs/rig-view.md](docs/rig-view.md), the schematic front view of the rig
   in Studio, Positions and Shape Templates.
 
@@ -325,6 +338,23 @@ node refrata-cli/bin/refrata.mjs --help
 The CLI is a client of the same runtime as Studio. Every Studio gesture is a
 command or a request, so `refrata run <command>` and `refrata documents`
 reach all of them.
+
+Fixture Types have shortcuts of their own:
+
+```sh
+refrata library                          # the library, marking what the Installation holds
+refrata types                            # the Installation's types: origin, standing, Fixtures
+refrata types show generic/rgb-3ch       # a Mode as a chart: Channels, Parameters, byte ranges
+refrata types import par.refrata-fixture # or a library key; --replace or --copy when held
+refrata types export acme/mini-par
+refrata types duplicate acme/mini-par
+refrata types remove acme/mini-par       # refused while a Fixture uses it
+refrata fixtures reload [type]           # take the library's definition
+```
+
+Everything inside a type is a `type.*` command for `refrata run`;
+`refrata commands` lists them and `refrata describe <command>` prints one's
+fields.
 
 ## Quality
 

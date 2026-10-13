@@ -28,7 +28,7 @@ multi-part structure.
 
 OFL has no explicit tree beyond "matrix pixels versus the rest", so an importer
 produces at most two levels: root plus pixels. Deeper trees (Strobe sections
-next to Backlight panels) need GDTF or hand authoring.
+next to Backlight panels) need GDTF or the Fixture Editor.
 
 ## GDTF (import)
 
@@ -67,20 +67,32 @@ QLC+'s own XML definitions. Useful for rigs migrating from QLC+.
 | Pan/Tilt fine presets         | folded into the two-byte Channel                             |
 | Head                          | a leaf Element; channels outside every head stay on the root |
 
-## Hand-authored
+## Authored in Refrata
 
-A Fixture Type file in the project's own format, written by hand or produced by
-a future Fixture Type Editor in Studio. This is the canonical form every
-importer targets, so the format is the Mode model written down: Channel Layout,
+A Fixture Type made or edited in the Fixture Editor, or written by hand as a
+file in the project's own format. This is the canonical form every importer
+targets, so the format is the Mode model written down: Channel Layout,
 Element tree, Parameters, Encoding rules built from the primitives.
 
+A type made in an Installation belongs to that Installation and is saved
+with it. It leaves as a `.refrata-fixture` file, exported from the Fixture
+Editor or with `refrata types export`, and arrives the same way; the library
+is read-only and there is no shared folder to write into. Every type the
+Installation holds, whatever its origin, is edited the same way, and each
+edit is a `type.*` command: a type is kept valid at every step, so an edit
+that would leave a reference dangling is refused and says why.
+
 The format is JSON, validated with Zod, with a `formatVersion` from day one
-like the Installation file; the files live in a `refrata-library/` folder the
-Runtime loads at startup. The shape is in
+like the Installation file; the library's files live in a `refrata-library/`
+folder the Runtime loads at startup. The shape is in
 [fixture-type-format.md](fixture-type-format.md): a flat wire-ordered Channel
 Layout where each Channel names its Element, an Element tree with Tags, and
 Parameters that state only default, highlight and Encoding, the rest coming
 from the Attribute vocabulary in core.
+
+The importers above (Open Fixture Library, GDTF, `.qxf`) are designed and
+not built; they would arrive behind the same Import menu and produce the
+same file.
 
 ## Bundled generics
 

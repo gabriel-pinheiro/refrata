@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
-import strobeJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
+import strobeJson from "../../../refrata-library/generic/atomic-like-panel.refrata-fixture";
 import { executeCommand } from "../command/execute.ts";
 import { createBuiltInRegistry } from "../commands/index.ts";
 import { settings } from "../settings.ts";

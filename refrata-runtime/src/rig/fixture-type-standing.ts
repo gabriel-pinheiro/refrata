@@ -1,21 +1,24 @@
-import { fixtureTypeDrift, type FixtureTypeDrift } from "@refrata/core";
+import { fixtureTypeStanding, type FixtureTypeStanding } from "@refrata/core";
 
 import type { DocumentStore } from "../documents/document-store.ts";
 import type { FixtureLibrary } from "./library.ts";
 
-export type FixtureTypeDrifts = Readonly<Record<string, FixtureTypeDrift>>;
+export type FixtureTypeStandings = Readonly<
+  Record<string, FixtureTypeStanding>
+>;
 
 /**
- * How each Fixture Type the open Installation holds stands against the
- * library, kept current as the Installation's types change and as library
- * files change on disk, for the live state Studio shows beside the reload
- * buttons.
+ * How each Fixture Type of the open Installation that came from the
+ * library stands against it, kept current as the Installation's types
+ * change and as library files change on disk, for the live state the
+ * Fixture Editor shows. A type from a file or made in the Installation has
+ * no standing and is left out.
  */
-export class FixtureTypeDriftTracker {
+export class FixtureTypeStandingTracker {
   readonly #store: DocumentStore;
   readonly #library: FixtureLibrary;
-  readonly #listeners = new Set<(state: FixtureTypeDrifts) => void>();
-  #state: FixtureTypeDrifts = {};
+  readonly #listeners = new Set<(state: FixtureTypeStandings) => void>();
+  #state: FixtureTypeStandings = {};
   #unsubscribeStore: (() => void) | undefined;
   #unsubscribeLibrary: (() => void) | undefined;
   #unsubscribeDeltas: (() => void) | undefined;
@@ -31,11 +34,11 @@ export class FixtureTypeDriftTracker {
     this.#unsubscribeLibrary = this.#library.onChange(() => this.#update());
   }
 
-  state(): FixtureTypeDrifts {
+  state(): FixtureTypeStandings {
     return this.#state;
   }
 
-  onChange(listener: (state: FixtureTypeDrifts) => void): () => void {
+  onChange(listener: (state: FixtureTypeStandings) => void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   }
@@ -51,9 +54,11 @@ export class FixtureTypeDriftTracker {
 
   #update(): void {
     const document = this.#store.currentSession()?.document;
-    const next: Record<string, FixtureTypeDrift> = {};
-    for (const [key, stored] of Object.entries(document?.fixtureTypes ?? {}))
-      next[key] = fixtureTypeDrift(stored.type, this.#library.libraryType(key));
+    const next: Record<string, FixtureTypeStanding> = {};
+    for (const [key, stored] of Object.entries(document?.fixtureTypes ?? {})) {
+      const standing = fixtureTypeStanding(stored, this.#library.get(key));
+      if (standing !== undefined) next[key] = standing;
+    }
     const keys = Object.keys(next);
     const same =
       keys.length === Object.keys(this.#state).length &&

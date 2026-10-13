@@ -4,5 +4,5 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node", "w3c-web-usb"]
   },
-  "include": ["src"]
+  "include": ["src", "../refrata-fixture.d.ts"]
 }

@@ -36,7 +36,18 @@ not introduce near-synonyms.
   its Parameter Values and its Targets as key, index and count, never a
   fixture, a Tag or a Position. Only the Runtime constructs a `VisualPlayer`.
 - Channels exist only inside a Mode's Encoding. Nothing above
-  `refrata-core/src/rig/` may mention a DMX channel or a byte.
+  `refrata-core/src/rig/` may mention a DMX channel or a byte. The Fixture
+  Editor, like the DMX Tester and the Universe View, is rig tooling and shows
+  them by design.
+- A Fixture Type belongs to the Installation and is always valid. A change
+  to one is a `type.*` command built on a pure edit in
+  `refrata-core/src/rig/edits/` (a Mode in, the next Mode or a refusal in a
+  person's words out) run through `commands/type-edit.ts`, which checks the
+  schema, applies the rules for a type Fixtures use
+  (`commands/type-change.ts`, shared with `fixture.reload`) and returns a
+  patch per property. Anything derived about Channels and bytes (the chart,
+  the next range, what a new Parameter is filled with) lives in `rig/` so the
+  CLI and Studio draw the same thing.
 - Tunables (history limits, autosave delay, ports, timeouts, output rate) live
   in `refrata-core/src/settings.ts`. Do not scatter magic numbers.
 - Files stay under roughly 300 lines. Split by feature folder, not by technical

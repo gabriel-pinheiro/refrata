@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
 import { executeCommand } from "../command/execute.ts";
 import { createBuiltInRegistry } from "../commands/index.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
@@ -39,15 +39,26 @@ function rig(type: unknown = beamJson): Document {
   return result.document;
 }
 
-const root = beamJson.modes["12ch"].elements.root;
+/** The parts of the beam's file these tests rebuild. */
+const beamRaw = beamJson as {
+  readonly modes: {
+    readonly "12ch": {
+      readonly elements: {
+        readonly root: { readonly parameters: Record<string, object> };
+      };
+    };
+  };
+};
+
+const root = beamRaw.modes["12ch"].elements.root;
 
 /** The beam's type with some of its root's Parameters replaced. */
 function withRoot(parameters: Record<string, unknown>): unknown {
   return {
-    ...beamJson,
+    ...beamRaw,
     modes: {
       "12ch": {
-        ...beamJson.modes["12ch"],
+        ...beamRaw.modes["12ch"],
         elements: {
           root: { ...root, parameters: { ...root.parameters, ...parameters } },
         },

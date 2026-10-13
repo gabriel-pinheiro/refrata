@@ -5,8 +5,8 @@ import { z } from "zod";
  * subscribers that ask for it (`subscribe` with `live: true`) but never
  * written to the file, never in undo history, and never versioned by the
  * document revision. It holds the OSC door's state, each Output's status,
- * the output loop's rate, and how each Fixture Type the Installation holds
- * stands against the library.
+ * the output loop's rate, and how each Fixture Type that came from the
+ * library stands against it.
  */
 
 /** The runtime's OSC door: which port, and how many OSCQuery clients listen for values. */
@@ -38,17 +38,29 @@ export const DmxLiveSchema = z
   .strict();
 export type DmxLive = z.infer<typeof DmxLiveSchema>;
 
-/** A held Fixture Type against the library: the same, different (a reload would change it), or no longer in it. */
-export const FIXTURE_TYPE_DRIFTS = ["current", "stale", "missing"] as const;
-export const FixtureTypeDriftSchema = z.enum(FIXTURE_TYPE_DRIFTS);
+/**
+ * A Fixture Type from the library against the library's file: it matches,
+ * it was edited here, the library's is newer, both changed, it is gone
+ * from the library, or (for a type that remembers nothing of the library)
+ * it differs with no direction known.
+ */
+export const FIXTURE_TYPE_STANDINGS = [
+  "matches",
+  "edited",
+  "newer",
+  "both",
+  "gone",
+  "differs",
+] as const;
+export const FixtureTypeStandingSchema = z.enum(FIXTURE_TYPE_STANDINGS);
 
 export const LiveStateSchema = z
   .object({
     osc: OscLiveSchema,
     outputs: z.record(z.string(), OutputStatusSchema),
     dmx: DmxLiveSchema,
-    /** By Fixture Type key, every type the Installation holds. */
-    fixtureTypes: z.record(z.string(), FixtureTypeDriftSchema),
+    /** By Fixture Type key, every type of the Installation whose origin is the library. */
+    fixtureTypes: z.record(z.string(), FixtureTypeStandingSchema),
   })
   .strict();
 export type LiveState = z.infer<typeof LiveStateSchema>;

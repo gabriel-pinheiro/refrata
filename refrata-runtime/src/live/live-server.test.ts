@@ -7,7 +7,7 @@ import {
 } from "@refrata/core";
 import { PROTOCOL_VERSION } from "@refrata/protocol";
 
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -23,7 +23,7 @@ import { idleLiveServer } from "./idle-live-server.ts";
 let dir: string;
 let runtime: Runtime;
 let url: string;
-const rgbType = rgbJson as unknown as FixtureType;
+const rgbType = rgbJson as FixtureType;
 
 function waitFor<TValue>(
   read: () => TValue | undefined,

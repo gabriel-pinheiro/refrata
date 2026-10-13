@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import panelJson from "../../../refrata-library/generic/atomic-like-panel.json" with { type: "json" };
+import panelJson from "../../../refrata-library/generic/atomic-like-panel.refrata-fixture";
 import { run, stage } from "../commands/preset-stage.ts";
 import type { LookLayer } from "../document/composition.ts";
 import type { Document } from "../document/document.ts";

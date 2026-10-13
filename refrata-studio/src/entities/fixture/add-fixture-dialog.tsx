@@ -1,5 +1,11 @@
 import type { DocumentView } from "@refrata/client";
-import { generateId } from "@refrata/core";
+import {
+  footprintOf,
+  generateId,
+  type StoredFixtureType,
+  type Table,
+} from "@refrata/core";
+import type { LibraryEntry } from "@refrata/protocol";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,15 +20,57 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/inspector/fields/select-field";
-import { useClient, useCommand } from "@/lib/client";
+import { useClient, useCommand, useDocumentPath } from "@/lib/client";
 import { useSelection } from "@/selection/selection";
 
 import { fetchFixtureType, useLibrary } from "./use-library";
 
+/** One type the picker offers: the Installation's when it holds the key, else the library's. */
+interface Offered extends LibraryEntry {
+  readonly held: boolean;
+}
+
+/** The Installation's types and the library's, one row per key, the Installation's winning. */
+function offeredTypes(
+  held: Table<StoredFixtureType>,
+  library: readonly LibraryEntry[],
+): readonly Offered[] {
+  const rows = new Map<string, Offered>();
+  for (const entry of library) rows.set(entry.key, { ...entry, held: false });
+  for (const { type } of Object.values(held))
+    rows.set(type.key, {
+      key: type.key,
+      manufacturer: type.manufacturer,
+      model: type.model,
+      modes: Object.entries(type.modes).map(([key, mode]) => ({
+        key,
+        name: mode.name,
+        footprint: footprintOf(mode),
+      })),
+      held: true,
+    });
+  return [...rows.values()].sort((a, b) =>
+    `${a.manufacturer} ${a.model}`.localeCompare(
+      `${b.manufacturer} ${b.model}`,
+    ),
+  );
+}
+
+/** A type's manufacturer and model, with its key when another offered type is called the same. */
+function typeLabel(offered: readonly Offered[], entry: Offered): string {
+  const name = `${entry.manufacturer} ${entry.model}`;
+  const shared = offered.some(
+    (other) =>
+      other.key !== entry.key &&
+      `${other.manufacturer} ${other.model}` === name,
+  );
+  return shared ? `${name} (${entry.key})` : name;
+}
+
 /**
- * Picks a Fixture Type and Mode from the library and names the Fixture. The
- * type file travels with the command, so the Installation holds its own
- * copy from the first Fixture on.
+ * Picks a Fixture Type and Mode and names the Fixture. It lists the
+ * Installation's types and the library's together; picking a library type
+ * the Installation lacks brings it in with the Fixture.
  */
 export function AddFixtureDialog({
   view,
@@ -36,7 +84,13 @@ export function AddFixtureDialog({
   const client = useClient();
   const command = useCommand(view);
   const { select } = useSelection();
-  const { entries, error } = useLibrary();
+  const { entries: library, error } = useLibrary();
+  const held =
+    useDocumentPath<Table<StoredFixtureType>>(view, ["fixtureTypes"]) ?? {};
+  const entries =
+    library === undefined && error === undefined
+      ? undefined
+      : offeredTypes(held, library ?? []);
   const [typeKey, setTypeKey] = useState<string | null>(null);
   const [modeKey, setModeKey] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -50,14 +104,16 @@ export function AddFixtureDialog({
     if (chosen === undefined || mode === undefined) return;
     setBusy(true);
     try {
-      const fixtureType = await fetchFixtureType(client, chosen.key);
+      const fixtureType = chosen.held
+        ? undefined
+        : await fetchFixtureType(client, chosen.key);
       const id = generateId("fixture");
       await command("fixture.create", {
         id,
         parentId,
         typeKey: chosen.key,
         modeKey: mode.key,
-        fixtureType,
+        ...(fixtureType === undefined ? {} : { fixtureType }),
         ...(name.trim() === "" ? {} : { name: name.trim() }),
       });
       select({ kind: "fixture", id });
@@ -85,7 +141,8 @@ export function AddFixtureDialog({
           <DialogHeader>
             <DialogTitle>New Fixture</DialogTitle>
             <DialogDescription>
-              Pick a Fixture Type and Mode from the library.
+              Pick a Fixture Type and Mode. One from the library comes into the
+              Installation with the Fixture.
             </DialogDescription>
           </DialogHeader>
           {error !== undefined && (
@@ -97,7 +154,7 @@ export function AddFixtureDialog({
             noneLabel={entries === undefined ? "Loading…" : "Choose a type"}
             options={(entries ?? []).map((entry) => ({
               value: entry.key,
-              label: `${entry.manufacturer} ${entry.model}`,
+              label: `${typeLabel(entries ?? [], entry)}${entry.held ? "" : ", from the library"}`,
             }))}
             onValueChange={(next) => {
               setTypeKey(next);

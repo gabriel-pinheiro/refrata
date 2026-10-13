@@ -156,10 +156,13 @@ what a Mode contains. Here it contains everything control needs: the Channel
 Layout, the Element tree, the Parameters, the Encoding. A Fixture Type holds
 only what is true of the device regardless of mode.
 
-Copy the Fixture Type into the Installation when a Fixture uses it. grandMA3 does this;
-QLC+ references the installed library by manufacturer and model, and a
-workspace opened on another machine with an older library shows missing
-fixtures. Self-contained files are worth the duplication.
+A Fixture Type belongs to the Installation: it is brought in from the library
+when a Fixture first uses it, or made or imported in the Fixture Editor, and
+stays until a person removes it. grandMA3 does this; QLC+ references the
+installed library by manufacturer and model, and a workspace opened on
+another machine with an older library shows missing fixtures. Self-contained
+files are worth the duplication, and they are what lets every type be
+edited where it is used.
 
 ### Element (and why not Physical/Logical Fixture)
 
@@ -201,7 +204,7 @@ element, the root element.
 
 Elements are derived, not stored. The Installation has one `fixtures` table
 holding `group` and `fixture` rows in Difracta's tree shape; a Fixture's
-Elements are computed from the Mode of its copied-in Fixture Type, and
+Elements are computed from the Mode of its Fixture Type, and
 everything that points at an Element (Selection, Fixture Sets, Look Layer rows,
 Addresses) writes `<fixtureId>/<key>`. Storing them was the first proposal and
 would have bought stable ids, but a key is unique within its Mode by
@@ -338,30 +341,44 @@ shortcuts that wrap the everyday ones. Navigator gestures keep the verbs
 Controllers use (`move`, `ungroup`), so a Fixture's stage Position needs its
 own verb, `place`.
 
-| Command               | Does                                                                                                             |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `universe.create`     | adds a Universe; a new Installation already has `Universe 1`                                                     |
-| `universe.rename`     |                                                                                                                  |
-| `universe.remove`     | refused while a Fixture is patched into it                                                                       |
-| `output.create`       | adds an Output for one Universe: kind and device                                                                 |
-| `output.update`       | changes kind or device                                                                                           |
-| `output.remove`       |                                                                                                                  |
-| `fixture.create`      | adds a Fixture from a library type and Mode, copies the type in, patches it at the next free address, lands last |
-| `fixture.rename`      |                                                                                                                  |
-| `fixture.move`        | navigator move between Groups                                                                                    |
-| `fixture.ungroup`     |                                                                                                                  |
-| `fixture.remove`      | drops the Fixture Type copy when no Fixture uses it any more                                                     |
-| `fixture.update`      | changes type or Mode; refused when the new Footprint would collide; Tags have their own commands                 |
-| `fixture.patch`       | sets Universe and address, or unpatches; refused on overlap                                                      |
-| `fixture.place`       | sets Position; a drag coalesces into one undo step                                                               |
-| `fixture.tags.add`    | adds a person's Tags to any mix of Fixtures and Elements, one undo step                                          |
-| `fixture.tags.remove` | removes them; declared Tags are locked                                                                           |
-| `tag.rename`          | renames a person's Tag on every Fixture and Element and in every Rule; onto an existing Tag it merges            |
+| Command               | Does                                                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `universe.create`     | adds a Universe; a new Installation already has `Universe 1`                                                                                  |
+| `universe.rename`     |                                                                                                                                               |
+| `universe.remove`     | refused while a Fixture is patched into it                                                                                                    |
+| `output.create`       | adds an Output for one Universe: kind and device                                                                                              |
+| `output.update`       | changes kind or device                                                                                                                        |
+| `output.remove`       |                                                                                                                                               |
+| `fixture.create`      | adds a Fixture of a type and Mode, bringing a library type in when the Installation lacks it, patches it at the next free address, lands last |
+| `fixture.rename`      |                                                                                                                                               |
+| `fixture.move`        | navigator move between Groups                                                                                                                 |
+| `fixture.ungroup`     |                                                                                                                                               |
+| `fixture.remove`      | removes the Fixture with what pointed at its Elements; its Fixture Type stays in the Installation                                             |
+| `fixture.update`      | changes type or Mode; refused when the new Footprint would collide; the old type stays; Tags have their own commands                          |
+| `fixture.reload`      | takes the library's definition of types the Installation holds, one undo step; each then matches the library                                  |
+| `fixture.patch`       | sets Universe and address, or unpatches; refused on overlap                                                                                   |
+| `fixture.place`       | sets Position; a drag coalesces into one undo step                                                                                            |
+| `fixture.tags.add`    | adds a person's Tags to any mix of Fixtures and Elements, one undo step                                                                       |
+| `fixture.tags.remove` | removes them; declared Tags are locked                                                                                                        |
+| `tag.rename`          | renames a person's Tag on every Fixture and Element and in every Rule; onto an existing Tag it merges                                         |
 
 Highlight is not a command: it is a write to the boolean Address
 `element/<fixtureId>/<key>/highlight` through `address.set`.
 
-CLI: `refrata library` lists types and Modes; `refrata fixtures` prints the
+Fixture Types belong to the Installation and have commands of their own,
+all `type.*`: `type.create`, `type.import`, `type.duplicate`, `type.update`
+and `type.remove` for a whole type, then `type.mode.*`, `type.channel.*`,
+`type.element.*`, `type.parameter.*`, `type.encoding.set`, `type.option.*`,
+`type.swatch.*` and `type.action.*` inside one. Each leaves the type valid
+or is refused, returns a patch per property it changed, and, on a type
+Fixtures use, follows the rules of `fixture.reload`: refused when a
+Footprint would grow into a neighbour or a Mode a Fixture is on would go,
+and an Element that goes takes what pointed at it along.
+
+CLI: `refrata library` lists the library's types and Modes and marks the
+ones the Installation holds; `refrata types` lists the Installation's, and
+`refrata types show`, `import`, `export`, `duplicate` and `remove` work on
+them; `refrata fixtures` prints the
 Fixtures with their Element trees; `refrata fixtures add <type> <mode>
 [--universe] [--address] [--name]`; `refrata patch <fixture> <universe>
 <address>`; `refrata highlight <fixture-or-element> [--on|--off]`;

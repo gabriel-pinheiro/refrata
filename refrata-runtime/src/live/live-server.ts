@@ -79,8 +79,8 @@ export interface LiveServerOptions {
   readonly outputs: OutputManager;
   /** Told when a holder of the DMX Tester's range checks in. */
   readonly tester?: { touch(): void } | undefined;
-  /** How the Installation's Fixture Types stand against the library. */
-  readonly drift?:
+  /** How the Installation's Fixture Types from the library stand against it. */
+  readonly standings?:
     | {
         state(): LiveState["fixtureTypes"];
         onChange(
@@ -103,7 +103,7 @@ export class LiveServer {
   readonly #unsubscribeStore: () => void;
   readonly #unsubscribeOsc: (() => void) | undefined;
   readonly #unsubscribeOutputs: () => void;
-  readonly #unsubscribeDrift: (() => void) | undefined;
+  readonly #unsubscribeStandings: (() => void) | undefined;
   readonly #unsubscribeLoop: () => void;
   readonly #unsubscribeResolved: () => void;
   readonly #attached: AttachedSession;
@@ -134,7 +134,7 @@ export class LiveServer {
         { op: "set", path: ["outputs"], value: options.outputs.statuses() },
       ]),
     );
-    this.#unsubscribeDrift = options.drift?.onChange((state) =>
+    this.#unsubscribeStandings = options.standings?.onChange((state) =>
       this.#fanOutLive([{ op: "set", path: ["fixtureTypes"], value: state }]),
     );
     this.#unsubscribeLoop = options.loop.onLive((dmx) =>
@@ -156,7 +156,7 @@ export class LiveServer {
       osc: this.#options.osc?.state() ?? EMPTY_LIVE_STATE.osc,
       outputs: this.#options.outputs.statuses(),
       dmx: this.#options.loop.live(),
-      fixtureTypes: this.#options.drift?.state() ?? {},
+      fixtureTypes: this.#options.standings?.state() ?? {},
     };
   }
 
@@ -164,7 +164,7 @@ export class LiveServer {
     this.#unsubscribeStore();
     this.#unsubscribeOsc?.();
     this.#unsubscribeOutputs();
-    this.#unsubscribeDrift?.();
+    this.#unsubscribeStandings?.();
     this.#unsubscribeLoop();
     this.#unsubscribeResolved();
     this.#attached.close();
@@ -578,27 +578,19 @@ export class LiveServer {
           reply({
             ok: true,
             result: {
-              types: this.#options.library.list(
-                store.currentSession()?.document,
-              ),
+              types: this.#options.library.list(),
             },
           });
           break;
         case "library.get": {
-          const { key, libraryOnly } = payload as {
-            key: string;
-            libraryOnly?: boolean;
-          };
-          const type =
-            libraryOnly === true
-              ? this.#options.library.libraryType(key)
-              : this.#options.library.get(
-                  key,
-                  store.currentSession()?.document,
-                );
+          const { key } = payload as { key: string };
+          const type = this.#options.library.get(key);
           reply(
             type === undefined
-              ? { ok: false, error: `No Fixture Type is called “${key}”.` }
+              ? {
+                  ok: false,
+                  error: `The library has no Fixture Type “${key}”.`,
+                }
               : { ok: true, result: { type } },
           );
           break;

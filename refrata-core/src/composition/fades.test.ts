@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
 import { resolveAddress } from "../address/address.ts";
 import { executeCommand } from "../command/execute.ts";
 import { createBuiltInRegistry } from "../commands/index.ts";

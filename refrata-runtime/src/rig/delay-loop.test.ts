@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentStore } from "../documents/document-store.ts";
 import { createDrivers } from "../output/drivers.ts";
 import { OutputManager } from "../output/output-manager.ts";
-import dimmerJson from "../../../refrata-library/generic/dimmer-1ch.json" with { type: "json" };
+import dimmerJson from "../../../refrata-library/generic/dimmer-1ch.refrata-fixture";
 import { OutputLoop } from "./output-loop.ts";
 
 describe("OutputLoop with an Output Delay", () => {

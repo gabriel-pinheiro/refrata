@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
 import { executeCommand } from "../command/execute.ts";
 import { emptyDocument, type Document } from "../document/document.ts";
 import { applyPatches } from "../document/patch.ts";

@@ -15,7 +15,7 @@ import { LiveServer } from "./live/live-server.ts";
 import { OscServer } from "./osc/osc-server.ts";
 import { createDrivers, type OutputDrivers } from "./output/drivers.ts";
 import { OutputManager } from "./output/output-manager.ts";
-import { FixtureTypeDriftTracker } from "./rig/fixture-type-drift.ts";
+import { FixtureTypeStandingTracker } from "./rig/fixture-type-standing.ts";
 import { ActionTimeout } from "./rig/action-timeout.ts";
 import { HighlightTimeout } from "./rig/highlight-timeout.ts";
 import { TesterTimeout } from "./rig/tester-timeout.ts";
@@ -78,7 +78,7 @@ export async function buildRuntime(
   const highlightTimeout = new HighlightTimeout(store);
   const actionTimeout = new ActionTimeout(store);
   const testerTimeout = new TesterTimeout(store);
-  const drift = new FixtureTypeDriftTracker(store, library);
+  const standings = new FixtureTypeStandingTracker(store, library);
   const live = new LiveServer({
     store,
     runtimeName: "Refrata Runtime",
@@ -90,7 +90,7 @@ export async function buildRuntime(
     loop,
     outputs,
     tester: testerTimeout,
-    drift,
+    standings,
   });
   let advertisement: RuntimeAdvertisement | undefined;
 
@@ -146,7 +146,7 @@ export async function buildRuntime(
       highlightTimeout.start();
       actionTimeout.start();
       testerTimeout.start();
-      drift.start();
+      standings.start();
       library.watch(config.libraryDir);
       if (osc !== undefined) {
         try {
@@ -171,7 +171,7 @@ export async function buildRuntime(
       highlightTimeout.close();
       actionTimeout.close();
       testerTimeout.close();
-      drift.close();
+      standings.close();
       library.close();
       await loop.close();
       await osc?.close();

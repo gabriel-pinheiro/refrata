@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import rgbJson from "../../../refrata-library/generic/rgb-3ch.json" with { type: "json" };
+import rgbJson from "../../../refrata-library/generic/rgb-3ch.refrata-fixture";
 import { executeCommand } from "../command/execute.ts";
 import { resolveDocument } from "../composition/resolve.ts";
 import { emptyDocument, type Document } from "../document/document.ts";

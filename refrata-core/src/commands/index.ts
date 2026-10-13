@@ -97,6 +97,35 @@ import { tagRename } from "./tag.rename.ts";
 import { fixtureActionEnd } from "./fixture.action.end.ts";
 import { testerHold } from "./tester.hold.ts";
 import { testerRelease, testerSet, testerZero } from "./tester.set.ts";
+import { typeCreate } from "./type.create.ts";
+import { typeImport } from "./type.import.ts";
+import { typeDuplicate } from "./type.duplicate.ts";
+import { typeUpdate } from "./type.update.ts";
+import { typeRemove } from "./type.remove.ts";
+import { typeModeAdd } from "./type.mode.add.ts";
+import { typeModeUpdate } from "./type.mode.update.ts";
+import { typeModeRemove } from "./type.mode.remove.ts";
+import { typeChannelAdd } from "./type.channel.add.ts";
+import { typeChannelUpdate } from "./type.channel.update.ts";
+import { typeChannelMove } from "./type.channel.move.ts";
+import { typeChannelRemove } from "./type.channel.remove.ts";
+import { typeElementAdd } from "./type.element.add.ts";
+import { typeElementUpdate } from "./type.element.update.ts";
+import { typeElementMove } from "./type.element.move.ts";
+import { typeElementRemove } from "./type.element.remove.ts";
+import { typeParameterAdd } from "./type.parameter.add.ts";
+import { typeParameterUpdate } from "./type.parameter.update.ts";
+import { typeParameterRemove } from "./type.parameter.remove.ts";
+import { typeEncodingSet } from "./type.encoding.set.ts";
+import { typeOptionAdd } from "./type.option.add.ts";
+import { typeOptionUpdate } from "./type.option.update.ts";
+import { typeOptionRemove } from "./type.option.remove.ts";
+import { typeSwatchAdd } from "./type.swatch.add.ts";
+import { typeSwatchUpdate } from "./type.swatch.update.ts";
+import { typeSwatchRemove } from "./type.swatch.remove.ts";
+import { typeActionAdd } from "./type.action.add.ts";
+import { typeActionUpdate } from "./type.action.update.ts";
+import { typeActionRemove } from "./type.action.remove.ts";
 import { universeCreate } from "./universe.create.ts";
 import { universeRemove } from "./universe.remove.ts";
 import { universeRename } from "./universe.rename.ts";
@@ -123,6 +152,35 @@ export const builtInCommands: readonly CommandDefinition<never>[] = [
   fixturePlace,
   fixtureRemove,
   fixtureReload,
+  typeCreate,
+  typeImport,
+  typeDuplicate,
+  typeUpdate,
+  typeRemove,
+  typeModeAdd,
+  typeModeUpdate,
+  typeModeRemove,
+  typeChannelAdd,
+  typeChannelUpdate,
+  typeChannelMove,
+  typeChannelRemove,
+  typeElementAdd,
+  typeElementUpdate,
+  typeElementMove,
+  typeElementRemove,
+  typeParameterAdd,
+  typeParameterUpdate,
+  typeParameterRemove,
+  typeEncodingSet,
+  typeOptionAdd,
+  typeOptionUpdate,
+  typeOptionRemove,
+  typeSwatchAdd,
+  typeSwatchUpdate,
+  typeSwatchRemove,
+  typeActionAdd,
+  typeActionUpdate,
+  typeActionRemove,
   setCreate,
   setRename,
   setMove,

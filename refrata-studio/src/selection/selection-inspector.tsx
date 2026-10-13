@@ -84,11 +84,10 @@ function summary(selected: readonly Selection[]): string {
     .join(", ");
 }
 
-const TABLES: Record<EntityKind, keyof Document | undefined> = {
+const TABLES: Partial<Record<EntityKind, keyof Document>> = {
   universe: "universes",
   output: "outputs",
   fixture: "fixtures",
-  element: undefined,
   set: "fixtureSets",
   preset: "presets",
   scene: "scenes",
@@ -103,7 +102,7 @@ function nameOf(document: Document, item: Selection): string {
   const table = TABLES[item.kind];
   const entity =
     table === undefined
-      ? undefined
+      ? entities[item.kind].removal?.find(document, item.id)
       : (document[table] as Record<string, { name?: string }>)[item.id];
   return entity?.name ?? item.id;
 }

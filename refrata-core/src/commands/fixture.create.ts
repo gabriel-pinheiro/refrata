@@ -25,8 +25,9 @@ import { footprintOf, FixtureTypeSchema } from "../rig/fixture-type.ts";
 import { placeShape, shapeWidth } from "../rig/shapes.ts";
 
 /**
- * A new Fixture copies its Fixture Type into the Installation (pass
- * `fixtureType` unless the Installation holds the key already), takes the
+ * A new Fixture brings its Fixture Type into the Installation from the
+ * library (pass `fixtureType` unless the Installation holds the key
+ * already), takes the
  * next free address of its Universe (the first Universe unless told, or
  * stays unpatched when nothing fits), lands one gap to the right of the
  * rightmost Fixture and last among its siblings (or right after the one

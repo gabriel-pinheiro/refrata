@@ -2,11 +2,13 @@ import {
   createBuiltInRegistry,
   emptyDocument,
   executeCommand,
+  fixtureTypeStanding,
+  originOf,
   type Document,
 } from "@refrata/core";
 import { describe, expect, it } from "vitest";
 
-import beamJson from "../../../refrata-library/generic/beam-moving-head.json" with { type: "json" };
+import beamJson from "../../../refrata-library/generic/beam-moving-head.refrata-fixture";
 import { parseDocumentFile, serializeDocument } from "./document-file.ts";
 
 const registry = createBuiltInRegistry();
@@ -61,6 +63,30 @@ describe("the Installation file", () => {
     const parsed = parseDocumentFile(JSON.stringify(written));
     expect(parsed).toMatchObject({ ok: true, document: { presets: {} } });
     expect(parsed.ok && parsed.document.links).toEqual(document.links);
+  });
+
+  it("opens a file written before origins, its types read as from the library with nothing remembered", () => {
+    const document = stage();
+    const written = JSON.parse(serializeDocument(document)) as {
+      fixtureTypes: Record<string, { origin?: unknown }>;
+    };
+    const key = "generic/beam-moving-head";
+    expect(written.fixtureTypes[key]?.origin).toMatchObject({
+      from: "library",
+    });
+    delete written.fixtureTypes[key]?.origin;
+    const parsed = parseDocumentFile(JSON.stringify(written));
+    if (!parsed.ok) throw new Error(parsed.error);
+    const stored = parsed.document.fixtureTypes[key]!;
+    expect(stored.type).toEqual(document.fixtureTypes[key]?.type);
+    expect(stored.origin).toBeUndefined();
+    expect(originOf(stored)).toEqual({ from: "library" });
+    expect(fixtureTypeStanding(stored, stored.type)).toBe("matches");
+    expect(
+      fixtureTypeStanding(stored, { ...stored.type, notes: "Newer" }),
+    ).toBe("differs");
+    // Saved again, it is the same file: nothing is made up for it.
+    expect(JSON.parse(serializeDocument(parsed.document))).toEqual(written);
   });
 
   it("opens a file written before Regions, its Flyout in the box its Parameters held", () => {
