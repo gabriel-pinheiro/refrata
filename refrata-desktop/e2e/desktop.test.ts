@@ -20,6 +20,7 @@ import {
   standaloneRuntime,
   stopStandalone,
   studioTitle,
+  submit,
   userData,
   windowAfter,
   useDesktop,
@@ -219,7 +220,7 @@ describe("Refrata Desktop", () => {
     // A runtime elsewhere shows its own Studio, which gets the menu bridge for
     // its menu and nothing that reaches this computer's disk or Desktop itself.
     await address.fill(`127.0.0.1:${port}`);
-    let page = await windowAfter(() => address.press("Enter"));
+    let page = await windowAfter(() => submit(address));
     await page.waitForFunction(() => document.title.startsWith("Elsewhere"));
     expect(page.url()).toBe(`http://127.0.0.1:${port}/studio/`);
     expect(
@@ -293,7 +294,7 @@ describe("Refrata Desktop", () => {
     const launchPage = await launchToPage();
     const address = launchPage.getByRole("textbox");
     await address.fill(`http://127.0.0.1:${port}/studio/`);
-    const remote = await windowAfter(() => address.press("Enter"));
+    const remote = await windowAfter(() => submit(address));
     await remote.waitForFunction(() => document.title.startsWith("Elsewhere"));
 
     // Cancel keeps the remote session; Switch and Open runs the file here.

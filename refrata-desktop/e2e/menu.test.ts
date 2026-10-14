@@ -16,6 +16,7 @@ import {
   sparePort,
   standaloneRuntime,
   studioTitle,
+  submit,
   windowAfter,
   useDesktop,
 } from "./harness.ts";
@@ -176,7 +177,7 @@ describe("Refrata Desktop's native menu", () => {
       }, response);
     const asked = answer(2);
     await address.fill(`127.0.0.1:${port}`);
-    await address.press("Enter");
+    await submit(address);
     expect(await asked).toBe("Save the changes to “Changed”?");
     await eventually(
       () => Promise.resolve(chooser.isClosed()),
@@ -191,7 +192,7 @@ describe("Refrata Desktop's native menu", () => {
     void answer(1);
     const again = chooser.getByRole("textbox");
     await again.fill(`127.0.0.1:${port}`);
-    const remote = await windowAfter(() => again.press("Enter"));
+    const remote = await windowAfter(() => submit(again));
     await remote.waitForFunction(() => document.title.startsWith("Elsewhere"));
     await eventually(
       () => Promise.resolve(page.isClosed() && chooser.isClosed()),

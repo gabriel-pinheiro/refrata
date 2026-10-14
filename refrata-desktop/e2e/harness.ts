@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import {
   _electron as electron,
   type ElectronApplication,
+  type Locator,
   type Page,
 } from "playwright";
 import { afterEach, beforeEach } from "vitest";
@@ -105,6 +106,17 @@ export async function windowAfter(action: () => Promise<void>): Promise<Page> {
   const [window] = await Promise.all([app?.waitForEvent("window"), action()]);
   if (window === undefined) throw new Error("No application.");
   return window;
+}
+
+/**
+ * Enter in a field of the launch page, for an answer that closes it. The
+ * page may be gone before Playwright hears back about the key, which fails
+ * the press; with the page closed that is what was asked for.
+ */
+export async function submit(field: Locator): Promise<void> {
+  await field.press("Enter").catch((error: unknown) => {
+    if (!field.page().isClosed()) throw error;
+  });
 }
 
 /** A launch that lands on the launch page. */

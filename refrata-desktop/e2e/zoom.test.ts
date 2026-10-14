@@ -11,6 +11,7 @@ import {
   launch,
   quit,
   standaloneRuntime,
+  submit,
   userData,
   useDesktop,
   windowAfter,
@@ -95,7 +96,7 @@ describe("Studio's zoom in Refrata Desktop", () => {
     const chooser = await windowAfter(() => clickMenu("desktop:connect-to"));
     const address = chooser.getByRole("textbox");
     await address.fill(`127.0.0.1:${String(port)}`);
-    page = await windowAfter(() => address.press("Enter"));
+    page = await windowAfter(() => submit(address));
     await page.waitForFunction(() => document.title.startsWith("Elsewhere"));
     await eventually(zoomLevels, ({ studio }) => studio === 1);
 
