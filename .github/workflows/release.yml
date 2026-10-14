@@ -1,25 +1,21 @@
-# Packages Refrata Desktop on Linux, macOS and Windows for every push to main
-# and every tag v*, and keeps the packages as workflow artifacts for 7 days.
-# A tag vX.Y.Z also becomes a GitHub Release of version X.Y.Z with them
-# attached. Nothing is signed or notarised; README.md says how to open an
-# unsigned package.
+# Packages Refrata Desktop on Linux, macOS and Windows when a version tag v*
+# is pushed, keeps the packages as workflow artifacts for 7 days and publishes
+# a GitHub Release of that tag with them attached. Nothing is signed or
+# notarised; README.md says how to open an unsigned package.
 #
-# The version is X.Y.Z from a vX.Y.Z tag, or package.json's version plus
-# -g<short sha> on main, and reaches the package as
+# The version is X.Y.Z from a vX.Y.Z tag and reaches the package as
 # `-c.extraMetadata.version`: electron-builder writes it into the packaged
 # package.json and the file names and leaves the checkout alone.
 name: Release
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
 
 concurrency:
   group: release-${{ github.ref }}
-  # A newer push to main replaces the packages of the older one; a tag's run
-  # always finishes.
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  # A version tag's run always finishes.
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -46,13 +42,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            base="$(node -p "require('./refrata-desktop/package.json').version")"
-            version="$base-g${GITHUB_SHA::7}"
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       # See ci.yml: the npm that reads `allowScripts`.
       - run: npm install --global npm@12
       - run: npm ci
@@ -86,7 +76,6 @@ jobs:
 
   release:
     needs: package
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write

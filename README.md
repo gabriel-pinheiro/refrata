@@ -253,8 +253,8 @@ operating system it runs on, into `refrata-desktop/release/`: both AppImages
 on Linux, both dmgs on macOS, the installer on Windows
 (`refrata-desktop/electron-builder.yml`). The packages carry package.json's
 version unless given one: `npm run package:desktop -- -c.extraMetadata.version=1.2.3`.
-`.github/workflows/release.yml` does this on each OS for every push to `main`
-and every tag `v*`, and a tag becomes a GitHub Release with the packages
+`.github/workflows/release.yml` does this on each OS only when a version tag
+`v*` is pushed, and the tag becomes a GitHub Release with the packages
 attached.
 
 ## Production
