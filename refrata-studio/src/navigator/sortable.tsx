@@ -22,25 +22,11 @@ import {
 
 import { cn } from "@/lib/utils";
 
+import { dragData, overSource } from "./sortable-data";
+
 interface SortableContext {
   readonly kind: string;
   readonly listId: string;
-}
-
-/** What a dragged row carries; drop targets add `listId` and an edge or `inside`. */
-interface DragData {
-  readonly kind: string;
-  readonly id: string;
-  readonly listId: string;
-}
-
-function dragData(data: Record<string, unknown>): DragData | undefined {
-  const { kind, id, listId } = data;
-  return typeof kind === "string" &&
-    typeof id === "string" &&
-    typeof listId === "string"
-    ? { kind, id, listId }
-    : undefined;
 }
 
 const Context = createContext<SortableContext | undefined>(undefined);
@@ -91,6 +77,7 @@ export function SortableList({
     const stopMonitoring = monitorForElements({
       canMonitor: ({ source }) => source.data.kind === kind,
       onDrop: ({ source, location }) => {
+        if (overSource(source, location)) return;
         const target = location.current.dropTargets[0];
         if (target === undefined) return;
         // Drops inside a row are the row's own business.
@@ -218,12 +205,16 @@ export function SortableItem({
       }),
       dropTargetForElements({
         element,
+        // The dragged row takes its own drag, so letting go over it is not a
+        // drop on the Group or Scene whose wrapper holds it.
         canDrop: ({ source }) =>
-          source.data.id !== id &&
-          (source.data.kind === kind || acceptsInside(source.data.kind)),
+          source.element === element ||
+          (source.data.id !== id &&
+            (source.data.kind === kind || acceptsInside(source.data.kind))),
         getData: ({ input, element: self, source }) => {
           const sameKind = source.data.kind === kind;
           const data = { kind, id, listId };
+          if (source.element === self) return data;
           // The row is the first child; an open Group's wrapper also holds
           // its children's rows, which must not count as the row.
           const row = self.firstElementChild ?? self;
@@ -247,9 +238,10 @@ export function SortableItem({
           });
         },
         // Every row up the chain hears the drag; only the innermost shows it.
-        onDrag: ({ self, location }) =>
+        onDrag: ({ self, source, location }) =>
           setEdge(
-            location.current.dropTargets[0]?.element !== element
+            overSource(source, location) ||
+              location.current.dropTargets[0]?.element !== element
               ? null
               : self.data.inside === true
                 ? "inside"
@@ -260,6 +252,7 @@ export function SortableItem({
           setEdge(null);
           // Every row up the chain gets the drop (a Group row wraps its
           // contents); only the innermost one takes it.
+          if (overSource(source, location)) return;
           if (location.current.dropTargets[0]?.element !== element) return;
           const sourceId = source.data.id;
           if (self.data.inside === true && typeof sourceId === "string")
